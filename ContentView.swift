@@ -14,6 +14,12 @@ enum Mode: String, CaseIterable, Identifiable {
     case pages = "Pages"
 
     var id: Self { self }
+
+    /// How the window changes between reading and organising.
+    ///
+    /// Applied wherever the mode is set rather than in the views, because a view being
+    /// swapped for another cannot animate its own arrival.
+    static let animation = Animation.spring(duration: 0.32, bounce: 0.1)
 }
 
 /// The window's contents: the open PDF, or an empty state for a document with no pages.
@@ -49,8 +55,10 @@ struct ContentView: View {
                         .frame(width: ThumbnailSidebar.sidebarWidth(for: thumbnailWidth))
                         .background(Color(nsColor: .underPageBackgroundColor))
                         .animation(.easeOut(duration: 0.12), value: thumbnailWidth)
+                        .transition(.move(edge: .leading).combined(with: .opacity))
 
                         Divider()
+                            .transition(.opacity)
                     }
 
                     switch mode {
@@ -66,11 +74,15 @@ struct ContentView: View {
                                 ZoomHUD(viewer: viewer)
                                     .padding(.trailing, 16)
                             }
+                            .transition(.opacity.combined(with: .scale(scale: 1.02)))
                     case .pages:
                         PageGrid(document: document, selection: $selection) { index in
-                            mode = .read
+                            withAnimation(Mode.animation) {
+                                mode = .read
+                            }
                             viewer.goToPage(index)
                         }
+                        .transition(.opacity.combined(with: .scale(scale: 0.98)))
                     }
 
                     Divider()
@@ -89,7 +101,9 @@ struct ContentView: View {
         .frame(minWidth: 640, minHeight: 480)
         .background {
             Button("Find") {
-                mode = .read
+                withAnimation(Mode.animation) {
+                    mode = .read
+                }
                 showsFind = true
             }
             .keyboardShortcut("f", modifiers: .command)
