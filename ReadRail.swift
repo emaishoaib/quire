@@ -29,6 +29,14 @@ struct ReadRail: View {
 
     var body: some View {
         VStack(spacing: 8) {
+            button("Find", systemImage: "magnifyingglass") {
+                withAnimation(FindBar.animation) {
+                    showsFind = true
+                }
+            }
+
+            separator
+
             button(
                 mode == .read ? "Organise Pages" : "Read",
                 systemImage: mode == .read ? "square.grid.2x2" : "doc.text"
@@ -47,12 +55,6 @@ struct ReadRail: View {
             }
 
             separator
-
-            button("Find", systemImage: "magnifyingglass") {
-                withAnimation(FindBar.animation) {
-                    showsFind = true
-                }
-            }
 
             button("Recognize text: make scanned pages searchable", systemImage: "text.viewfinder") {
                 ocr.run(on: document)
