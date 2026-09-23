@@ -14,22 +14,33 @@ import UniformTypeIdentifiers
 /// The list is AppKit's own record of recently opened documents, the same one behind
 /// File → Open Recent, and files open through the document controller so that they are
 /// opened exactly as that menu would open them.
+///
+/// Everything sits in a column of its own rather than filling the window, because a tab
+/// is as wide as the window and a full-width list of a few files reads as broken.
 struct StartView: View {
     @State private var recents = NSDocumentController.shared.recentDocumentURLs
 
     var body: some View {
-        VStack(spacing: 0) {
-            header
+        ScrollView {
+            VStack(spacing: 0) {
+                header
 
-            Divider()
+                Divider()
 
-            if recents.isEmpty {
-                empty
-            } else {
-                list
+                if recents.isEmpty {
+                    empty
+                } else {
+                    list
+                }
             }
+            .background(.background.secondary, in: .rect(cornerRadius: 12))
+            .overlay(RoundedRectangle(cornerRadius: 12).strokeBorder(.separator))
+            .frame(maxWidth: 680)
+            .padding(.top, 56)
+            .padding(.bottom, 40)
+            .padding(.horizontal, 24)
+            .frame(maxWidth: .infinity)
         }
-        .frame(minWidth: 520, minHeight: 420)
         .background(Color(nsColor: .windowBackgroundColor))
         .onAppear { recents = NSDocumentController.shared.recentDocumentURLs }
     }
@@ -68,16 +79,16 @@ struct StartView: View {
     }
 
     private var list: some View {
-        ScrollView {
-            LazyVStack(spacing: 0) {
-                ForEach(recents, id: \.self) { url in
-                    Button {
-                        open(url)
-                    } label: {
-                        row(for: url)
-                    }
-                    .buttonStyle(.plain)
+        LazyVStack(spacing: 0) {
+            ForEach(Array(recents.enumerated()), id: \.element) { index, url in
+                Button {
+                    open(url)
+                } label: {
+                    row(for: url)
+                }
+                .buttonStyle(.plain)
 
+                if index < recents.count - 1 {
                     Divider()
                         .padding(.leading, 60)
                 }
