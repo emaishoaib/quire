@@ -8,17 +8,19 @@
 import PDFKit
 import SwiftUI
 
-/// The window's contents.
-///
-/// A placeholder until the viewer lands: showing the page count proves the file was read.
+/// The window's contents: the open PDF, or an empty state for a document with no pages.
 struct ContentView: View {
     @Bindable var document: QuireDocument
 
     var body: some View {
-        Text("\(document.pdf.pageCount) pages")
-            .font(.title)
-            .foregroundStyle(.secondary)
-            .frame(minWidth: 480, minHeight: 320)
+        Group {
+            if document.pdf.pageCount == 0 {
+                ContentUnavailableView("No Pages", systemImage: "doc")
+            } else {
+                PDFViewer(pdf: document.pdf)
+            }
+        }
+        .frame(minWidth: 640, minHeight: 480)
     }
 }
 
