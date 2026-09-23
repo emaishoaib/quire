@@ -113,24 +113,13 @@ struct StartView: View {
         .contentShape(.rect)
     }
 
-    /// Opens a file chosen by the user, then closes this tab so the document replaces it.
+    /// Opens a file chosen by the user. The document closes this tab as it opens.
     private func openPanel() {
-        let tab = NSApp.keyWindow
-        let before = Set(NSDocumentController.shared.documents.map(ObjectIdentifier.init))
-
         NSDocumentController.shared.openDocument(nil)
-
-        if NSDocumentController.shared.documents.contains(where: { !before.contains(ObjectIdentifier($0)) }) {
-            tab?.close()
-        }
     }
 
-    /// Opens a recent file, then closes this tab so the document takes its place.
+    /// Opens a recent file. The document closes this tab as it opens.
     private func open(_ url: URL) {
-        let tab = NSApp.keyWindow
-        NSDocumentController.shared.openDocument(withContentsOf: url, display: true) { _, _, error in
-            guard error == nil else { return }
-            tab?.close()
-        }
+        NSDocumentController.shared.openDocument(withContentsOf: url, display: true) { _, _, _ in }
     }
 }
