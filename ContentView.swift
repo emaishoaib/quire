@@ -25,6 +25,8 @@ struct ContentView: View {
     @State private var query = ""
     @State private var mode: Mode = .read
     @State private var selection = Set<Int>()
+    @AppStorage("showsThumbnails") private var showsThumbnails = true
+    @AppStorage("thumbnailWidth") private var thumbnailWidth = 120.0
 
     @Environment(\.undoManager) private var undoManager
 
@@ -35,15 +37,37 @@ struct ContentView: View {
             } else {
                 switch mode {
                 case .read:
-                    PDFViewer(pdf: document.pdf, revision: document.revision, controller: viewer)
-                        .overlay(alignment: .bottomTrailing) {
-                            ZoomControl(viewer: viewer)
-                                .padding(16)
+                    HStack(spacing: 0) {
+                        if showsThumbnails {
+                            VStack(spacing: 0) {
+                                ThumbnailSidebar(
+                                    controller: viewer,
+                                    attachCount: viewer.attachCount,
+                                    revision: document.revision,
+                                    thumbnailWidth: thumbnailWidth
+                                )
+
+                                Divider()
+
+                                ThumbnailSizeControl(thumbnailWidth: $thumbnailWidth)
+                            }
+                            .frame(width: ThumbnailSidebar.sidebarWidth(for: thumbnailWidth))
+                            .background(Color(nsColor: .underPageBackgroundColor))
+                            .animation(.easeOut(duration: 0.12), value: thumbnailWidth)
+
+                            Divider()
                         }
-                        .overlay(alignment: .trailing) {
-                            ZoomHUD(viewer: viewer)
-                                .padding(.trailing, 16)
-                        }
+
+                        PDFViewer(pdf: document.pdf, revision: document.revision, controller: viewer)
+                            .overlay(alignment: .bottomTrailing) {
+                                ZoomControl(viewer: viewer)
+                                    .padding(16)
+                            }
+                            .overlay(alignment: .trailing) {
+                                ZoomHUD(viewer: viewer)
+                                    .padding(.trailing, 16)
+                            }
+                    }
                 case .pages:
                     PageGrid(document: document, selection: $selection) { index in
                         mode = .read
@@ -97,6 +121,16 @@ struct ContentView: View {
             }
 
             if mode == .read {
+                ToolbarItem(placement: .navigation) {
+                    Button {
+                        showsThumbnails.toggle()
+                    } label: {
+                        Label("Thumbnails", systemImage: "sidebar.left")
+                    }
+                    .help("Show or hide page thumbnails")
+                    .keyboardShortcut("t", modifiers: [.command, .option])
+                }
+
                 ToolbarItemGroup(placement: .navigation) {
                     Button {
                         viewer.previousPage()

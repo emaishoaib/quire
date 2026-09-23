@@ -22,6 +22,7 @@ final class ViewerController {
     private(set) var isTwoUp = false
     private(set) var isContinuous = true
     private(set) var showsCoverPage = false
+    private(set) var attachCount = 0
 
     @ObservationIgnored private weak var view: PDFView?
     @ObservationIgnored private var lastQuery = ""
@@ -32,8 +33,12 @@ final class ViewerController {
     ///
     /// Switching between Read and Pages destroys the view, so any scroll target or
     /// search highlight asked for while it was gone is applied here instead.
+    /// The live view, for the thumbnail sidebar to hand itself to.
+    var attachedView: PDFView? { view }
+
     func attach(_ view: PDFView) {
         self.view = view
+        attachCount += 1
         if !matches.isEmpty {
             view.highlightedSelections = matches
         }
