@@ -20,9 +20,31 @@ final class ViewerController {
 
     @ObservationIgnored private weak var view: PDFView?
     @ObservationIgnored private var lastQuery = ""
+    @ObservationIgnored private var pendingPage: Int?
 
+    /// Takes hold of a newly created view and restores what the old one was showing.
+    ///
+    /// Switching between Read and Pages destroys the view, so any scroll target or
+    /// search highlight asked for while it was gone is applied here instead.
     func attach(_ view: PDFView) {
         self.view = view
+        if !matches.isEmpty {
+            view.highlightedSelections = matches
+        }
+        goToPendingPage()
+        showCurrentMatch()
+    }
+
+    /// Scrolls to a page, or remembers it until the view comes back.
+    func goToPage(_ index: Int) {
+        pendingPage = index
+        goToPendingPage()
+    }
+
+    private func goToPendingPage() {
+        guard let view, let pendingPage, let page = view.document?.page(at: pendingPage) else { return }
+        view.go(to: page)
+        self.pendingPage = nil
     }
 
     /// Searches for `query`, or advances to the next match when the query is unchanged.
