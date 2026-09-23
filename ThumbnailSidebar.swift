@@ -10,38 +10,59 @@ import SwiftUI
 
 /// A strip of page thumbnails beside the document in Read mode.
 ///
-/// PDFKit's own thumbnail view is used rather than the editing grid: it follows the
-/// scroll position, highlights the current page and scrolls the document when a page
-/// is clicked, all without being told. `attachCount` and `revision` are read so the
-/// view is re-linked whenever the viewer is rebuilt or the pages change.
-struct ThumbnailSidebar: NSViewRepresentable {
-    let controller: ViewerController
-    let attachCount: Int
-    let revision: Int
+/// This is written in SwiftUI rather than wrapping PDFKit's `PDFThumbnailView` so that
+/// each page can carry its own controls. What PDFKit gave for nothing is reproduced
+/// here: the current page is highlighted, and the strip scrolls to keep it in view.
+struct ThumbnailSidebar: View {
+    @Bindable var document: QuireDocument
+    let viewer: ViewerController
     let thumbnailWidth: Double
 
-    func makeNSView(context: Context) -> PDFThumbnailView {
-        let thumbnails = PDFThumbnailView()
-        thumbnails.backgroundColor = .clear
-        apply(to: thumbnails)
-        thumbnails.pdfView = controller.attachedView
-        return thumbnails
+    @State private var thumbnails = ThumbnailCache()
+
+    var body: some View {
+        ScrollViewReader { scroller in
+            ScrollView {
+                LazyVStack(spacing: 14) {
+                    ForEach(0..<document.pageCount, id: \.self) { index in
+                        if let page = document.pdf.page(at: index) {
+                            cell(index: index, page: page)
+                                .id(index)
+                        }
+                    }
+                }
+                .padding(.vertical, 14)
+                .id(document.revision)
+            }
+            .onChange(of: viewer.currentPage) { _, page in
+                withAnimation(.easeOut(duration: 0.2)) {
+                    scroller.scrollTo(page, anchor: .center)
+                }
+            }
+        }
     }
 
-    func updateNSView(_ thumbnails: PDFThumbnailView, context: Context) {
-        if thumbnails.pdfView !== controller.attachedView {
-            thumbnails.pdfView = controller.attachedView
-        }
-        apply(to: thumbnails)
-    }
+    private func cell(index: Int, page: PDFPage) -> some View {
+        let isCurrent = viewer.currentPage == index
 
-    /// Sizes the thumbnails. The sidebar is sized from these, so there is always one column.
-    private func apply(to thumbnails: PDFThumbnailView) {
-        let size = NSSize(width: thumbnailWidth, height: thumbnailWidth * 1.3)
-        if thumbnails.thumbnailSize != size {
-            thumbnails.thumbnailSize = size
+        return VStack(spacing: 4) {
+            Image(nsImage: thumbnails.image(for: page))
+                .resizable()
+                .aspectRatio(contentMode: .fit)
+                .frame(width: thumbnailWidth, height: thumbnailWidth * 1.3)
+                .shadow(color: .black.opacity(0.25), radius: 2, y: 1)
+                .padding(5)
+                .overlay(
+                    RoundedRectangle(cornerRadius: 6)
+                        .strokeBorder(isCurrent ? Color.accentColor : .clear, lineWidth: 2)
+                )
+
+            Text("\(index + 1)")
+                .font(.caption)
+                .foregroundStyle(isCurrent ? .primary : .secondary)
         }
-        thumbnails.maximumNumberOfColumns = 1
+        .contentShape(.rect)
+        .onTapGesture { viewer.goToPage(index) }
     }
 
     /// How wide the sidebar has to be to hold a thumbnail of this width.

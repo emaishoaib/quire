@@ -39,9 +39,8 @@ struct ContentView: View {
                         if showsThumbnails {
                             VStack(spacing: 0) {
                                 ThumbnailSidebar(
-                                    controller: viewer,
-                                    attachCount: viewer.attachCount,
-                                    revision: document.revision,
+                                    document: document,
+                                    viewer: viewer,
                                     thumbnailWidth: thumbnailWidth
                                 )
 
