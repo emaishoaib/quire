@@ -25,7 +25,7 @@ extension NSWindow {
 /// A new tab takes the frame of the window it joins, because a tab group resizes itself
 /// to whatever window is added, which would otherwise resize the window under the user.
 enum WindowTabs {
-    static let identifier = NSWindow.TabbingIdentifier("com.mashoaib.Quire.tabs")
+    static let identifier = NSWindow.TabbingIdentifier("com.mashoaib.quire.tabs")
 
     /// Every window saves and restores its size under this one name, so a document window
     /// and a start screen are always the size the user last left, and a tab joining the
