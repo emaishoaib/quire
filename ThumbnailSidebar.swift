@@ -20,6 +20,14 @@ import UniformTypeIdentifiers
 /// Unlike the Pages grid there is no selection, so every control acts on the one page it
 /// belongs to, and a drag moves that page alone.
 struct ThumbnailSidebar: View {
+    /// How the sidebar slides in and out.
+    ///
+    /// Attached to the container that holds the sidebar, not to a `withAnimation` around
+    /// the toggle: the setting is `@AppStorage`, so the change arrives from UserDefaults
+    /// outside whatever transaction set it, and an animation wrapped around the toggle is
+    /// simply lost.
+    static let animation = Animation.spring(duration: 0.3, bounce: 0.1)
+
     @Bindable var document: QuireDocument
     let viewer: ViewerController
     let thumbnailWidth: Double
