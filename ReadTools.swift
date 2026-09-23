@@ -31,7 +31,8 @@ extension View {
     }
 }
 
-/// The tools that float below the search field, in the top-right of the document.
+/// The controls that float below the search field, in the top-right of the document:
+/// the search match count, the page number, and text recognition beneath them.
 ///
 /// These live over the document rather than in the window's toolbar because SwiftUI
 /// toolbars hosted in an AppKit window ignore trailing placement, which would strand
@@ -42,43 +43,32 @@ struct ReadTools: View {
     let document: QuireDocument
 
     var body: some View {
-        HStack(spacing: 8) {
-            if !viewer.matches.isEmpty {
-                HStack(spacing: 2) {
-                    button("Previous Match", systemImage: "chevron.left") { viewer.previousMatch() }
-                        .keyboardShortcut("g", modifiers: [.command, .shift])
+        VStack(alignment: .trailing, spacing: 8) {
+            HStack(spacing: 8) {
+                if !viewer.matches.isEmpty {
+                    HStack(spacing: 2) {
+                        button("Previous Match", systemImage: "chevron.left") { viewer.previousMatch() }
+                            .keyboardShortcut("g", modifiers: [.command, .shift])
 
-                    Text("\(viewer.matchIndex + 1) of \(viewer.matches.count)")
-                        .font(.system(size: 12))
-                        .monospacedDigit()
-                        .foregroundStyle(.secondary)
-                        .fixedSize()
+                        Text("\(viewer.matchIndex + 1) of \(viewer.matches.count)")
+                            .font(.system(size: 12))
+                            .monospacedDigit()
+                            .foregroundStyle(.secondary)
+                            .fixedSize()
 
-                    button("Next Match", systemImage: "chevron.right") { viewer.nextMatch() }
-                        .keyboardShortcut("g", modifiers: .command)
+                        button("Next Match", systemImage: "chevron.right") { viewer.nextMatch() }
+                            .keyboardShortcut("g", modifiers: .command)
+                    }
+                    .floatingCapsule()
                 }
-                .floatingCapsule()
+
+                PageIndicator(viewer: viewer, pageCount: document.pageCount)
             }
 
-            HStack(spacing: 2) {
-                button("Recognize Text", systemImage: "text.viewfinder") {
-                    ocr.run(on: document)
-                }
-                .disabled(document.pageCount == 0 || ocr.isRunning)
-
-                Divider()
-                    .frame(height: 18)
-                    .padding(.horizontal, 2)
-
-                button("Zoom Out", systemImage: "minus.magnifyingglass") { viewer.zoomOut() }
-                    .keyboardShortcut("-", modifiers: .command)
-
-                button("Zoom to Fit", systemImage: "arrow.up.left.and.down.right.magnifyingglass") { viewer.fitPage() }
-                    .keyboardShortcut("0", modifiers: .command)
-
-                button("Zoom In", systemImage: "plus.magnifyingglass") { viewer.zoomIn() }
-                    .keyboardShortcut("=", modifiers: .command)
+            button("Recognize Text", systemImage: "text.viewfinder") {
+                ocr.run(on: document)
             }
+            .disabled(document.pageCount == 0 || ocr.isRunning)
             .floatingCapsule()
         }
     }

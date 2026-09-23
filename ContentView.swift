@@ -62,11 +62,8 @@ struct ContentView: View {
                                     .padding(16)
                             }
                             .overlay(alignment: .bottomTrailing) {
-                                HStack(spacing: 8) {
-                                    PageIndicator(viewer: viewer, pageCount: document.pageCount)
-                                    ZoomControl(viewer: viewer)
-                                }
-                                .padding(16)
+                                ZoomControl(viewer: viewer)
+                                    .padding(16)
                             }
                             .overlay(alignment: .trailing) {
                                 ZoomHUD(viewer: viewer)
