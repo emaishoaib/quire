@@ -68,6 +68,10 @@ struct ContentView: View {
                                 if showsFind {
                                     FindBar(viewer: viewer, pdf: document.pdf, isPresented: $showsFind)
                                         .padding(16)
+                                        .transition(
+                                            .scale(scale: 0.85, anchor: .topTrailing)
+                                                .combined(with: .opacity)
+                                        )
                                 }
                             }
                             .overlay(alignment: .trailing) {
@@ -104,14 +108,18 @@ struct ContentView: View {
                 withAnimation(Mode.animation) {
                     mode = .read
                 }
-                showsFind = true
+                withAnimation(FindBar.animation) {
+                    showsFind = true
+                }
             }
             .keyboardShortcut("f", modifiers: .command)
             .opacity(0)
         }
         .onChange(of: viewer.matches.isEmpty) { _, isEmpty in
             if !isEmpty {
-                showsFind = true
+                withAnimation(FindBar.animation) {
+                    showsFind = true
+                }
             }
         }
         .onChange(of: document.revision) {

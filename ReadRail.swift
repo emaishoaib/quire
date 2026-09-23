@@ -48,7 +48,11 @@ struct ReadRail: View {
 
             separator
 
-            button("Find", systemImage: "magnifyingglass") { showsFind = true }
+            button("Find", systemImage: "magnifyingglass") {
+                withAnimation(FindBar.animation) {
+                    showsFind = true
+                }
+            }
 
             button("Recognize text: make scanned pages searchable", systemImage: "text.viewfinder") {
                 ocr.run(on: document)
