@@ -88,6 +88,51 @@ struct ContentView: View {
                 .disabled(document.pageCount == 0 || ocr.isRunning)
             }
 
+            if mode == .read {
+                ToolbarItemGroup(placement: .navigation) {
+                    Button {
+                        viewer.previousPage()
+                    } label: {
+                        Label("Previous Page", systemImage: "chevron.up")
+                    }
+                    .keyboardShortcut(.upArrow, modifiers: .command)
+
+                    Button {
+                        viewer.nextPage()
+                    } label: {
+                        Label("Next Page", systemImage: "chevron.down")
+                    }
+                    .keyboardShortcut(.downArrow, modifiers: .command)
+
+                    Text("\(viewer.currentPage + 1) / \(document.pageCount)")
+                        .monospacedDigit()
+                        .foregroundStyle(.secondary)
+                }
+
+                ToolbarItemGroup {
+                    Button {
+                        viewer.zoomOut()
+                    } label: {
+                        Label("Zoom Out", systemImage: "minus.magnifyingglass")
+                    }
+                    .keyboardShortcut("-", modifiers: .command)
+
+                    Button {
+                        viewer.zoomToFit()
+                    } label: {
+                        Label("Zoom to Fit", systemImage: "arrow.up.left.and.down.right.magnifyingglass")
+                    }
+                    .keyboardShortcut("0", modifiers: .command)
+
+                    Button {
+                        viewer.zoomIn()
+                    } label: {
+                        Label("Zoom In", systemImage: "plus.magnifyingglass")
+                    }
+                    .keyboardShortcut("=", modifiers: .command)
+                }
+            }
+
             if !viewer.matches.isEmpty {
                 ToolbarItemGroup {
                     Button {

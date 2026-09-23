@@ -17,10 +17,12 @@ final class ViewerController {
 
     private(set) var matches: [PDFSelection] = []
     private(set) var matchIndex = 0
+    private(set) var currentPage = 0
 
     @ObservationIgnored private weak var view: PDFView?
     @ObservationIgnored private var lastQuery = ""
     @ObservationIgnored private var pendingPage: Int?
+    @ObservationIgnored private var pageObserver: (any NSObjectProtocol)?
 
     /// Takes hold of a newly created view and restores what the old one was showing.
     ///
@@ -31,8 +33,55 @@ final class ViewerController {
         if !matches.isEmpty {
             view.highlightedSelections = matches
         }
+        observePageChanges(of: view)
         goToPendingPage()
         showCurrentMatch()
+    }
+
+    /// Republishes PDFKit's page changes as observable state.
+    ///
+    /// `PDFView` tracks the page you are on privately and only posts a notification
+    /// about it, so the page indicator has nothing to read without this.
+    private func observePageChanges(of view: PDFView) {
+        if let pageObserver {
+            NotificationCenter.default.removeObserver(pageObserver)
+        }
+        pageObserver = NotificationCenter.default.addObserver(
+            forName: .PDFViewPageChanged,
+            object: view,
+            queue: .main
+        ) { [weak self] _ in
+            MainActor.assumeIsolated {
+                self?.syncCurrentPage()
+            }
+        }
+        syncCurrentPage()
+    }
+
+    private func syncCurrentPage() {
+        guard let view, let page = view.currentPage, let document = view.document else { return }
+        currentPage = document.index(for: page)
+    }
+
+    func zoomIn() {
+        view?.zoomIn(nil)
+    }
+
+    func zoomOut() {
+        view?.zoomOut(nil)
+    }
+
+    /// Fits the page to the window, which is also how to recover from overshooting a pinch zoom.
+    func zoomToFit() {
+        view?.autoScales = true
+    }
+
+    func previousPage() {
+        view?.goToPreviousPage(nil)
+    }
+
+    func nextPage() {
+        view?.goToNextPage(nil)
     }
 
     /// Scrolls to a page, or remembers it until the view comes back.
