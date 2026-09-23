@@ -5,20 +5,20 @@
 //  Created by Mustafa Shoaib on 9/23/26.
 //
 
+import PDFKit
 import SwiftUI
 
+/// The window's contents.
+///
+/// A placeholder until the viewer lands: showing the page count proves the file was read.
 struct ContentView: View {
     @Bindable var document: QuireDocument
-    @Environment(\.undoManager) private var undoManager
 
     var body: some View {
-        TextEditor(text: $document.text)
-            .onChange(of: document.text) { oldValue, _ in
-                undoManager?.registerUndo(withTarget: document) { document in
-                    document.text = oldValue
-                }
-            }
-            .font(.system(size: 16, weight: .regular, design: .monospaced))
+        Text("\(document.pdf.pageCount) pages")
+            .font(.title)
+            .foregroundStyle(.secondary)
+            .frame(minWidth: 480, minHeight: 320)
     }
 }
 

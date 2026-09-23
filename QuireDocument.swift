@@ -5,52 +5,61 @@
 //  Created by Mustafa Shoaib on 9/23/26.
 //
 
+import PDFKit
 import SwiftUI
 import UniformTypeIdentifiers
 
 @Observable
 final class QuireDocument: Document {
 
-    static let readableContentTypes: [UTType] = [.exampleText]
+    static let readableContentTypes: [UTType] = [.pdf]
 
-    var text: String
+    var pdf: PDFDocument
 
-    init(text: String = "Hello, world!") {
-        self.text = text
+    init(pdf: PDFDocument = PDFDocument()) {
+        self.pdf = pdf
     }
 
+    /// Reads the file's bytes off the main actor.
+    ///
+    /// The snapshot type is `Data` rather than `PDFDocument` because reading and
+    /// writing happen off the main actor, and only sendable values may cross that
+    /// boundary.
     nonisolated func reader(
         configuration: sending ReadConfiguration
-    ) -> sending FileWrapperDocumentReader<String> {
+    ) -> sending FileWrapperDocumentReader<Data> {
         FileWrapperDocumentReader(configuration) { fileWrapper in
             guard let data = fileWrapper.regularFileContents else {
                 throw CocoaError(.fileReadCorruptFile)
             }
-            return String(decoding: data, as: UTF8.self)
+            return data
         }
     }
 
     nonisolated func writer(
         configuration: sending WriteConfiguration
-    ) -> sending FileWrapperDocumentWriter<String> {
+    ) -> sending FileWrapperDocumentWriter<Data> {
         FileWrapperDocumentWriter(configuration) { snapshot, _ in
-            FileWrapper(regularFileWithContents: Data(snapshot.utf8))
+            FileWrapper(regularFileWithContents: snapshot)
         }
     }
 
     @MainActor
-    func snapshot(contentType: UTType) async throws -> sending String {
-        text
+    func snapshot(contentType: UTType) async throws -> sending Data {
+        guard let data = pdf.dataRepresentation() else {
+            throw CocoaError(.fileWriteUnknown)
+        }
+        return data
     }
 
     @MainActor
-    func apply(snapshot: sending String, previous: sending String?) async throws {
-        text = snapshot
-    }
-}
-
-extension UTType {
-    static var exampleText: UTType {
-        UTType(importedAs: "com.example.plain-text")
+    func apply(snapshot: sending Data, previous: sending Data?) async throws {
+        guard let pdf = PDFDocument(data: snapshot) else {
+            throw CocoaError(.fileReadCorruptFile)
+        }
+        if pdf.isLocked {
+            throw CocoaError(.fileReadNoPermission)
+        }
+        self.pdf = pdf
     }
 }
