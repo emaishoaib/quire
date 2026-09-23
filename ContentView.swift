@@ -57,6 +57,10 @@ struct ContentView: View {
                         }
 
                         PDFViewer(pdf: document.pdf, revision: document.revision, controller: viewer)
+                            .overlay(alignment: .topTrailing) {
+                                ReadTools(viewer: viewer, ocr: ocr, document: document)
+                                    .padding(16)
+                            }
                             .overlay(alignment: .bottomTrailing) {
                                 HStack(spacing: 8) {
                                     PageIndicator(viewer: viewer, pageCount: document.pageCount)
@@ -111,16 +115,6 @@ struct ContentView: View {
                 .frame(width: 140)
             }
 
-            ToolbarItem(placement: .primaryAction) {
-                Button {
-                    ocr.run(on: document)
-                } label: {
-                    Label("Recognize Text", systemImage: "text.viewfinder")
-                }
-                .help("Make scanned pages searchable")
-                .disabled(document.pageCount == 0 || ocr.isRunning)
-            }
-
             if mode == .read {
                 ToolbarItem(placement: .navigation) {
                     Button {
@@ -132,51 +126,8 @@ struct ContentView: View {
                     .keyboardShortcut("t", modifiers: [.command, .option])
                 }
 
-                ToolbarItemGroup {
-                    Button {
-                        viewer.zoomOut()
-                    } label: {
-                        Label("Zoom Out", systemImage: "minus.magnifyingglass")
-                    }
-                    .keyboardShortcut("-", modifiers: .command)
-
-                    Button {
-                        viewer.fitPage()
-                    } label: {
-                        Label("Zoom to Fit", systemImage: "arrow.up.left.and.down.right.magnifyingglass")
-                    }
-                    .keyboardShortcut("0", modifiers: .command)
-
-                    Button {
-                        viewer.zoomIn()
-                    } label: {
-                        Label("Zoom In", systemImage: "plus.magnifyingglass")
-                    }
-                    .keyboardShortcut("=", modifiers: .command)
-                }
             }
 
-            if !viewer.matches.isEmpty {
-                ToolbarItemGroup {
-                    Button {
-                        viewer.previousMatch()
-                    } label: {
-                        Label("Previous Match", systemImage: "chevron.left")
-                    }
-                    .keyboardShortcut("g", modifiers: [.command, .shift])
-
-                    Text("\(viewer.matchIndex + 1) of \(viewer.matches.count)")
-                        .monospacedDigit()
-                        .foregroundStyle(.secondary)
-
-                    Button {
-                        viewer.nextMatch()
-                    } label: {
-                        Label("Next Match", systemImage: "chevron.right")
-                    }
-                    .keyboardShortcut("g", modifiers: .command)
-                }
-            }
         }
     }
 

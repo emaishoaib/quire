@@ -20,6 +20,7 @@
 		2D693FCD30633E2F0016D532 /* ThumbnailSidebar.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2D693FCC30633E2F0016D532 /* ThumbnailSidebar.swift */; };
 		2D693FD730633E2F0016D532 /* DocumentIcon.icns in Resources */ = {isa = PBXBuildFile; fileRef = 2D693FD630633E2F0016D532 /* DocumentIcon.icns */; };
 		2D693FD930633E2F0016D532 /* PageIndicator.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2D693FD830633E2F0016D532 /* PageIndicator.swift */; };
+		2D693FDB30633E2F0016D532 /* ReadTools.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2D693FDA30633E2F0016D532 /* ReadTools.swift */; };
 		2D693FB930633E2F0016D532 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 2D693FB130633E2F0016D532 /* Assets.xcassets */; };
 /* End PBXBuildFile section */
 
@@ -37,6 +38,7 @@
 		2D693FCC30633E2F0016D532 /* ThumbnailSidebar.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ThumbnailSidebar.swift; sourceTree = "<group>"; };
 		2D693FD630633E2F0016D532 /* DocumentIcon.icns */ = {isa = PBXFileReference; lastKnownFileType = image.icns; path = DocumentIcon.icns; sourceTree = "<group>"; };
 		2D693FD830633E2F0016D532 /* PageIndicator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PageIndicator.swift; sourceTree = "<group>"; };
+		2D693FDA30633E2F0016D532 /* ReadTools.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReadTools.swift; sourceTree = "<group>"; };
 		2D693FD030633E2F0016D532 /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
 		2D693FD130633E2F0016D532 /* MainMenu.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MainMenu.swift; sourceTree = "<group>"; };
 		2D693FB530633E2F0016D532 /* QuireDocument.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = QuireDocument.swift; sourceTree = "<group>"; };
@@ -67,6 +69,7 @@
 				2D693FB330633E2F0016D532 /* Info.plist */,
 				2D693FD630633E2F0016D532 /* DocumentIcon.icns */,
 				2D693FD030633E2F0016D532 /* AppDelegate.swift */,
+				2D693FDA30633E2F0016D532 /* ReadTools.swift */,
 				2D693FD830633E2F0016D532 /* PageIndicator.swift */,
 				2D693FD130633E2F0016D532 /* MainMenu.swift */,
 				2D693FB530633E2F0016D532 /* QuireDocument.swift */,
@@ -156,6 +159,7 @@
 				2D693FCB30633E2F0016D532 /* ZoomControl.swift in Sources */,
 				2D693FCD30633E2F0016D532 /* ThumbnailSidebar.swift in Sources */,
 				2D693FCE30633E2F0016D532 /* AppDelegate.swift in Sources */,
+				2D693FDB30633E2F0016D532 /* ReadTools.swift in Sources */,
 				2D693FD930633E2F0016D532 /* PageIndicator.swift in Sources */,
 				2D693FCF30633E2F0016D532 /* MainMenu.swift in Sources */,
 				2D693FB830633E2F0016D532 /* QuireDocument.swift in Sources */,
