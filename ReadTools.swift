@@ -8,11 +8,17 @@
 import SwiftUI
 
 /// The pill shape shared by every control floating over the document.
+///
+/// The fixed content height is what keeps the separate pills the same size as each other,
+/// however tall their contents happen to be.
 struct FloatingCapsule: ViewModifier {
+    static let contentHeight = 26.0
+
     func body(content: Content) -> some View {
         content
-            .padding(.horizontal, 6)
-            .padding(.vertical, 4)
+            .frame(height: Self.contentHeight)
+            .padding(.horizontal, 8)
+            .padding(.vertical, 6)
             .background(.regularMaterial, in: .capsule)
             .overlay(Capsule().strokeBorder(.separator))
             .shadow(color: .black.opacity(0.2), radius: 4, y: 2)
@@ -43,7 +49,7 @@ struct ReadTools: View {
                         .keyboardShortcut("g", modifiers: [.command, .shift])
 
                     Text("\(viewer.matchIndex + 1) of \(viewer.matches.count)")
-                        .font(.system(size: 11))
+                        .font(.system(size: 12))
                         .monospacedDigit()
                         .foregroundStyle(.secondary)
                         .fixedSize()
@@ -61,7 +67,7 @@ struct ReadTools: View {
                 .disabled(document.pageCount == 0 || ocr.isRunning)
 
                 Divider()
-                    .frame(height: 14)
+                    .frame(height: 18)
                     .padding(.horizontal, 2)
 
                 button("Zoom Out", systemImage: "minus.magnifyingglass") { viewer.zoomOut() }
@@ -80,8 +86,8 @@ struct ReadTools: View {
     private func button(_ title: String, systemImage: String, action: @escaping () -> Void) -> some View {
         Button(action: action) {
             Image(systemName: systemImage)
-                .font(.system(size: 12))
-                .frame(width: 22, height: 20)
+                .font(.system(size: 15))
+                .frame(width: 30, height: 26)
                 .contentShape(.rect)
         }
         .buttonStyle(.plain)

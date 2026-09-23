@@ -45,13 +45,13 @@ struct ZoomControl: View {
             } label: {
                 HStack(spacing: 3) {
                     Text(Self.percentage(viewer.scale))
-                        .font(.system(size: 11))
+                        .font(.system(size: 13))
                         .monospacedDigit()
                     Image(systemName: "chevron.up.chevron.down")
-                        .font(.system(size: 8, weight: .semibold))
+                        .font(.system(size: 10, weight: .semibold))
                         .foregroundStyle(.secondary)
                 }
-                .frame(width: 56)
+                .frame(width: 66, height: FloatingCapsule.contentHeight)
                 .contentShape(.rect)
             }
             .menuStyle(.borderlessButton)
@@ -61,18 +61,14 @@ struct ZoomControl: View {
 
             stepper("Zoom In", systemImage: "plus") { viewer.zoomIn() }
         }
-        .padding(.horizontal, 6)
-        .padding(.vertical, 4)
-        .background(.regularMaterial, in: .capsule)
-        .overlay(Capsule().strokeBorder(.separator))
-        .shadow(color: .black.opacity(0.2), radius: 4, y: 2)
+        .floatingCapsule()
     }
 
     private func stepper(_ title: String, systemImage: String, action: @escaping () -> Void) -> some View {
         Button(action: action) {
             Image(systemName: systemImage)
-                .font(.system(size: 10, weight: .semibold))
-                .frame(width: 20, height: 18)
+                .font(.system(size: 13, weight: .semibold))
+                .frame(width: 28, height: FloatingCapsule.contentHeight)
                 .contentShape(.rect)
         }
         .buttonStyle(.plain)
