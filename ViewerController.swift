@@ -36,6 +36,7 @@ final class ViewerController {
     @ObservationIgnored private var lastQuery = ""
     @ObservationIgnored private var pendingPage: Int?
     @ObservationIgnored private var observers: [any NSObjectProtocol] = []
+    @ObservationIgnored private var pulse: Task<Void, Never>?
 
     /// Takes hold of a newly created view and restores what the old one was showing.
     ///
@@ -267,6 +268,7 @@ final class ViewerController {
     }
 
     func clearSearch() {
+        pulse?.cancel()
         lastQuery = ""
         withAnimation(Self.searchAnimation) {
             matches = []
@@ -276,10 +278,36 @@ final class ViewerController {
         view?.clearSelection()
     }
 
+    /// Scrolls to the current match and flashes it.
+    ///
+    /// Every match is highlighted the same yellow, so landing on one is otherwise silent.
+    /// The current match is drawn in a second colour, and flashes brighter for a moment
+    /// when it is reached, which is what makes the jump visible on a crowded page.
     private func showCurrentMatch() {
         guard matches.indices.contains(matchIndex), let view else { return }
         let match = matches[matchIndex]
+
         view.setCurrentSelection(match, animate: true)
         view.go(to: match)
+
+        pulse?.cancel()
+        pulse = Task { [weak self] in
+            for colour in [NSColor.systemOrange, .systemOrange.withAlphaComponent(0.75), .systemPink] {
+                guard !Task.isCancelled else { return }
+                self?.paint(match, colour)
+                try? await Task.sleep(for: .milliseconds(110))
+            }
+            guard !Task.isCancelled else { return }
+            self?.paint(match, .systemPink)
+        }
+    }
+
+    /// Repaints one match and hands the highlights back to the view to redraw them.
+    private func paint(_ match: PDFSelection, _ colour: NSColor) {
+        for other in matches where other !== match {
+            other.color = .systemYellow
+        }
+        match.color = colour
+        view?.highlightedSelections = matches
     }
 }
