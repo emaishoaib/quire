@@ -102,6 +102,17 @@ struct PageGrid: View {
                 .font(.caption)
                 .foregroundStyle(isSelected ? .primary : .secondary)
         }
+        .opacity(dragging == index ? 0.4 : 1)
+        .padding(.leading, isDropTarget ? 22 : 0)
+        .overlay(alignment: .leading) {
+            if isDropTarget {
+                Capsule()
+                    .fill(Color.accentColor)
+                    .frame(width: 3, height: 180)
+                    .padding(.leading, 9)
+            }
+        }
+        .animation(ThumbnailSidebar.dropAnimation, value: isDropTarget)
         .contentShape(.rect)
         .background {
             GeometryReader { geometry in
