@@ -27,21 +27,9 @@ struct ReadRail: View {
         VStack(spacing: 8) {
             button("Find", systemImage: "magnifyingglass") { showsFind = true }
 
-            Button {
+            button("Recognize text: make scanned pages searchable", systemImage: "text.viewfinder") {
                 ocr.run(on: document)
-            } label: {
-                VStack(spacing: 2) {
-                    Image(systemName: "text.viewfinder")
-                        .font(.system(size: 17))
-
-                    Text("OCR")
-                        .font(.system(size: 10, weight: .medium))
-                }
-                .frame(width: 42)
-                .contentShape(.rect)
             }
-            .buttonStyle(.plain)
-            .help("Recognize text: make scanned pages searchable")
             .disabled(document.pageCount == 0 || ocr.isRunning)
 
             Spacer(minLength: 20)
