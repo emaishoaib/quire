@@ -29,6 +29,7 @@ struct PageGrid: View {
     @State private var hovered: Int?
     @State private var insertionPoint: Int?
     @State private var errorMessage: String?
+    @State private var isFileDropTargeted = false
 
     private let columns = [GridItem(.adaptive(minimum: 170, maximum: 210), spacing: 28)]
 
@@ -45,6 +46,19 @@ struct PageGrid: View {
             .id(document.revision)
         }
         .background(Color(nsColor: .underPageBackgroundColor))
+        .dropDestination(for: URL.self) { urls, _ in
+            insert(pdfs: urls, at: document.pageCount)
+        } isTargeted: { targeted in
+            isFileDropTargeted = targeted
+        }
+        .overlay {
+            if isFileDropTargeted {
+                RoundedRectangle(cornerRadius: 10)
+                    .strokeBorder(Color.accentColor, style: StrokeStyle(lineWidth: 3, dash: [8]))
+                    .padding(6)
+                    .allowsHitTesting(false)
+            }
+        }
         .focusable()
         .focusEffectDisabled()
         .onDeleteCommand {
@@ -184,6 +198,11 @@ struct PageGrid: View {
             .onHover { inside in
                 insertionPoint = inside ? index : (insertionPoint == index ? nil : insertionPoint)
             }
+            .dropDestination(for: URL.self) { urls, _ in
+                insert(pdfs: urls, at: index)
+            } isTargeted: { targeted in
+                insertionPoint = targeted ? index : (insertionPoint == index ? nil : insertionPoint)
+            }
             .overlay {
                 Button {
                     insertPages(at: index)
@@ -245,6 +264,23 @@ struct PageGrid: View {
         document.deletePages(indices)
         selection = []
         hovered = nil
+    }
+
+    /// Inserts dropped PDF files at `index`, refusing anything that is not a PDF.
+    private func insert(pdfs urls: [URL], at index: Int) -> Bool {
+        let pdfs = urls.filter { $0.pathExtension.lowercased() == "pdf" }
+        guard !pdfs.isEmpty else { return false }
+
+        var insertAt = index
+        do {
+            for url in pdfs {
+                insertAt += try document.insertPages(from: url, at: insertAt)
+            }
+        } catch {
+            errorMessage = "One of the PDFs could not be read. It may be damaged or password protected."
+            return false
+        }
+        return true
     }
 
     /// Asks for PDFs and inserts their pages at `index`.
