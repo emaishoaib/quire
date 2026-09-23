@@ -36,6 +36,14 @@ struct ContentView: View {
                 switch mode {
                 case .read:
                     PDFViewer(pdf: document.pdf, revision: document.revision, controller: viewer)
+                        .overlay(alignment: .bottomTrailing) {
+                            ZoomControl(viewer: viewer)
+                                .padding(16)
+                        }
+                        .overlay(alignment: .trailing) {
+                            ZoomHUD(viewer: viewer)
+                                .padding(.trailing, 16)
+                        }
                 case .pages:
                     PageGrid(document: document, selection: $selection) { index in
                         mode = .read
@@ -118,7 +126,7 @@ struct ContentView: View {
                     .keyboardShortcut("-", modifiers: .command)
 
                     Button {
-                        viewer.zoomToFit()
+                        viewer.fitPage()
                     } label: {
                         Label("Zoom to Fit", systemImage: "arrow.up.left.and.down.right.magnifyingglass")
                     }

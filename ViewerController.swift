@@ -18,11 +18,15 @@ final class ViewerController {
     private(set) var matches: [PDFSelection] = []
     private(set) var matchIndex = 0
     private(set) var currentPage = 0
+    private(set) var scale = 1.0
+    private(set) var isTwoUp = false
+    private(set) var isContinuous = true
+    private(set) var showsCoverPage = false
 
     @ObservationIgnored private weak var view: PDFView?
     @ObservationIgnored private var lastQuery = ""
     @ObservationIgnored private var pendingPage: Int?
-    @ObservationIgnored private var pageObserver: (any NSObjectProtocol)?
+    @ObservationIgnored private var observers: [any NSObjectProtocol] = []
 
     /// Takes hold of a newly created view and restores what the old one was showing.
     ///
@@ -33,47 +37,109 @@ final class ViewerController {
         if !matches.isEmpty {
             view.highlightedSelections = matches
         }
-        observePageChanges(of: view)
+        observeChanges(of: view)
         goToPendingPage()
         showCurrentMatch()
     }
 
-    /// Republishes PDFKit's page changes as observable state.
+    /// Republishes PDFKit's page and zoom changes as observable state.
     ///
-    /// `PDFView` tracks the page you are on privately and only posts a notification
-    /// about it, so the page indicator has nothing to read without this.
-    private func observePageChanges(of view: PDFView) {
-        if let pageObserver {
-            NotificationCenter.default.removeObserver(pageObserver)
+    /// `PDFView` tracks the current page and scale privately and only posts notifications
+    /// about them, so the page indicator and the zoom percentage have nothing to read
+    /// without this, and would go stale the moment the user scrolled or pinch-zoomed.
+    private func observeChanges(of view: PDFView) {
+        for observer in observers {
+            NotificationCenter.default.removeObserver(observer)
         }
-        pageObserver = NotificationCenter.default.addObserver(
-            forName: .PDFViewPageChanged,
-            object: view,
-            queue: .main
-        ) { [weak self] _ in
-            MainActor.assumeIsolated {
-                self?.syncCurrentPage()
+        observers = [.PDFViewPageChanged, .PDFViewScaleChanged].map { name in
+            NotificationCenter.default.addObserver(forName: name, object: view, queue: .main) { [weak self] _ in
+                MainActor.assumeIsolated {
+                    self?.syncFromView()
+                }
             }
         }
-        syncCurrentPage()
+        syncFromView()
     }
 
-    private func syncCurrentPage() {
-        guard let view, let page = view.currentPage, let document = view.document else { return }
-        currentPage = document.index(for: page)
+    private func syncFromView() {
+        guard let view else { return }
+        if let page = view.currentPage, let document = view.document {
+            currentPage = document.index(for: page)
+        }
+        scale = view.scaleFactor
+        isTwoUp = view.displayMode == .twoUp || view.displayMode == .twoUpContinuous
+        isContinuous = view.displayMode == .singlePageContinuous || view.displayMode == .twoUpContinuous
+        showsCoverPage = view.displaysAsBook
+    }
+
+    func setTwoUp(_ twoUp: Bool) {
+        isTwoUp = twoUp
+        applyDisplayMode()
+    }
+
+    func setContinuous(_ continuous: Bool) {
+        isContinuous = continuous
+        applyDisplayMode()
+    }
+
+    /// Leaves the first page on its own, the way a book's cover sits alone.
+    func setShowsCoverPage(_ showsCover: Bool) {
+        showsCoverPage = showsCover
+        view?.displaysAsBook = showsCover
+    }
+
+    private func applyDisplayMode() {
+        guard let view else { return }
+        view.displayMode = switch (isTwoUp, isContinuous) {
+        case (false, false): .singlePage
+        case (false, true): .singlePageContinuous
+        case (true, false): .twoUp
+        case (true, true): .twoUpContinuous
+        }
+    }
+
+    func setScale(_ factor: Double) {
+        guard let view else { return }
+        view.autoScales = false
+        view.scaleFactor = factor
+        syncFromView()
+    }
+
+    /// Fits the whole page in the window, and keeps doing so as the window resizes.
+    func fitPage() {
+        view?.autoScales = true
+        syncFromView()
+    }
+
+    /// Fits the page's width to the window, which PDFKit has no built-in setting for.
+    func fitWidth() {
+        guard let size = displayedPageSize, let view, size.width > 0 else { return }
+        setScale((view.bounds.width - 24) / size.width)
+    }
+
+    /// Fits the page's height to the window, the counterpart to `fitWidth`.
+    func fitHeight() {
+        guard let size = displayedPageSize, let view, size.height > 0 else { return }
+        setScale((view.bounds.height - 24) / size.height)
+    }
+
+    /// The current page's size as shown, with width and height swapped for rotated pages.
+    private var displayedPageSize: CGSize? {
+        guard let view, let page = view.currentPage else { return nil }
+        let bounds = page.bounds(for: view.displayBox)
+        return page.rotation % 180 == 0
+            ? bounds.size
+            : CGSize(width: bounds.height, height: bounds.width)
     }
 
     func zoomIn() {
         view?.zoomIn(nil)
+        syncFromView()
     }
 
     func zoomOut() {
         view?.zoomOut(nil)
-    }
-
-    /// Fits the page to the window, which is also how to recover from overshooting a pinch zoom.
-    func zoomToFit() {
-        view?.autoScales = true
+        syncFromView()
     }
 
     func previousPage() {

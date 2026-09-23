@@ -10,6 +10,8 @@ import SwiftUI
 
 /// Shows a PDF using PDFKit's own view, which brings scrolling, zooming,
 /// page breaks and text selection with it.
+///
+/// A document opens at actual size, 100%, rather than fitted to the window.
 struct PDFViewer: NSViewRepresentable {
     let pdf: PDFDocument
     let revision: Int
@@ -21,7 +23,8 @@ struct PDFViewer: NSViewRepresentable {
 
     func makeNSView(context: Context) -> PDFView {
         let view = PDFView()
-        view.autoScales = true
+        view.autoScales = false
+        view.scaleFactor = 1
         view.displayMode = .singlePageContinuous
         view.displaysPageBreaks = true
         view.backgroundColor = .underPageBackgroundColor

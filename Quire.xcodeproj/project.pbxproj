@@ -15,6 +15,7 @@
 		2D693FC530633E2F0016D532 /* PageGrid.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2D693FC430633E2F0016D532 /* PageGrid.swift */; };
 		2D693FC730633E2F0016D532 /* OCREngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2D693FC630633E2F0016D532 /* OCREngine.swift */; };
 		2D693FC930633E2F0016D532 /* OCRRunner.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2D693FC830633E2F0016D532 /* OCRRunner.swift */; };
+		2D693FCB30633E2F0016D532 /* ZoomControl.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2D693FCA30633E2F0016D532 /* ZoomControl.swift */; };
 		2D693FB930633E2F0016D532 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 2D693FB130633E2F0016D532 /* Assets.xcassets */; };
 /* End PBXBuildFile section */
 
@@ -28,6 +29,7 @@
 		2D693FC430633E2F0016D532 /* PageGrid.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PageGrid.swift; sourceTree = "<group>"; };
 		2D693FC630633E2F0016D532 /* OCREngine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OCREngine.swift; sourceTree = "<group>"; };
 		2D693FC830633E2F0016D532 /* OCRRunner.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OCRRunner.swift; sourceTree = "<group>"; };
+		2D693FCA30633E2F0016D532 /* ZoomControl.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ZoomControl.swift; sourceTree = "<group>"; };
 		2D693FB430633E2F0016D532 /* QuireApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = QuireApp.swift; sourceTree = "<group>"; };
 		2D693FB530633E2F0016D532 /* QuireDocument.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = QuireDocument.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
@@ -52,6 +54,7 @@
 				2D693FC430633E2F0016D532 /* PageGrid.swift */,
 				2D693FC630633E2F0016D532 /* OCREngine.swift */,
 				2D693FC830633E2F0016D532 /* OCRRunner.swift */,
+				2D693FCA30633E2F0016D532 /* ZoomControl.swift */,
 				2D693FB330633E2F0016D532 /* Info.plist */,
 				2D693FB430633E2F0016D532 /* QuireApp.swift */,
 				2D693FB530633E2F0016D532 /* QuireDocument.swift */,
@@ -137,6 +140,7 @@
 				2D693FC530633E2F0016D532 /* PageGrid.swift in Sources */,
 				2D693FC730633E2F0016D532 /* OCREngine.swift in Sources */,
 				2D693FC930633E2F0016D532 /* OCRRunner.swift in Sources */,
+				2D693FCB30633E2F0016D532 /* ZoomControl.swift in Sources */,
 				2D693FB730633E2F0016D532 /* QuireApp.swift in Sources */,
 				2D693FB830633E2F0016D532 /* QuireDocument.swift in Sources */,
 			);
