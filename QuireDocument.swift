@@ -9,12 +9,18 @@ import PDFKit
 import SwiftUI
 import UniformTypeIdentifiers
 
+/// A PDF open in a window.
+///
+/// `revision` is bumped after every page edit. `PDFDocument` is a PDFKit object that
+/// `@Observable` cannot see inside, so moving or rotating a page changes nothing SwiftUI
+/// watches, and views observe the counter instead.
 @Observable
 final class QuireDocument: Document {
 
     static let readableContentTypes: [UTType] = [.pdf]
 
     var pdf: PDFDocument
+    private(set) var revision = 0
 
     init(pdf: PDFDocument = PDFDocument()) {
         self.pdf = pdf
@@ -61,5 +67,53 @@ final class QuireDocument: Document {
             throw CocoaError(.fileReadNoPermission)
         }
         self.pdf = pdf
+        revision += 1
+    }
+}
+
+/// A page together with the rotation it should carry.
+struct PageState {
+    let page: PDFPage
+    let rotation: Int
+}
+
+extension QuireDocument {
+
+    var pageCount: Int { pdf.pageCount }
+
+    var pageStates: [PageState] {
+        (0..<pdf.pageCount).compactMap { pdf.page(at: $0) }.map {
+            PageState(page: $0, rotation: $0.rotation)
+        }
+    }
+
+    /// Replaces every page with `newState` and registers the reverse as undo.
+    ///
+    /// Every edit goes through here, so undo is always "put the old list back" and
+    /// each new operation gets working undo without its own bookkeeping.
+    func applyPages(_ newState: [PageState], actionName: String, undoManager: UndoManager?) {
+        let oldState = pageStates
+
+        for index in stride(from: pdf.pageCount - 1, through: 0, by: -1) {
+            pdf.removePage(at: index)
+        }
+        for (index, item) in newState.enumerated() {
+            item.page.rotation = item.rotation
+            pdf.insert(item.page, at: index)
+        }
+        revision += 1
+
+        undoManager?.registerUndo(withTarget: self) { document in
+            MainActor.assumeIsolated {
+                document.applyPages(oldState, actionName: actionName, undoManager: undoManager)
+            }
+        }
+        undoManager?.setActionName(actionName)
+    }
+
+    func movePages(_ indices: IndexSet, to destination: Int, undoManager: UndoManager?) {
+        var newState = pageStates
+        newState.move(fromOffsets: indices, toOffset: destination)
+        applyPages(newState, actionName: "Move Pages", undoManager: undoManager)
     }
 }

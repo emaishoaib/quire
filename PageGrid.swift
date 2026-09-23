@@ -7,37 +7,45 @@
 
 import PDFKit
 import SwiftUI
+import UniformTypeIdentifiers
 
-/// A grid of page thumbnails with Finder-style selection.
+/// A grid of page thumbnails with Finder-style selection and drag-to-reorder.
 ///
 /// Click selects one page, Cmd-click adds or removes one, Shift-click extends from
-/// the last page clicked, and double-click opens that page in the viewer.
+/// the last page clicked, and double-click opens that page in the viewer. Dragging a
+/// page that is part of the selection moves the whole selection.
 struct PageGrid: View {
-    let pdf: PDFDocument
+    @Bindable var document: QuireDocument
     @Binding var selection: Set<Int>
     var onOpenPage: (Int) -> Void
 
+    @Environment(\.undoManager) private var undoManager
+
     @State private var thumbnails = ThumbnailCache()
     @State private var anchor: Int?
+    @State private var dragging: Int?
+    @State private var dropTarget: Int?
 
     private let columns = [GridItem(.adaptive(minimum: 150, maximum: 190), spacing: 20)]
 
     var body: some View {
         ScrollView {
             LazyVGrid(columns: columns, spacing: 24) {
-                ForEach(0..<pdf.pageCount, id: \.self) { index in
-                    if let page = pdf.page(at: index) {
+                ForEach(0..<document.pageCount, id: \.self) { index in
+                    if let page = document.pdf.page(at: index) {
                         cell(index: index, page: page)
                     }
                 }
             }
             .padding(24)
+            .id(document.revision)
         }
         .background(Color(nsColor: .underPageBackgroundColor))
     }
 
     private func cell(index: Int, page: PDFPage) -> some View {
         let isSelected = selection.contains(index)
+        let isDropTarget = dropTarget == index && dragging != index
 
         return VStack(spacing: 6) {
             Image(nsImage: thumbnails.image(for: page))
@@ -52,7 +60,10 @@ struct PageGrid: View {
                 )
                 .overlay(
                     RoundedRectangle(cornerRadius: 8)
-                        .strokeBorder(isSelected ? Color.accentColor : .clear, lineWidth: 2)
+                        .strokeBorder(
+                            isDropTarget ? Color.accentColor : (isSelected ? Color.accentColor : .clear),
+                            style: StrokeStyle(lineWidth: 2, dash: isDropTarget ? [5] : [])
+                        )
                 )
 
             Text("\(index + 1)")
@@ -62,6 +73,23 @@ struct PageGrid: View {
         .contentShape(.rect)
         .onTapGesture(count: 2) { onOpenPage(index) }
         .simultaneousGesture(TapGesture().onEnded { click(index) })
+        .onDrag {
+            dragging = index
+            if !selection.contains(index) {
+                selection = [index]
+                anchor = index
+            }
+            return NSItemProvider(object: String(index) as NSString)
+        }
+        .onDrop(
+            of: [.text],
+            delegate: PageDropDelegate(
+                target: index,
+                dragging: $dragging,
+                dropTarget: $dropTarget,
+                move: move
+            )
+        )
     }
 
     private func click(_ index: Int) {
@@ -80,6 +108,51 @@ struct PageGrid: View {
             selection = [index]
             anchor = index
         }
+    }
+
+    /// Moves the dragged page, or the whole selection when the dragged page belongs to it.
+    private func move(from source: Int, to target: Int) {
+        let moving = selection.contains(source) ? IndexSet(selection) : IndexSet(integer: source)
+        guard !moving.contains(target) else { return }
+
+        let destination = target > source ? target + 1 : target
+        document.movePages(moving, to: destination, undoManager: undoManager)
+
+        let start = destination - moving.filter { $0 < destination }.count
+        selection = Set(start..<start + moving.count)
+        anchor = start
+    }
+}
+
+/// Handles a page being dropped onto the cell at `target`.
+private struct PageDropDelegate: DropDelegate {
+    let target: Int
+    @Binding var dragging: Int?
+    @Binding var dropTarget: Int?
+    let move: (Int, Int) -> Void
+
+    func dropEntered(info: DropInfo) {
+        dropTarget = target
+    }
+
+    func dropExited(info: DropInfo) {
+        if dropTarget == target {
+            dropTarget = nil
+        }
+    }
+
+    func dropUpdated(info: DropInfo) -> DropProposal? {
+        DropProposal(operation: .move)
+    }
+
+    func performDrop(info: DropInfo) -> Bool {
+        defer {
+            dragging = nil
+            dropTarget = nil
+        }
+        guard let source = dragging else { return false }
+        move(source, target)
+        return true
     }
 }
 
