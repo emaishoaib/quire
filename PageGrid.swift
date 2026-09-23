@@ -39,14 +39,11 @@ struct PageGrid: View {
     var body: some View {
         ScrollView {
             LazyVGrid(columns: columns, spacing: 28) {
-                ForEach(0..<document.pageCount, id: \.self) { index in
-                    if let page = document.pdf.page(at: index) {
-                        cell(index: index, page: page)
-                    }
+                ForEach(Array(document.pages.enumerated()), id: \.element) { index, page in
+                    cell(index: index, page: page)
                 }
             }
             .padding(32)
-            .id(document.revision)
             .frame(maxWidth: .infinity, alignment: .top)
         }
         .coordinateSpace(.named("grid"))

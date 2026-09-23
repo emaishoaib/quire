@@ -110,7 +110,22 @@ struct PageState {
 
 extension QuireDocument {
 
+    /// How page edits animate in the grid and the sidebar.
+    ///
+    /// Applied where the pages change rather than in the views: a page being inserted or
+    /// removed is not covered by `animation(_:value:)` in the view that draws it.
+    static let editAnimation = Animation.spring(duration: 0.3, bounce: 0.15)
+
     var pageCount: Int { pdf.pageCount }
+
+    /// The pages in order, for views that identify pages by object rather than position.
+    ///
+    /// Identity is what lets SwiftUI animate a move as a move: `applyPages` puts the same
+    /// page objects back in a new order, so a reordered page keeps its identity and slides.
+    var pages: [PDFPage] {
+        _ = revision
+        return (0..<pdf.pageCount).compactMap { pdf.page(at: $0) }
+    }
 
     var pageStates: [PageState] {
         (0..<pdf.pageCount).compactMap { pdf.page(at: $0) }.map {
@@ -133,7 +148,9 @@ extension QuireDocument {
             item.page.rotation = item.rotation
             pdf.insert(item.page, at: index)
         }
-        revision += 1
+        withAnimation(Self.editAnimation) {
+            revision += 1
+        }
 
         undoManager?.registerUndo(withTarget: self) { document in
             MainActor.assumeIsolated {
