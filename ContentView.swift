@@ -54,7 +54,7 @@ struct ContentView: View {
                         }
                         .frame(width: ThumbnailSidebar.sidebarWidth(for: thumbnailWidth))
                         .background(Color(nsColor: .underPageBackgroundColor))
-                        .animation(.easeOut(duration: 0.12), value: thumbnailWidth)
+                        .animation(ThumbnailSidebar.sizeAnimation, value: thumbnailWidth)
                         .transition(.move(edge: .leading).combined(with: .opacity))
 
                         Divider()
