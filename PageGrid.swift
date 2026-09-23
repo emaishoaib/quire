@@ -30,6 +30,9 @@ struct PageGrid: View {
     @State private var insertionPoint: Int?
     @State private var errorMessage: String?
     @State private var isFileDropTargeted = false
+    @State private var cellFrames: [Int: CGRect] = [:]
+    @State private var marquee: CGRect?
+    @State private var selectionBeforeMarquee: Set<Int> = []
 
     private let columns = [GridItem(.adaptive(minimum: 170, maximum: 210), spacing: 28)]
 
@@ -44,8 +47,24 @@ struct PageGrid: View {
             }
             .padding(32)
             .id(document.revision)
+            .frame(maxWidth: .infinity, alignment: .top)
+        }
+        .coordinateSpace(.named("grid"))
+        .onPreferenceChange(CellFramesKey.self) { frames in
+            cellFrames = frames
         }
         .background(Color(nsColor: .underPageBackgroundColor))
+        .simultaneousGesture(marqueeGesture)
+        .overlay(alignment: .topLeading) {
+            if let marquee {
+                Rectangle()
+                    .fill(Color.accentColor.opacity(0.15))
+                    .overlay(Rectangle().strokeBorder(Color.accentColor, lineWidth: 1))
+                    .frame(width: marquee.width, height: marquee.height)
+                    .offset(x: marquee.minX, y: marquee.minY)
+                    .allowsHitTesting(false)
+            }
+        }
         .dropDestination(for: URL.self) { urls, _ in
             insert(pdfs: urls, at: document.pageCount)
         } isTargeted: { targeted in
@@ -87,6 +106,14 @@ struct PageGrid: View {
                 .foregroundStyle(isSelected ? .primary : .secondary)
         }
         .contentShape(.rect)
+        .background {
+            GeometryReader { geometry in
+                Color.clear.preference(
+                    key: CellFramesKey.self,
+                    value: [index: geometry.frame(in: .named("grid"))]
+                )
+            }
+        }
         .onTapGesture(count: 2) { onOpenPage(index) }
         .simultaneousGesture(TapGesture().onEnded { click(index) })
         .onHover { inside in
@@ -149,16 +176,16 @@ struct PageGrid: View {
     /// The rotate and delete buttons that float beneath a hovered page.
     private func pageControls(index: Int) -> some View {
         HStack(spacing: 2) {
-            controlButton("Rotate Left", systemImage: "rotate.left") {
-                document.rotatePages(IndexSet(integer: index), by: -90)
+            controlButton(rotateTitle("Rotate", index), systemImage: "rotate.left") {
+                document.rotatePages(targets(for: index), by: -90)
             }
-            controlButton("Rotate Right", systemImage: "rotate.right") {
-                document.rotatePages(IndexSet(integer: index), by: 90)
+            controlButton(rotateTitle("Rotate", index), systemImage: "rotate.right") {
+                document.rotatePages(targets(for: index), by: 90)
             }
-            controlButton("Delete Page", systemImage: "trash") {
-                delete(IndexSet(integer: index))
+            controlButton(deleteTitle(index), systemImage: "trash") {
+                delete(targets(for: index))
             }
-            .disabled(document.pageCount == 1)
+            .disabled(targets(for: index).count >= document.pageCount)
         }
         .padding(.horizontal, 6)
         .padding(.vertical, 4)
@@ -171,6 +198,16 @@ struct PageGrid: View {
                 hovered = index
             }
         }
+    }
+
+    private func rotateTitle(_ verb: String, _ index: Int) -> String {
+        let count = targets(for: index).count
+        return count > 1 ? "\(verb) \(count) Pages" : "\(verb) Page"
+    }
+
+    private func deleteTitle(_ index: Int) -> String {
+        let count = targets(for: index).count
+        return count > 1 ? "Delete \(count) Pages" : "Delete Page"
     }
 
     private func controlButton(_ title: String, systemImage: String, action: @escaping () -> Void) -> some View {
@@ -227,6 +264,42 @@ struct PageGrid: View {
                 .animation(.easeOut(duration: 0.12), value: isVisible)
             }
             .offset(x: edge == .leading ? -14 : 14)
+    }
+
+    /// Rubber-band selection.
+    ///
+    /// The gesture covers the whole scroll view, including the empty space below the
+    /// pages, and ignores drags that begin on a page, because those reorder it instead.
+    /// Everything works in the scroll view's coordinate space, so page frames and the
+    /// drag location agree however far the grid is scrolled.
+    private var marqueeGesture: some Gesture {
+        DragGesture(minimumDistance: 6, coordinateSpace: .named("grid"))
+            .onChanged { value in
+                if marquee == nil {
+                    guard !cellFrames.values.contains(where: { $0.contains(value.startLocation) }) else {
+                        return
+                    }
+                    selectionBeforeMarquee = NSEvent.modifierFlags.contains(.command) ? selection : []
+                }
+                let rect = CGRect(
+                    x: min(value.startLocation.x, value.location.x),
+                    y: min(value.startLocation.y, value.location.y),
+                    width: abs(value.location.x - value.startLocation.x),
+                    height: abs(value.location.y - value.startLocation.y)
+                )
+                marquee = rect
+                selection = selectionBeforeMarquee.union(cellFrames.filter { $0.value.intersects(rect) }.keys)
+            }
+            .onEnded { _ in
+                marquee = nil
+                anchor = selection.min()
+            }
+    }
+
+    /// The pages an action applies to: the whole selection when the hovered page is part
+    /// of it, and otherwise just the page being pointed at.
+    private func targets(for index: Int) -> IndexSet {
+        selection.contains(index) ? IndexSet(selection) : IndexSet(integer: index)
     }
 
     private func click(_ index: Int) {
@@ -307,6 +380,15 @@ struct PageGrid: View {
             get: { errorMessage != nil },
             set: { if !$0 { errorMessage = nil } }
         )
+    }
+}
+
+/// Collects where each page sits, so a marquee drag can tell which pages it covers.
+private struct CellFramesKey: PreferenceKey {
+    static let defaultValue: [Int: CGRect] = [:]
+
+    static func reduce(value: inout [Int: CGRect], nextValue: () -> [Int: CGRect]) {
+        value.merge(nextValue()) { _, new in new }
     }
 }
 
