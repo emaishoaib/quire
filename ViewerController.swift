@@ -195,26 +195,39 @@ final class ViewerController {
             }
         } else {
             keepsHeightFitted = true
-            applyHeightFit()
+            applyHeightFit(keeping: view.currentDestination)
         }
         goToPendingPage()
     }
 
     /// Redoes the opening fit to height while the window is still settling.
-    func viewDidResize() {
+    func viewDidResize(keeping top: PDFDestination?) {
         guard keepsHeightFitted else { return }
-        applyHeightFit()
+        applyHeightFit(keeping: top)
     }
 
     /// Fits the page's height to the window, the counterpart to `fitWidth`.
     func fitHeight() {
         keepsHeightFitted = false
-        applyHeightFit()
+        applyHeightFit(keeping: nil)
     }
 
-    private func applyHeightFit() {
+    /// Fits the height, then scrolls `top` back to the top of the view if one is given.
+    ///
+    /// The page is fitted together with the gap PDFKit draws above and below it, which
+    /// scales with the page. The page then fills the window and the next one starts
+    /// exactly at the bottom edge, rather than showing a sliver of it.
+    ///
+    /// Changing the scale keeps PDFKit centred on roughly the same spot rather than on
+    /// the top of the page, so without this the opening refits drift down the document.
+    private func applyHeightFit(keeping top: PDFDestination?) {
         guard let size = displayedPageSize, let view, size.height > 0 else { return }
-        applyScale((view.bounds.height - 24) / size.height)
+        let margins = view.pageBreakMargins
+        let gap = view.displaysPageBreaks ? margins.top + margins.bottom : 0
+        applyScale(view.bounds.height / (size.height + gap))
+        if let top {
+            view.go(to: top)
+        }
     }
 
     /// The current page's size as shown, with width and height swapped for rotated pages.
