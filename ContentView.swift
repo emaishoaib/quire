@@ -100,6 +100,7 @@ struct ContentView: View {
                         showsThumbnails: $showsThumbnails
                     )
                 }
+                .animation(ThumbnailSidebar.animation, value: showsThumbnails)
             }
         }
         .frame(minWidth: 640, minHeight: 480)
