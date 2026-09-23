@@ -22,7 +22,7 @@ struct ContentView: View {
 
     @State private var viewer = ViewerController()
     @State private var ocr = OCRRunner()
-    @State private var query = ""
+    @State private var showsFind = false
     @State private var mode: Mode = .read
     @State private var selection = Set<Int>()
     @AppStorage("showsThumbnails") private var showsThumbnails = true
@@ -56,6 +56,12 @@ struct ContentView: View {
                         }
 
                         PDFViewer(pdf: document.pdf, revision: document.revision, controller: viewer)
+                            .overlay(alignment: .topTrailing) {
+                                if showsFind {
+                                    FindBar(viewer: viewer, pdf: document.pdf, isPresented: $showsFind)
+                                        .padding(16)
+                                }
+                            }
                             .overlay(alignment: .trailing) {
                                 ZoomHUD(viewer: viewer)
                                     .padding(.trailing, 16)
@@ -63,7 +69,7 @@ struct ContentView: View {
 
                         Divider()
 
-                        ReadRail(viewer: viewer, ocr: ocr, document: document)
+                        ReadRail(viewer: viewer, ocr: ocr, document: document, showsFind: $showsFind)
                     }
                 case .pages:
                     PageGrid(document: document, selection: $selection) { index in
@@ -74,14 +80,17 @@ struct ContentView: View {
             }
         }
         .frame(minWidth: 640, minHeight: 480)
-        .searchable(text: $query, placement: .toolbar, prompt: "Search")
-        .onSubmit(of: .search) {
-            mode = .read
-            viewer.submitSearch(query, in: document.pdf)
+        .background {
+            Button("Find") {
+                mode = .read
+                showsFind = true
+            }
+            .keyboardShortcut("f", modifiers: .command)
+            .opacity(0)
         }
-        .onChange(of: query) { _, newValue in
-            if newValue.isEmpty {
-                viewer.clearSearch()
+        .onChange(of: viewer.matches.isEmpty) { _, isEmpty in
+            if !isEmpty {
+                showsFind = true
             }
         }
         .onChange(of: document.revision) {

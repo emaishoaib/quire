@@ -19,11 +19,14 @@ struct ReadRail: View {
     let viewer: ViewerController
     let ocr: OCRRunner
     let document: QuireDocument
+    @Binding var showsFind: Bool
 
     private let width = 62.0
 
     var body: some View {
         VStack(spacing: 8) {
+            button("Find", systemImage: "magnifyingglass") { showsFind = true }
+
             Button {
                 ocr.run(on: document)
             } label: {
@@ -40,22 +43,6 @@ struct ReadRail: View {
             .buttonStyle(.plain)
             .help("Recognize text: make scanned pages searchable")
             .disabled(document.pageCount == 0 || ocr.isRunning)
-
-            if !viewer.matches.isEmpty {
-                separator
-
-                button("Previous Match", systemImage: "arrow.up") { viewer.previousMatch() }
-                    .keyboardShortcut("g", modifiers: [.command, .shift])
-
-                Text("\(viewer.matchIndex + 1)/\(viewer.matches.count)")
-                    .font(.system(size: 11))
-                    .monospacedDigit()
-                    .foregroundStyle(.secondary)
-                    .fixedSize()
-
-                button("Next Match", systemImage: "arrow.down") { viewer.nextMatch() }
-                    .keyboardShortcut("g", modifiers: .command)
-            }
 
             Spacer(minLength: 20)
 
