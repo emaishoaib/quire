@@ -32,15 +32,12 @@ struct ThumbnailSidebar: View {
         ScrollViewReader { scroller in
             ScrollView {
                 LazyVStack(spacing: 14) {
-                    ForEach(0..<document.pageCount, id: \.self) { index in
-                        if let page = document.pdf.page(at: index) {
-                            cell(index: index, page: page)
-                                .id(index)
-                        }
+                    ForEach(Array(document.pages.enumerated()), id: \.element) { index, page in
+                        cell(index: index, page: page)
+                            .id(index)
                     }
                 }
                 .padding(.vertical, 14)
-                .id(document.revision)
             }
             .onChange(of: viewer.currentPage) { _, page in
                 withAnimation(.easeOut(duration: 0.2)) {
