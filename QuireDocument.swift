@@ -116,4 +116,45 @@ extension QuireDocument {
         newState.move(fromOffsets: indices, toOffset: destination)
         applyPages(newState, actionName: "Move Pages", undoManager: undoManager)
     }
+
+    func rotatePages(_ indices: IndexSet, by degrees: Int, undoManager: UndoManager?) {
+        let newState = pageStates.enumerated().map { index, item in
+            guard indices.contains(index) else { return item }
+            let rotation = ((item.rotation + degrees) % 360 + 360) % 360
+            return PageState(page: item.page, rotation: rotation)
+        }
+        applyPages(newState, actionName: "Rotate Pages", undoManager: undoManager)
+    }
+
+    /// Deletes the given pages, unless that would empty the document.
+    ///
+    /// A PDF with no pages cannot be written back to disk, so the last page stays.
+    func deletePages(_ indices: IndexSet, undoManager: UndoManager?) {
+        guard indices.count < pageCount else { return }
+        let newState = pageStates.enumerated()
+            .filter { !indices.contains($0.offset) }
+            .map(\.element)
+        applyPages(newState, actionName: "Delete Pages", undoManager: undoManager)
+    }
+
+    /// Inserts copies of every page of the PDF at `url`, and reports how many were added.
+    ///
+    /// The pages are copied because a `PDFPage` belongs to one document at a time, and
+    /// moving them would strip the pages out of the document being inserted from.
+    @discardableResult
+    func insertPages(from url: URL, at index: Int, undoManager: UndoManager?) throws -> Int {
+        guard let other = PDFDocument(url: url), !other.isLocked else {
+            throw CocoaError(.fileReadCorruptFile)
+        }
+        let inserted = (0..<other.pageCount).compactMap { index -> PageState? in
+            guard let copy = other.page(at: index)?.copy() as? PDFPage else { return nil }
+            return PageState(page: copy, rotation: copy.rotation)
+        }
+        guard !inserted.isEmpty else { return 0 }
+
+        var newState = pageStates
+        newState.insert(contentsOf: inserted, at: min(index, newState.count))
+        applyPages(newState, actionName: "Insert Pages", undoManager: undoManager)
+        return inserted.count
+    }
 }
