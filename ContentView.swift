@@ -57,18 +57,14 @@ struct ContentView: View {
                         }
 
                         PDFViewer(pdf: document.pdf, revision: document.revision, controller: viewer)
-                            .overlay(alignment: .topTrailing) {
-                                ReadTools(viewer: viewer, ocr: ocr, document: document)
-                                    .padding(16)
-                            }
-                            .overlay(alignment: .bottomTrailing) {
-                                ZoomControl(viewer: viewer)
-                                    .padding(16)
-                            }
                             .overlay(alignment: .trailing) {
                                 ZoomHUD(viewer: viewer)
                                     .padding(.trailing, 16)
                             }
+
+                        Divider()
+
+                        ReadRail(viewer: viewer, ocr: ocr, document: document)
                     }
                 case .pages:
                     PageGrid(document: document, selection: $selection) { index in
