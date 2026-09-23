@@ -15,9 +15,10 @@ import UniformTypeIdentifiers
 /// each page can carry its own controls. What PDFKit gave for nothing is reproduced
 /// here: the current page is highlighted, and the strip scrolls to keep it in view.
 ///
-/// Hovering a page reveals rotate and delete beneath it, and hovering the gap between two
-/// pages reveals a plus that inserts there. Unlike the Pages grid there is no selection,
-/// so every control acts on the one page it belongs to.
+/// Hovering a page reveals rotate and delete beneath it, hovering the gap between two
+/// pages reveals a plus that inserts there, and a page can be dragged to a new position.
+/// Unlike the Pages grid there is no selection, so every control acts on the one page it
+/// belongs to, and a drag moves that page alone.
 struct ThumbnailSidebar: View {
     @Bindable var document: QuireDocument
     let viewer: ViewerController
@@ -26,6 +27,8 @@ struct ThumbnailSidebar: View {
     @State private var thumbnails = ThumbnailCache()
     @State private var hovered: Int?
     @State private var insertionPoint: Int?
+    @State private var dragging: Int?
+    @State private var dropTarget: Int?
     @State private var errorMessage: String?
 
     var body: some View {
@@ -34,14 +37,14 @@ struct ThumbnailSidebar: View {
                 LazyVStack(spacing: 14) {
                     ForEach(Array(document.pages.enumerated()), id: \.element) { index, page in
                         cell(index: index, page: page)
-                            .id(index)
                     }
                 }
                 .padding(.vertical, 14)
             }
-            .onChange(of: viewer.currentPage) { _, page in
+            .onChange(of: viewer.currentPage) { _, index in
+                guard document.pages.indices.contains(index) else { return }
                 withAnimation(.easeOut(duration: 0.2)) {
-                    scroller.scrollTo(page, anchor: .center)
+                    scroller.scrollTo(document.pages[index], anchor: .center)
                 }
             }
         }
@@ -66,6 +69,14 @@ struct ThumbnailSidebar: View {
                     RoundedRectangle(cornerRadius: 6)
                         .strokeBorder(isCurrent ? Color.accentColor : .clear, lineWidth: 2)
                 )
+                .overlay(
+                    RoundedRectangle(cornerRadius: 6)
+                        .strokeBorder(
+                            dropTarget == index && dragging != index ? Color.accentColor : .clear,
+                            style: StrokeStyle(lineWidth: 2, dash: [5])
+                        )
+                )
+                .opacity(dragging == index ? 0.4 : 1)
                 .overlay(alignment: .bottom) {
                     pageControls(index: index)
                         .opacity(hovered == index ? 1 : 0)
@@ -79,6 +90,19 @@ struct ThumbnailSidebar: View {
         }
         .contentShape(.rect)
         .onTapGesture { viewer.goToPage(index) }
+        .onDrag {
+            dragging = index
+            return NSItemProvider(object: String(index) as NSString)
+        }
+        .onDrop(
+            of: [.text],
+            delegate: SidebarDropDelegate(
+                target: index,
+                dragging: $dragging,
+                dropTarget: $dropTarget,
+                move: move
+            )
+        )
         .onHover { inside in
             hovered = inside ? index : (hovered == index ? nil : hovered)
         }
@@ -174,6 +198,13 @@ struct ThumbnailSidebar: View {
             .offset(y: edge == .top ? -10 : 10)
     }
 
+    /// Moves the dragged page onto `target`, shifting that page aside.
+    private func move(from source: Int, to target: Int) {
+        guard source != target else { return }
+        let destination = target > source ? target + 1 : target
+        document.movePages(IndexSet(integer: source), to: destination)
+    }
+
     /// Inserts dropped PDF files at `index`, refusing anything that is not a PDF.
     private func insert(pdfs urls: [URL], at index: Int) -> Bool {
         let pdfs = urls.filter { $0.pathExtension.lowercased() == "pdf" }
@@ -214,6 +245,39 @@ struct ThumbnailSidebar: View {
     static func sidebarWidth(for thumbnailWidth: Double) -> Double {
         thumbnailWidth + 48
     }
+}
+
+/// Handles a page being dropped onto the thumbnail at `target`.
+private struct SidebarDropDelegate: DropDelegate {
+    let target: Int
+    @Binding var dragging: Int?
+    @Binding var dropTarget: Int?
+    let move: (Int, Int) -> Void
+
+    func dropEntered(info: DropInfo) {
+        dropTarget = target
+    }
+
+    func dropExited(info: DropInfo) {
+        if dropTarget == target {
+            dropTarget = nil
+        }
+    }
+
+    func dropUpdated(info: DropInfo) -> DropProposal? {
+        DropProposal(operation: .move)
+    }
+
+    func performDrop(info: DropInfo) -> Bool {
+        defer {
+            dragging = nil
+            dropTarget = nil
+        }
+        guard let source = dragging else { return false }
+        move(source, target)
+        return true
+    }
+
 }
 
 /// The size slider under the thumbnails, in the manner of Finder's icon size control.
