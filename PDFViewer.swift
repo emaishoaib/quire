@@ -36,6 +36,7 @@ struct PDFViewer: NSViewRepresentable {
         view.document = pdf
         controller.attach(view)
         view.onFirstLayout = { [weak controller] in controller?.viewDidFirstLayout() }
+        view.onResize = { [weak controller] in controller?.viewDidResize() }
         return view
     }
 
@@ -67,12 +68,21 @@ struct PDFViewer: NSViewRepresentable {
     }
 }
 
-/// A `PDFView` that runs a callback once, on its first layout with a real size.
+/// A `PDFView` that reports its first layout with a real size, and every resize after.
 ///
 /// The view has no size when it is created, so anything that fits the page to the
-/// window has to wait until here.
+/// window has to wait until here. The window also keeps changing size while it opens,
+/// so an opening fit has to follow those changes too.
 final class FittingPDFView: PDFView {
     var onFirstLayout: (() -> Void)?
+    var onResize: (() -> Void)?
+
+    override func setFrameSize(_ newSize: NSSize) {
+        let oldSize = frame.size
+        super.setFrameSize(newSize)
+        guard newSize != oldSize, newSize.height > 0 else { return }
+        onResize?()
+    }
 
     override func layout() {
         super.layout()

@@ -39,6 +39,21 @@ final class ViewerController {
     @ObservationIgnored private var pulse: Task<Void, Never>?
     @ObservationIgnored private var snapshot: Snapshot?
 
+    /// True from a document opening until the user first changes the zoom.
+    ///
+    /// The window is resized several times while it opens, first at its minimum size, so
+    /// the opening fit to height is redone on each resize until the user takes over.
+    @ObservationIgnored private var keepsHeightFitted = false
+
+    /// The scale last set from code, to tell a pinch-zoom apart from a refit.
+    @ObservationIgnored private var appliedScale: CGFloat = 1
+
+    /// True while code is setting the scale.
+    ///
+    /// PDFKit posts its scale notification from inside the assignment, before
+    /// `appliedScale` can be updated, so the pinch check has to sit that one out.
+    @ObservationIgnored private var isApplyingScale = false
+
     /// What the Read view was showing when it was torn down, for the next one to pick up.
     private struct Snapshot {
         let scale: CGFloat
@@ -96,6 +111,9 @@ final class ViewerController {
 
     private func syncFromView() {
         guard let view else { return }
+        if keepsHeightFitted && !isApplyingScale && view.scaleFactor != appliedScale {
+            keepsHeightFitted = false
+        }
         if let page = view.currentPage, let document = view.document {
             currentPage = document.index(for: page)
         }
@@ -132,14 +150,23 @@ final class ViewerController {
     }
 
     func setScale(_ factor: Double) {
+        keepsHeightFitted = false
+        applyScale(factor)
+    }
+
+    private func applyScale(_ factor: Double) {
         guard let view else { return }
         view.autoScales = false
+        isApplyingScale = true
         view.scaleFactor = factor
+        isApplyingScale = false
+        appliedScale = view.scaleFactor
         syncFromView()
     }
 
     /// Fits the whole page in the window, and keeps doing so as the window resizes.
     func fitPage() {
+        keepsHeightFitted = false
         view?.autoScales = true
         syncFromView()
     }
@@ -167,15 +194,27 @@ final class ViewerController {
                 view.go(to: destination)
             }
         } else {
-            fitHeight()
+            keepsHeightFitted = true
+            applyHeightFit()
         }
         goToPendingPage()
     }
 
+    /// Redoes the opening fit to height while the window is still settling.
+    func viewDidResize() {
+        guard keepsHeightFitted else { return }
+        applyHeightFit()
+    }
+
     /// Fits the page's height to the window, the counterpart to `fitWidth`.
     func fitHeight() {
+        keepsHeightFitted = false
+        applyHeightFit()
+    }
+
+    private func applyHeightFit() {
         guard let size = displayedPageSize, let view, size.height > 0 else { return }
-        setScale((view.bounds.height - 24) / size.height)
+        applyScale((view.bounds.height - 24) / size.height)
     }
 
     /// The current page's size as shown, with width and height swapped for rotated pages.
@@ -188,11 +227,13 @@ final class ViewerController {
     }
 
     func zoomIn() {
+        keepsHeightFitted = false
         view?.zoomIn(nil)
         syncFromView()
     }
 
     func zoomOut() {
+        keepsHeightFitted = false
         view?.zoomOut(nil)
         syncFromView()
     }
