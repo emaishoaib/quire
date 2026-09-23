@@ -12,6 +12,7 @@ import SwiftUI
 /// page breaks and text selection with it.
 struct PDFViewer: NSViewRepresentable {
     let pdf: PDFDocument
+    let controller: ViewerController
 
     func makeNSView(context: Context) -> PDFView {
         let view = PDFView()
@@ -20,6 +21,7 @@ struct PDFViewer: NSViewRepresentable {
         view.displaysPageBreaks = true
         view.backgroundColor = .underPageBackgroundColor
         view.document = pdf
+        controller.attach(view)
         return view
     }
 

@@ -11,6 +11,7 @@
 		2D693FB730633E2F0016D532 /* QuireApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2D693FB430633E2F0016D532 /* QuireApp.swift */; };
 		2D693FB830633E2F0016D532 /* QuireDocument.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2D693FB530633E2F0016D532 /* QuireDocument.swift */; };
 		2D693FC130633E2F0016D532 /* PDFViewer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2D693FC030633E2F0016D532 /* PDFViewer.swift */; };
+		2D693FC330633E2F0016D532 /* ViewerController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2D693FC230633E2F0016D532 /* ViewerController.swift */; };
 		2D693FB930633E2F0016D532 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 2D693FB130633E2F0016D532 /* Assets.xcassets */; };
 /* End PBXBuildFile section */
 
@@ -20,6 +21,7 @@
 		2D693FB230633E2F0016D532 /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
 		2D693FB330633E2F0016D532 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		2D693FC030633E2F0016D532 /* PDFViewer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PDFViewer.swift; sourceTree = "<group>"; };
+		2D693FC230633E2F0016D532 /* ViewerController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ViewerController.swift; sourceTree = "<group>"; };
 		2D693FB430633E2F0016D532 /* QuireApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = QuireApp.swift; sourceTree = "<group>"; };
 		2D693FB530633E2F0016D532 /* QuireDocument.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = QuireDocument.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
@@ -40,6 +42,7 @@
 				2D693FB130633E2F0016D532 /* Assets.xcassets */,
 				2D693FB230633E2F0016D532 /* ContentView.swift */,
 				2D693FC030633E2F0016D532 /* PDFViewer.swift */,
+				2D693FC230633E2F0016D532 /* ViewerController.swift */,
 				2D693FB330633E2F0016D532 /* Info.plist */,
 				2D693FB430633E2F0016D532 /* QuireApp.swift */,
 				2D693FB530633E2F0016D532 /* QuireDocument.swift */,
@@ -121,6 +124,7 @@
 			files = (
 				2D693FB630633E2F0016D532 /* ContentView.swift in Sources */,
 				2D693FC130633E2F0016D532 /* PDFViewer.swift in Sources */,
+				2D693FC330633E2F0016D532 /* ViewerController.swift in Sources */,
 				2D693FB730633E2F0016D532 /* QuireApp.swift in Sources */,
 				2D693FB830633E2F0016D532 /* QuireDocument.swift in Sources */,
 			);
