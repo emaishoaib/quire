@@ -28,6 +28,9 @@ struct ThumbnailSidebar: View {
     /// simply lost.
     static let animation = Animation.spring(duration: 0.3, bounce: 0.1)
 
+    /// How the pages part to show where a dragged page will land.
+    static let dropAnimation = Animation.spring(duration: 0.22, bounce: 0.15)
+
     @Bindable var document: QuireDocument
     let viewer: ViewerController
     let thumbnailWidth: Double
@@ -66,6 +69,8 @@ struct ThumbnailSidebar: View {
     private func cell(index: Int, page: PDFPage) -> some View {
         let isCurrent = viewer.currentPage == index
 
+        let isSlot = dropTarget == index && dragging != index
+
         return VStack(spacing: 4) {
             Image(nsImage: thumbnails.image(for: page))
                 .resizable()
@@ -76,13 +81,6 @@ struct ThumbnailSidebar: View {
                 .overlay(
                     RoundedRectangle(cornerRadius: 6)
                         .strokeBorder(isCurrent ? Color.accentColor : .clear, lineWidth: 2)
-                )
-                .overlay(
-                    RoundedRectangle(cornerRadius: 6)
-                        .strokeBorder(
-                            dropTarget == index && dragging != index ? Color.accentColor : .clear,
-                            style: StrokeStyle(lineWidth: 2, dash: [5])
-                        )
                 )
                 .opacity(dragging == index ? 0.4 : 1)
                 .overlay(alignment: .bottom) {
@@ -96,6 +94,16 @@ struct ThumbnailSidebar: View {
                 .font(.caption)
                 .foregroundStyle(isCurrent ? .primary : .secondary)
         }
+        .padding(.top, isSlot ? 26 : 0)
+        .overlay(alignment: .top) {
+            if isSlot {
+                Capsule()
+                    .fill(Color.accentColor)
+                    .frame(width: thumbnailWidth, height: 3)
+                    .padding(.top, 11)
+            }
+        }
+        .animation(Self.dropAnimation, value: isSlot)
         .contentShape(.rect)
         .onTapGesture { viewer.goToPage(index) }
         .onDrag {
