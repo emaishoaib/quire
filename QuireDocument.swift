@@ -51,6 +51,15 @@ final class QuireDocument: NSDocument {
         addWindowController(NSWindowController(window: window))
     }
 
+    /// Shows this document's window as a tab of whatever Quire window is already open.
+    override func showWindows() {
+        guard let window = windowControllers.first?.window else {
+            super.showWindows()
+            return
+        }
+        WindowTabs.show(window)
+    }
+
     /// Writes the current pages to another file, leaving this document where it is.
     ///
     /// Save As would hand the document over to the new file and carry on editing there.

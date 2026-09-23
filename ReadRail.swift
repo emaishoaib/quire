@@ -10,7 +10,9 @@ import SwiftUI
 /// The narrow column of controls down the right edge of the Read view.
 ///
 /// Document actions sit at the top and view controls at the bottom, so the things that
-/// change the file and the things that change how you look at it stay apart.
+/// change the file and the things that change how you look at it stay apart. The rail
+/// also carries what used to be in the window's toolbar, which is gone so that the
+/// window's tabs can sit in the title bar rather than in a row of their own.
 ///
 /// Only the page number is drawn as a field, because it is the only value here that can
 /// be typed into. The zoom percentage is plain text with chevrons, which say it opens a
@@ -20,11 +22,29 @@ struct ReadRail: View {
     let ocr: OCRRunner
     let document: QuireDocument
     @Binding var showsFind: Bool
+    @Binding var mode: Mode
+    @Binding var showsThumbnails: Bool
 
     private let width = 62.0
 
     var body: some View {
         VStack(spacing: 8) {
+            button(
+                mode == .read ? "Organise Pages" : "Read",
+                systemImage: mode == .read ? "square.grid.2x2" : "doc.text"
+            ) {
+                mode = mode == .read ? .pages : .read
+            }
+
+            if mode == .read {
+                button("Show or Hide Thumbnails", systemImage: "sidebar.left") {
+                    showsThumbnails.toggle()
+                }
+                .keyboardShortcut("t", modifiers: [.command, .option])
+            }
+
+            separator
+
             button("Find", systemImage: "magnifyingglass") { showsFind = true }
 
             button("Recognize text: make scanned pages searchable", systemImage: "text.viewfinder") {
@@ -34,7 +54,8 @@ struct ReadRail: View {
 
             Spacer(minLength: 20)
 
-            PageIndicator(viewer: viewer, pageCount: document.pageCount)
+            if mode == .read {
+                PageIndicator(viewer: viewer, pageCount: document.pageCount)
 
             separator
 
@@ -69,8 +90,9 @@ struct ReadRail: View {
             button("Zoom In", systemImage: "plus.magnifyingglass") { viewer.zoomIn() }
                 .keyboardShortcut("=", modifiers: .command)
 
-            button("Zoom Out", systemImage: "minus.magnifyingglass") { viewer.zoomOut() }
-                .keyboardShortcut("-", modifiers: .command)
+                button("Zoom Out", systemImage: "minus.magnifyingglass") { viewer.zoomOut() }
+                    .keyboardShortcut("-", modifiers: .command)
+            }
         }
         .padding(.vertical, 14)
         .padding(.horizontal, 6)
