@@ -36,7 +36,7 @@ struct PDFViewer: NSViewRepresentable {
         view.document = pdf
         controller.attach(view)
         view.onFirstLayout = { [weak controller] in controller?.viewDidFirstLayout() }
-        view.onResize = { [weak controller] in controller?.viewDidResize() }
+        view.onResize = { [weak controller] top in controller?.viewDidResize(keeping: top) }
         return view
     }
 
@@ -75,13 +75,18 @@ struct PDFViewer: NSViewRepresentable {
 /// so an opening fit has to follow those changes too.
 final class FittingPDFView: PDFView {
     var onFirstLayout: (() -> Void)?
-    var onResize: (() -> Void)?
+    var onResize: ((PDFDestination?) -> Void)?
 
+    /// Reports the new size along with the spot that was at the top before the resize.
+    ///
+    /// Resizing moves the scroll position by itself, so the spot is read before `super`
+    /// applies the new size, while it is still the one the user was looking at.
     override func setFrameSize(_ newSize: NSSize) {
         let oldSize = frame.size
+        let top = currentDestination
         super.setFrameSize(newSize)
         guard newSize != oldSize, newSize.height > 0 else { return }
-        onResize?()
+        onResize?(top)
     }
 
     override func layout() {
