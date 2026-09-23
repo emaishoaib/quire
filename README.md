@@ -8,12 +8,19 @@ the rest of the app exists so you do not have to leave it to do the ordinary thi
 
 ## What it does
 
+**Open.** Every PDF opens as a tab of one window, and the plus at the end of the tab bar
+opens a tab listing recently opened files, which is also what you get when Quire is
+launched with nothing to read.
+
 **Read.** Continuous scrolling, single or two-page layout, and zoom by pinch or from the
-rail down the right edge, which also holds the page number, text recognition and the fit
-modes. A thumbnail sidebar sized by its own slider, where pages can be dragged into a new
-order, hovering a page reveals rotate and delete, and hovering between pages reveals a
-plus that inserts there. Search across the
-document with the matches highlighted and counted.
+rail down the right edge, which also holds the page number, text recognition, find, the
+fit modes and the switch between reading and organising. A thumbnail sidebar sized by its
+own slider, where pages can be dragged into a new order, hovering a page reveals rotate
+and delete, and hovering between pages reveals a plus that inserts there.
+
+**Find.** Cmd-F, or the rail's magnifying glass, opens a panel over the document. Results
+appear as you type, listed by the text that actually matched and how often, so a
+case-insensitive search names each form it found rather than merging them.
 
 **Organise.** A grid of page thumbnails. Drag to reorder, drag a marquee across empty space
 to select a run of pages, and hover any page for rotate and delete. Those act on the whole
@@ -93,10 +100,30 @@ reimplemented in `ThumbnailSidebar.swift`. The reason is that a single AppKit vi
 give individual pages their own hover controls, which is what the rotate, delete and insert
 buttons need.
 
-**The read controls float in a rail rather than sitting in the toolbar.** SwiftUI toolbars
-hosted in an AppKit window ignore trailing placement, so toolbar items land at the far left
-however they are declared. The rail sidesteps that and keeps the controls beside what they
-act on.
+**The window has no toolbar, and the controls live in a rail.** Two reasons. SwiftUI
+toolbars hosted in an AppKit window ignore trailing placement, so items land at the far
+left however they are declared. More importantly, a window without a toolbar shows its
+tabs in the title bar rather than in a row of their own, which is where the file names
+belong.
+
+**Windows are added to the tab group explicitly, in `WindowTabs.swift`.** macOS merges
+document windows into tabs by itself only when the user has chosen that in System
+Settings, so relying on it would work on one Mac and not another. The same file forces the
+tab bar to stay visible, which macOS otherwise hides below two tabs, taking the plus
+button with it.
+
+**Every window shares one saved frame.** Documents and start screens save and restore under
+the name `QuireWindow`, so a new tab is the size you last left. Note that
+`setFrameAutosaveName` only says where to save: restoring needs `setFrameUsingName`, and
+leaving that out is why every window used to open at its coded size.
+
+**A start tab closes when a document opens in that window.** The start screen exists to
+open something, so it is replaced rather than joined, however the file was opened.
+
+**Page edits animate because pages are identified by object.** `PageGrid` and
+`ThumbnailSidebar` list `document.pages`, whose elements survive a reorder, and
+`applyPages` wraps its change in a spring. Adding `.id(document.revision)` to either view
+to "force a refresh" would tell SwiftUI to rebuild from scratch and kill every animation.
 
 ## Open questions
 
