@@ -10,8 +10,9 @@ the rest of the app exists so you do not have to leave it to do the ordinary thi
 
 **Read.** Continuous scrolling, single or two-page layout, and zoom by pinch or from the
 rail down the right edge, which also holds the page number, text recognition and the fit
-modes. A thumbnail sidebar sized by its own slider, where hovering a page reveals rotate
-and delete and hovering between pages reveals a plus that inserts there. Search across the
+modes. A thumbnail sidebar sized by its own slider, where pages can be dragged into a new
+order, hovering a page reveals rotate and delete, and hovering between pages reveals a
+plus that inserts there. Search across the
 document with the matches highlighted and counted.
 
 **Organise.** A grid of page thumbnails. Drag to reorder, drag a marquee across empty space
@@ -106,6 +107,3 @@ anyway; the likely reason is a QuickLook thumbnail extension, which we would hav
 one of to match. Setting `LSHandlerRank` to `Owner` was tried and made no difference, so it
 is back to `Alternate`.
 
-**Drag-to-reorder in the sidebar is deliberately absent.** The Pages grid has it, but in
-the sidebar a drag would compete with click-to-navigate, so the sidebar stays a navigation
-and single-page-editing surface, and reordering lives in Pages mode.

@@ -26,6 +26,13 @@ final class QuireDocument: NSDocument {
     var pdf = PDFDocument()
     private(set) var revision = 0
 
+    /// The pages in order.
+    ///
+    /// Stored rather than read from `pdf` on demand, because `PDFDocument` is a PDFKit
+    /// object that `@Observable` cannot see inside: views watch this array, and a page
+    /// keeps its identity across a reorder, which is what lets a move animate as a move.
+    private(set) var pages: [PDFPage] = []
+
     nonisolated override class var autosavesInPlace: Bool { false }
 
     /// Builds the window.
@@ -97,6 +104,7 @@ final class QuireDocument: NSDocument {
         }
         MainActor.assumeIsolated {
             pdf = parsed
+            pages = (0..<parsed.pageCount).compactMap { parsed.page(at: $0) }
             revision += 1
         }
     }
@@ -116,16 +124,7 @@ extension QuireDocument {
     /// removed is not covered by `animation(_:value:)` in the view that draws it.
     static let editAnimation = Animation.spring(duration: 0.3, bounce: 0.15)
 
-    var pageCount: Int { pdf.pageCount }
-
-    /// The pages in order, for views that identify pages by object rather than position.
-    ///
-    /// Identity is what lets SwiftUI animate a move as a move: `applyPages` puts the same
-    /// page objects back in a new order, so a reordered page keeps its identity and slides.
-    var pages: [PDFPage] {
-        _ = revision
-        return (0..<pdf.pageCount).compactMap { pdf.page(at: $0) }
-    }
+    var pageCount: Int { pages.count }
 
     var pageStates: [PageState] {
         (0..<pdf.pageCount).compactMap { pdf.page(at: $0) }.map {
@@ -149,6 +148,7 @@ extension QuireDocument {
             pdf.insert(item.page, at: index)
         }
         withAnimation(Self.editAnimation) {
+            pages = newState.map(\.page)
             revision += 1
         }
 
