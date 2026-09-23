@@ -57,6 +57,9 @@ enum MainMenu {
 
         menu.addItem(withTitle: "Revert to Saved", action: #selector(NSDocument.revertToSaved(_:)), keyEquivalent: "")
         menu.addItem(.separator())
+
+        menu.addItem(withTitle: "Export Copy…", action: Selector(("exportCopy:")), keyEquivalent: "e")
+        menu.addItem(.separator())
         menu.addItem(withTitle: "Print…", action: #selector(NSDocument.printDocument(_:)), keyEquivalent: "p")
         return menu
     }
