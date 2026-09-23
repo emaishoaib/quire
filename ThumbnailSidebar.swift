@@ -31,6 +31,12 @@ struct ThumbnailSidebar: View {
     /// How the pages part to show where a dragged page will land.
     static let dropAnimation = Animation.spring(duration: 0.22, bounce: 0.15)
 
+    /// How thumbnails follow the size slider.
+    ///
+    /// Keyed to the width rather than wrapped around the slider's change, because the
+    /// size is `@AppStorage` and arrives from UserDefaults outside any transaction.
+    static let sizeAnimation = Animation.easeOut(duration: 0.12)
+
     @Bindable var document: QuireDocument
     let viewer: ViewerController
     let thumbnailWidth: Double
@@ -76,6 +82,7 @@ struct ThumbnailSidebar: View {
                 .resizable()
                 .aspectRatio(contentMode: .fit)
                 .frame(width: thumbnailWidth, height: thumbnailWidth * 1.3)
+                .animation(Self.sizeAnimation, value: thumbnailWidth)
                 .shadow(color: .black.opacity(0.25), radius: 2, y: 1)
                 .padding(5)
                 .overlay(
