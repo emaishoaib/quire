@@ -31,13 +31,11 @@ struct PageIndicator: View {
             Text("/ \(pageCount)")
                 .foregroundStyle(.secondary)
         }
-        .font(.system(size: 11))
+        .font(.system(size: 13))
         .monospacedDigit()
-        .padding(.horizontal, 10)
-        .padding(.vertical, 5)
-        .background(.regularMaterial, in: .capsule)
-        .overlay(Capsule().strokeBorder(.separator))
-        .shadow(color: .black.opacity(0.2), radius: 4, y: 2)
+        .padding(.horizontal, 6)
+        .floatingCapsule()
+        .fixedSize()
         .help("Current page. Type a number and press Return to go there.")
         .onAppear { showCurrentPage() }
         .onChange(of: viewer.currentPage) {
@@ -47,7 +45,7 @@ struct PageIndicator: View {
     }
 
     private var fieldWidth: Double {
-        Double("\(pageCount)".count) * 8 + 8
+        Double("\(pageCount)".count) * 10 + 10
     }
 
     private func showCurrentPage() {
