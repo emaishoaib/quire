@@ -8,10 +8,11 @@ the rest of the app exists so you do not have to leave it to do the ordinary thi
 
 ## What it does
 
-**Read.** Continuous scrolling, single or two-page layout, zoom by pinch, by the controls
-in the bottom right, or by the presets and fit modes in that menu. A thumbnail sidebar you
-can resize by dragging its size slider. Search across the document with the matches
-highlighted and counted.
+**Read.** Continuous scrolling, single or two-page layout, and zoom by pinch or from the
+rail down the right edge, which also holds the page number, text recognition and the fit
+modes. A thumbnail sidebar sized by its own slider, where hovering a page reveals rotate
+and delete and hovering between pages reveals a plus that inserts there. Search across the
+document with the matches highlighted and counted.
 
 **Organise.** A grid of page thumbnails. Drag to reorder, drag a marquee across empty space
 to select a run of pages, and hover any page for rotate and delete. Those act on the whole
@@ -81,12 +82,30 @@ boundaries from gaps and produces "12in".
 to a minute while macOS loads the model. `OCRRunner.warmUp()` pays that cost in the
 background at launch, and the progress sheet says so if you get there first.
 
-**The icon is generated.** `Tools/make-icon.swift` draws it and writes every size into the
-asset catalogue. Edit the script, run `swift Tools/make-icon.swift`, and rebuild.
+**The icon is generated.** `Tools/make-icon.swift` draws both the app icon and the PDF
+document icon, and writes every size into the asset catalogue. Edit the script, run
+`swift Tools/make-icon.swift`, and rebuild.
 
-## Still planned
+**The thumbnail sidebar is hand-written SwiftUI, not `PDFThumbnailView`.** PDFKit's view
+highlights the current page and follows the scroll position for nothing, and both are
+reimplemented in `ThumbnailSidebar.swift`. The reason is that a single AppKit view cannot
+give individual pages their own hover controls, which is what the rotate, delete and insert
+buttons need.
 
-Rotate, delete and insert controls on the Read-mode thumbnails, with insert points above
-and below each page. That means replacing PDFKit's `PDFThumbnailView` with a one-column
-SwiftUI list reusing the cell from `PageGrid`, and reimplementing the scroll-following and
-current-page highlighting that the PDFKit view does for free.
+**The read controls float in a rail rather than sitting in the toolbar.** SwiftUI toolbars
+hosted in an AppKit window ignore trailing placement, so toolbar items land at the far left
+however they are declared. The rail sidesteps that and keeps the controls beside what they
+act on.
+
+## Open questions
+
+**PDFs show a preview of page one rather than Quire's document icon.** Finder prefers a
+generated preview over a handler's icon when it can make one, and turning off "Show icon
+preview" in Finder's view options reveals ours. Acrobat manages to show its own icon
+anyway; the likely reason is a QuickLook thumbnail extension, which we would have to write
+one of to match. Setting `LSHandlerRank` to `Owner` was tried and made no difference, so it
+is back to `Alternate`.
+
+**Drag-to-reorder in the sidebar is deliberately absent.** The Pages grid has it, but in
+the sidebar a drag would compete with click-to-navigate, so the sidebar stays a navigation
+and single-page-editing surface, and reordering lives in Pages mode.
