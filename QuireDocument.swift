@@ -27,8 +27,15 @@ final class QuireDocument: NSDocument {
 
     nonisolated override class var autosavesInPlace: Bool { false }
 
+    /// Builds the window.
+    ///
+    /// `sizingOptions` is emptied so the hosting controller stops pushing SwiftUI's
+    /// preferred size onto the window: without that, switching between Read and Pages
+    /// resizes the window under the user.
     override func makeWindowControllers() {
         let hosting = NSHostingController(rootView: ContentView(document: self))
+        hosting.sizingOptions = []
+
         let window = NSWindow(contentViewController: hosting)
         window.setContentSize(NSSize(width: 1180, height: 820))
         window.minSize = NSSize(width: 720, height: 520)
