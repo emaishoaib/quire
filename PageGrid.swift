@@ -22,8 +22,6 @@ struct PageGrid: View {
     @Binding var selection: Set<Int>
     var onOpenPage: (Int) -> Void
 
-    @Environment(\.undoManager) private var undoManager
-
     @State private var thumbnails = ThumbnailCache()
     @State private var anchor: Int?
     @State private var dragging: Int?
@@ -138,10 +136,10 @@ struct PageGrid: View {
     private func pageControls(index: Int) -> some View {
         HStack(spacing: 2) {
             controlButton("Rotate Left", systemImage: "rotate.left") {
-                document.rotatePages(IndexSet(integer: index), by: -90, undoManager: undoManager)
+                document.rotatePages(IndexSet(integer: index), by: -90)
             }
             controlButton("Rotate Right", systemImage: "rotate.right") {
-                document.rotatePages(IndexSet(integer: index), by: 90, undoManager: undoManager)
+                document.rotatePages(IndexSet(integer: index), by: 90)
             }
             controlButton("Delete Page", systemImage: "trash") {
                 delete(IndexSet(integer: index))
@@ -236,7 +234,7 @@ struct PageGrid: View {
         guard !moving.contains(target) else { return }
 
         let destination = target > source ? target + 1 : target
-        document.movePages(moving, to: destination, undoManager: undoManager)
+        document.movePages(moving, to: destination)
 
         let start = destination - moving.filter { $0 < destination }.count
         selection = Set(start..<start + moving.count)
@@ -244,7 +242,7 @@ struct PageGrid: View {
     }
 
     private func delete(_ indices: IndexSet) {
-        document.deletePages(indices, undoManager: undoManager)
+        document.deletePages(indices)
         selection = []
         hovered = nil
     }
@@ -260,7 +258,7 @@ struct PageGrid: View {
         var insertAt = index
         do {
             for url in panel.urls {
-                insertAt += try document.insertPages(from: url, at: insertAt, undoManager: undoManager)
+                insertAt += try document.insertPages(from: url, at: insertAt)
             }
         } catch {
             errorMessage = "One of the PDFs could not be read. It may be damaged or password protected."

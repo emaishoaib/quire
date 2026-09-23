@@ -5,69 +5,60 @@
 //  Created by Mustafa Shoaib on 9/23/26.
 //
 
+import AppKit
 import PDFKit
 import SwiftUI
-import UniformTypeIdentifiers
 
 /// A PDF open in a window.
+///
+/// This is an `NSDocument` rather than a SwiftUI document because SwiftUI's
+/// `DocumentGroup` always autosaves in place and offers no way to turn that off. Owning
+/// the document means edits stay in memory until saved, and closing or quitting with
+/// unsaved work prompts, which AppKit provides once `autosavesInPlace` is false.
 ///
 /// `revision` is bumped after every page edit. `PDFDocument` is a PDFKit object that
 /// `@Observable` cannot see inside, so moving or rotating a page changes nothing SwiftUI
 /// watches, and views observe the counter instead.
 @Observable
-final class QuireDocument: Document {
+final class QuireDocument: NSDocument {
 
-    static let readableContentTypes: [UTType] = [.pdf]
-
-    var pdf: PDFDocument
+    var pdf = PDFDocument()
     private(set) var revision = 0
 
-    init(pdf: PDFDocument = PDFDocument()) {
-        self.pdf = pdf
+    nonisolated override class var autosavesInPlace: Bool { false }
+
+    override func makeWindowControllers() {
+        let hosting = NSHostingController(rootView: ContentView(document: self))
+        let window = NSWindow(contentViewController: hosting)
+        window.setContentSize(NSSize(width: 1180, height: 820))
+        window.minSize = NSSize(width: 720, height: 520)
+        window.setFrameAutosaveName("QuireDocumentWindow")
+        addWindowController(NSWindowController(window: window))
     }
 
-    /// Reads the file's bytes off the main actor.
-    ///
-    /// The snapshot type is `Data` rather than `PDFDocument` because reading and
-    /// writing happen off the main actor, and only sendable values may cross that
-    /// boundary.
-    nonisolated func reader(
-        configuration: sending ReadConfiguration
-    ) -> sending FileWrapperDocumentReader<Data> {
-        FileWrapperDocumentReader(configuration) { fileWrapper in
-            guard let data = fileWrapper.regularFileContents else {
-                throw CocoaError(.fileReadCorruptFile)
-            }
-            return data
-        }
-    }
-
-    nonisolated func writer(
-        configuration: sending WriteConfiguration
-    ) -> sending FileWrapperDocumentWriter<Data> {
-        FileWrapperDocumentWriter(configuration) { snapshot, _ in
-            FileWrapper(regularFileWithContents: snapshot)
-        }
-    }
-
-    @MainActor
-    func snapshot(contentType: UTType) async throws -> sending Data {
+    override func data(ofType typeName: String) throws -> Data {
         guard let data = pdf.dataRepresentation() else {
             throw CocoaError(.fileWriteUnknown)
         }
         return data
     }
 
-    @MainActor
-    func apply(snapshot: sending Data, previous: sending Data?) async throws {
-        guard let pdf = PDFDocument(data: snapshot) else {
+    /// Parses the file's bytes.
+    ///
+    /// AppKit declares this as not belonging to the main actor, but it only reads
+    /// concurrently when a document class asks to, which this one does not. The parsed
+    /// document is therefore handed over on the main actor it already arrived on.
+    nonisolated override func read(from data: Data, ofType typeName: String) throws {
+        guard let parsed = PDFDocument(data: data) else {
             throw CocoaError(.fileReadCorruptFile)
         }
-        if pdf.isLocked {
+        if parsed.isLocked {
             throw CocoaError(.fileReadNoPermission)
         }
-        self.pdf = pdf
-        revision += 1
+        MainActor.assumeIsolated {
+            pdf = parsed
+            revision += 1
+        }
     }
 }
 
@@ -90,8 +81,9 @@ extension QuireDocument {
     /// Replaces every page with `newState` and registers the reverse as undo.
     ///
     /// Every edit goes through here, so undo is always "put the old list back" and
-    /// each new operation gets working undo without its own bookkeeping.
-    func applyPages(_ newState: [PageState], actionName: String, undoManager: UndoManager?) {
+    /// each new operation gets working undo without its own bookkeeping. Registering
+    /// undo is also what marks the document as having unsaved changes.
+    func applyPages(_ newState: [PageState], actionName: String) {
         let oldState = pageStates
 
         for index in stride(from: pdf.pageCount - 1, through: 0, by: -1) {
@@ -105,36 +97,36 @@ extension QuireDocument {
 
         undoManager?.registerUndo(withTarget: self) { document in
             MainActor.assumeIsolated {
-                document.applyPages(oldState, actionName: actionName, undoManager: undoManager)
+                document.applyPages(oldState, actionName: actionName)
             }
         }
         undoManager?.setActionName(actionName)
     }
 
-    func movePages(_ indices: IndexSet, to destination: Int, undoManager: UndoManager?) {
+    func movePages(_ indices: IndexSet, to destination: Int) {
         var newState = pageStates
         newState.move(fromOffsets: indices, toOffset: destination)
-        applyPages(newState, actionName: "Move Pages", undoManager: undoManager)
+        applyPages(newState, actionName: "Move Pages")
     }
 
-    func rotatePages(_ indices: IndexSet, by degrees: Int, undoManager: UndoManager?) {
+    func rotatePages(_ indices: IndexSet, by degrees: Int) {
         let newState = pageStates.enumerated().map { index, item in
             guard indices.contains(index) else { return item }
             let rotation = ((item.rotation + degrees) % 360 + 360) % 360
             return PageState(page: item.page, rotation: rotation)
         }
-        applyPages(newState, actionName: "Rotate Pages", undoManager: undoManager)
+        applyPages(newState, actionName: "Rotate Pages")
     }
 
     /// Deletes the given pages, unless that would empty the document.
     ///
     /// A PDF with no pages cannot be written back to disk, so the last page stays.
-    func deletePages(_ indices: IndexSet, undoManager: UndoManager?) {
+    func deletePages(_ indices: IndexSet) {
         guard indices.count < pageCount else { return }
         let newState = pageStates.enumerated()
             .filter { !indices.contains($0.offset) }
             .map(\.element)
-        applyPages(newState, actionName: "Delete Pages", undoManager: undoManager)
+        applyPages(newState, actionName: "Delete Pages")
     }
 
     /// Inserts copies of every page of the PDF at `url`, and reports how many were added.
@@ -142,7 +134,7 @@ extension QuireDocument {
     /// The pages are copied because a `PDFPage` belongs to one document at a time, and
     /// moving them would strip the pages out of the document being inserted from.
     @discardableResult
-    func insertPages(from url: URL, at index: Int, undoManager: UndoManager?) throws -> Int {
+    func insertPages(from url: URL, at index: Int) throws -> Int {
         guard let other = PDFDocument(url: url), !other.isLocked else {
             throw CocoaError(.fileReadCorruptFile)
         }
@@ -154,7 +146,7 @@ extension QuireDocument {
 
         var newState = pageStates
         newState.insert(contentsOf: inserted, at: min(index, newState.count))
-        applyPages(newState, actionName: "Insert Pages", undoManager: undoManager)
+        applyPages(newState, actionName: "Insert Pages")
         return inserted.count
     }
 }

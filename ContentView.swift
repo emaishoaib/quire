@@ -28,8 +28,6 @@ struct ContentView: View {
     @AppStorage("showsThumbnails") private var showsThumbnails = true
     @AppStorage("thumbnailWidth") private var thumbnailWidth = 120.0
 
-    @Environment(\.undoManager) private var undoManager
-
     var body: some View {
         Group {
             if document.pdf.pageCount == 0 {
@@ -112,7 +110,7 @@ struct ContentView: View {
 
             ToolbarItem(placement: .primaryAction) {
                 Button {
-                    ocr.run(on: document, undoManager: undoManager)
+                    ocr.run(on: document)
                 } label: {
                     Label("Recognize Text", systemImage: "text.viewfinder")
                 }
