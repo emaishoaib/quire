@@ -7,18 +7,26 @@
 
 import PDFKit
 import SwiftUI
+import UniformTypeIdentifiers
 
 /// A strip of page thumbnails beside the document in Read mode.
 ///
 /// This is written in SwiftUI rather than wrapping PDFKit's `PDFThumbnailView` so that
 /// each page can carry its own controls. What PDFKit gave for nothing is reproduced
 /// here: the current page is highlighted, and the strip scrolls to keep it in view.
+///
+/// Hovering a page reveals rotate and delete beneath it, and hovering the gap between two
+/// pages reveals a plus that inserts there. Unlike the Pages grid there is no selection,
+/// so every control acts on the one page it belongs to.
 struct ThumbnailSidebar: View {
     @Bindable var document: QuireDocument
     let viewer: ViewerController
     let thumbnailWidth: Double
 
     @State private var thumbnails = ThumbnailCache()
+    @State private var hovered: Int?
+    @State private var insertionPoint: Int?
+    @State private var errorMessage: String?
 
     var body: some View {
         ScrollViewReader { scroller in
@@ -40,6 +48,11 @@ struct ThumbnailSidebar: View {
                 }
             }
         }
+        .alert("Couldn't insert those pages", isPresented: showingError) {
+            Button("OK") {}
+        } message: {
+            Text(errorMessage ?? "")
+        }
     }
 
     private func cell(index: Int, page: PDFPage) -> some View {
@@ -56,6 +69,12 @@ struct ThumbnailSidebar: View {
                     RoundedRectangle(cornerRadius: 6)
                         .strokeBorder(isCurrent ? Color.accentColor : .clear, lineWidth: 2)
                 )
+                .overlay(alignment: .bottom) {
+                    pageControls(index: index)
+                        .opacity(hovered == index ? 1 : 0)
+                        .allowsHitTesting(hovered == index)
+                        .animation(.easeOut(duration: 0.12), value: hovered == index)
+                }
 
             Text("\(index + 1)")
                 .font(.caption)
@@ -63,6 +82,135 @@ struct ThumbnailSidebar: View {
         }
         .contentShape(.rect)
         .onTapGesture { viewer.goToPage(index) }
+        .onHover { inside in
+            hovered = inside ? index : (hovered == index ? nil : hovered)
+        }
+        .overlay(alignment: .top) {
+            if index == 0 {
+                insertionZone(at: 0, edge: .top, besidePage: index)
+            }
+        }
+        .overlay(alignment: .bottom) {
+            insertionZone(at: index + 1, edge: .bottom, besidePage: index)
+        }
+    }
+
+    /// The rotate and delete buttons that appear over a hovered page.
+    private func pageControls(index: Int) -> some View {
+        HStack(spacing: 2) {
+            controlButton("Rotate Left", systemImage: "rotate.left") {
+                document.rotatePages(IndexSet(integer: index), by: -90)
+            }
+            controlButton("Rotate Right", systemImage: "rotate.right") {
+                document.rotatePages(IndexSet(integer: index), by: 90)
+            }
+            controlButton("Delete Page", systemImage: "trash") {
+                document.deletePages(IndexSet(integer: index))
+                hovered = nil
+            }
+            .disabled(document.pageCount == 1)
+        }
+        .padding(.horizontal, 6)
+        .padding(.vertical, 4)
+        .background(.regularMaterial, in: .capsule)
+        .overlay(Capsule().strokeBorder(.separator))
+        .shadow(color: .black.opacity(0.2), radius: 3, y: 1)
+        .onHover { inside in
+            if inside {
+                hovered = index
+            }
+        }
+    }
+
+    private func controlButton(_ title: String, systemImage: String, action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            Image(systemName: systemImage)
+                .font(.system(size: 13))
+                .frame(width: 24, height: 21)
+                .contentShape(.rect)
+        }
+        .buttonStyle(.plain)
+        .help(title)
+    }
+
+    /// A plus in the gap above or below a page, which inserts pages at `index`.
+    ///
+    /// The button stays in the view tree and only fades, because removing it while the
+    /// pointer is on it makes hover flip on and off and the plus disappear.
+    private func insertionZone(at index: Int, edge: VerticalEdge, besidePage page: Int) -> some View {
+        let isVisible = insertionPoint == index || hovered == page
+
+        return Color.clear
+            .frame(height: 19)
+            .contentShape(.rect)
+            .onHover { inside in
+                insertionPoint = inside ? index : (insertionPoint == index ? nil : insertionPoint)
+            }
+            .dropDestination(for: URL.self) { urls, _ in
+                insert(pdfs: urls, at: index)
+            } isTargeted: { targeted in
+                insertionPoint = targeted ? index : (insertionPoint == index ? nil : insertionPoint)
+            }
+            .overlay {
+                Button {
+                    insertPages(at: index)
+                } label: {
+                    Image(systemName: "plus")
+                        .font(.system(size: 11, weight: .semibold))
+                        .frame(width: 22, height: 22)
+                        .background(.regularMaterial, in: .circle)
+                        .overlay(Circle().strokeBorder(.separator))
+                        .shadow(color: .black.opacity(0.2), radius: 2, y: 1)
+                        .contentShape(.circle)
+                }
+                .buttonStyle(.plain)
+                .help(index == 0 ? "Insert pages before this page" : "Insert pages here")
+                .opacity(isVisible ? 1 : 0)
+                .allowsHitTesting(isVisible)
+                .onHover { inside in
+                    if inside {
+                        insertionPoint = index
+                    }
+                }
+                .animation(.easeOut(duration: 0.12), value: isVisible)
+            }
+            .offset(y: edge == .top ? -10 : 10)
+    }
+
+    /// Inserts dropped PDF files at `index`, refusing anything that is not a PDF.
+    private func insert(pdfs urls: [URL], at index: Int) -> Bool {
+        let pdfs = urls.filter { $0.pathExtension.lowercased() == "pdf" }
+        guard !pdfs.isEmpty else { return false }
+
+        var insertAt = index
+        do {
+            for url in pdfs {
+                insertAt += try document.insertPages(from: url, at: insertAt)
+            }
+        } catch {
+            errorMessage = "One of the PDFs could not be read. It may be damaged or password protected."
+            return false
+        }
+        return true
+    }
+
+    /// Asks for PDFs and inserts their pages at `index`.
+    private func insertPages(at index: Int) {
+        let panel = NSOpenPanel()
+        panel.allowedContentTypes = [.pdf]
+        panel.allowsMultipleSelection = true
+        panel.message = "Choose PDFs to insert"
+        guard panel.runModal() == .OK else { return }
+
+        _ = insert(pdfs: panel.urls, at: index)
+        insertionPoint = nil
+    }
+
+    private var showingError: Binding<Bool> {
+        Binding(
+            get: { errorMessage != nil },
+            set: { if !$0 { errorMessage = nil } }
+        )
     }
 
     /// How wide the sidebar has to be to hold a thumbnail of this width.
