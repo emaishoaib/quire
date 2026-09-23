@@ -19,6 +19,7 @@ import UniformTypeIdentifiers
 /// is as wide as the window and a full-width list of a few files reads as broken.
 struct StartView: View {
     @State private var recents = NSDocumentController.shared.recentDocumentURLs
+    @State private var hasAppeared = false
 
     var body: some View {
         ScrollView {
@@ -35,6 +36,9 @@ struct StartView: View {
             }
             .background(.background.secondary, in: .rect(cornerRadius: 12))
             .overlay(RoundedRectangle(cornerRadius: 12).strokeBorder(.separator))
+            .opacity(hasAppeared ? 1 : 0)
+            .offset(y: hasAppeared ? 0 : 12)
+            .animation(.spring(duration: 0.35, bounce: 0.1), value: hasAppeared)
             .frame(maxWidth: 680)
             .padding(.top, 56)
             .padding(.bottom, 40)
@@ -42,7 +46,10 @@ struct StartView: View {
             .frame(maxWidth: .infinity)
         }
         .background(Color(nsColor: .windowBackgroundColor))
-        .onAppear { recents = NSDocumentController.shared.recentDocumentURLs }
+        .onAppear {
+            recents = NSDocumentController.shared.recentDocumentURLs
+            hasAppeared = true
+        }
     }
 
     private var header: some View {
@@ -87,6 +94,12 @@ struct StartView: View {
                     row(for: url)
                 }
                 .buttonStyle(.plain)
+                .opacity(hasAppeared ? 1 : 0)
+                .offset(y: hasAppeared ? 0 : 6)
+                .animation(
+                    .easeOut(duration: 0.25).delay(0.08 + Double(index) * 0.035),
+                    value: hasAppeared
+                )
 
                 if index < recents.count - 1 {
                     Divider()
