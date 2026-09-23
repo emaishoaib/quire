@@ -33,7 +33,9 @@ struct ReadRail: View {
                 mode == .read ? "Organise Pages" : "Read",
                 systemImage: mode == .read ? "square.grid.2x2" : "doc.text"
             ) {
-                mode = mode == .read ? .pages : .read
+                withAnimation(Mode.animation) {
+                    mode = mode == .read ? .pages : .read
+                }
             }
 
             if mode == .read {
@@ -41,6 +43,7 @@ struct ReadRail: View {
                     showsThumbnails.toggle()
                 }
                 .keyboardShortcut("t", modifiers: [.command, .option])
+                .transition(.opacity)
             }
 
             separator
@@ -55,7 +58,8 @@ struct ReadRail: View {
             Spacer(minLength: 20)
 
             if mode == .read {
-                PageIndicator(viewer: viewer, pageCount: document.pageCount)
+                Group {
+                    PageIndicator(viewer: viewer, pageCount: document.pageCount)
 
             separator
 
@@ -90,8 +94,10 @@ struct ReadRail: View {
             button("Zoom In", systemImage: "plus.magnifyingglass") { viewer.zoomIn() }
                 .keyboardShortcut("=", modifiers: .command)
 
-                button("Zoom Out", systemImage: "minus.magnifyingglass") { viewer.zoomOut() }
-                    .keyboardShortcut("-", modifiers: .command)
+                    button("Zoom Out", systemImage: "minus.magnifyingglass") { viewer.zoomOut() }
+                        .keyboardShortcut("-", modifiers: .command)
+                }
+                .transition(.opacity)
             }
         }
         .padding(.vertical, 14)
