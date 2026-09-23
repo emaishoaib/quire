@@ -11,7 +11,7 @@ import SwiftUI
 /// Shows a PDF using PDFKit's own view, which brings scrolling, zooming,
 /// page breaks and text selection with it.
 ///
-/// A document opens at actual size, 100%, rather than fitted to the window.
+/// A document opens with its first page fitted to the window's height.
 struct PDFViewer: NSViewRepresentable {
     let pdf: PDFDocument
     let revision: Int
@@ -22,7 +22,7 @@ struct PDFViewer: NSViewRepresentable {
     }
 
     func makeNSView(context: Context) -> PDFView {
-        let view = PDFView()
+        let view = FittingPDFView()
         view.autoScales = false
         view.scaleFactor = 1
         view.displayMode = .singlePageContinuous
@@ -30,6 +30,7 @@ struct PDFViewer: NSViewRepresentable {
         view.backgroundColor = .underPageBackgroundColor
         view.document = pdf
         controller.attach(view)
+        view.onFirstLayout = { [weak controller] in controller?.viewDidFirstLayout() }
         return view
     }
 
@@ -56,5 +57,20 @@ struct PDFViewer: NSViewRepresentable {
         init(revision: Int) {
             self.revision = revision
         }
+    }
+}
+
+/// A `PDFView` that runs a callback once, on its first layout with a real size.
+///
+/// The view has no size when it is created, so anything that fits the page to the
+/// window has to wait until here.
+final class FittingPDFView: PDFView {
+    var onFirstLayout: (() -> Void)?
+
+    override func layout() {
+        super.layout()
+        guard bounds.height > 0, let action = onFirstLayout else { return }
+        onFirstLayout = nil
+        action()
     }
 }

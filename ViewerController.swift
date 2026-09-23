@@ -131,6 +131,11 @@ final class ViewerController {
         setScale((view.bounds.width - 24) / size.width)
     }
 
+    /// Sets the opening zoom, once the view has a size to fit against.
+    func viewDidFirstLayout() {
+        fitHeight()
+    }
+
     /// Fits the page's height to the window, the counterpart to `fitWidth`.
     func fitHeight() {
         guard let size = displayedPageSize, let view, size.height > 0 else { return }
