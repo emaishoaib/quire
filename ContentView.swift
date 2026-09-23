@@ -21,9 +21,12 @@ struct ContentView: View {
     @Bindable var document: QuireDocument
 
     @State private var viewer = ViewerController()
+    @State private var ocr = OCRRunner()
     @State private var query = ""
     @State private var mode: Mode = .read
     @State private var selection = Set<Int>()
+
+    @Environment(\.undoManager) private var undoManager
 
     var body: some View {
         Group {
@@ -56,6 +59,14 @@ struct ContentView: View {
             viewer.clearSearch()
             selection = selection.filter { $0 < document.pageCount }
         }
+        .sheet(isPresented: $ocr.isRunning) {
+            OCRProgressView(ocr: ocr)
+        }
+        .alert("Recognize Text", isPresented: showingSummary) {
+            Button("OK") {}
+        } message: {
+            Text(ocr.summary ?? "")
+        }
         .toolbar {
             ToolbarItem(placement: .principal) {
                 Picker("Mode", selection: $mode) {
@@ -65,6 +76,16 @@ struct ContentView: View {
                 }
                 .pickerStyle(.segmented)
                 .frame(width: 140)
+            }
+
+            ToolbarItem(placement: .primaryAction) {
+                Button {
+                    ocr.run(on: document, undoManager: undoManager)
+                } label: {
+                    Label("Recognize Text", systemImage: "text.viewfinder")
+                }
+                .help("Make scanned pages searchable")
+                .disabled(document.pageCount == 0 || ocr.isRunning)
             }
 
             if !viewer.matches.isEmpty {
@@ -89,6 +110,13 @@ struct ContentView: View {
                 }
             }
         }
+    }
+
+    private var showingSummary: Binding<Bool> {
+        Binding(
+            get: { ocr.summary != nil },
+            set: { if !$0 { ocr.summary = nil } }
+        )
     }
 }
 

@@ -9,6 +9,10 @@ import SwiftUI
 
 @main
 struct QuireApp: App {
+    init() {
+        OCRRunner.warmUp()
+    }
+
     var body: some Scene {
         DocumentGroup { document in
             ContentView(document: document)
