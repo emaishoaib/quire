@@ -58,8 +58,11 @@ struct ContentView: View {
 
                         PDFViewer(pdf: document.pdf, revision: document.revision, controller: viewer)
                             .overlay(alignment: .bottomTrailing) {
-                                ZoomControl(viewer: viewer)
-                                    .padding(16)
+                                HStack(spacing: 8) {
+                                    PageIndicator(viewer: viewer, pageCount: document.pageCount)
+                                    ZoomControl(viewer: viewer)
+                                }
+                                .padding(16)
                             }
                             .overlay(alignment: .trailing) {
                                 ZoomHUD(viewer: viewer)
@@ -127,26 +130,6 @@ struct ContentView: View {
                     }
                     .help("Show or hide page thumbnails")
                     .keyboardShortcut("t", modifiers: [.command, .option])
-                }
-
-                ToolbarItemGroup(placement: .navigation) {
-                    Button {
-                        viewer.previousPage()
-                    } label: {
-                        Label("Previous Page", systemImage: "chevron.up")
-                    }
-                    .keyboardShortcut(.upArrow, modifiers: .command)
-
-                    Button {
-                        viewer.nextPage()
-                    } label: {
-                        Label("Next Page", systemImage: "chevron.down")
-                    }
-                    .keyboardShortcut(.downArrow, modifiers: .command)
-
-                    Text("\(viewer.currentPage + 1) / \(document.pageCount)")
-                        .monospacedDigit()
-                        .foregroundStyle(.secondary)
                 }
 
                 ToolbarItemGroup {
