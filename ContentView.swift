@@ -33,28 +33,28 @@ struct ContentView: View {
             if document.pdf.pageCount == 0 {
                 ContentUnavailableView("No Pages", systemImage: "doc")
             } else {
-                switch mode {
-                case .read:
-                    HStack(spacing: 0) {
-                        if showsThumbnails {
-                            VStack(spacing: 0) {
-                                ThumbnailSidebar(
-                                    document: document,
-                                    viewer: viewer,
-                                    thumbnailWidth: thumbnailWidth
-                                )
-
-                                Divider()
-
-                                ThumbnailSizeControl(thumbnailWidth: $thumbnailWidth)
-                            }
-                            .frame(width: ThumbnailSidebar.sidebarWidth(for: thumbnailWidth))
-                            .background(Color(nsColor: .underPageBackgroundColor))
-                            .animation(.easeOut(duration: 0.12), value: thumbnailWidth)
+                HStack(spacing: 0) {
+                    if mode == .read && showsThumbnails {
+                        VStack(spacing: 0) {
+                            ThumbnailSidebar(
+                                document: document,
+                                viewer: viewer,
+                                thumbnailWidth: thumbnailWidth
+                            )
 
                             Divider()
-                        }
 
+                            ThumbnailSizeControl(thumbnailWidth: $thumbnailWidth)
+                        }
+                        .frame(width: ThumbnailSidebar.sidebarWidth(for: thumbnailWidth))
+                        .background(Color(nsColor: .underPageBackgroundColor))
+                        .animation(.easeOut(duration: 0.12), value: thumbnailWidth)
+
+                        Divider()
+                    }
+
+                    switch mode {
+                    case .read:
                         PDFViewer(pdf: document.pdf, revision: document.revision, controller: viewer)
                             .overlay(alignment: .topTrailing) {
                                 if showsFind {
@@ -66,16 +66,23 @@ struct ContentView: View {
                                 ZoomHUD(viewer: viewer)
                                     .padding(.trailing, 16)
                             }
-
-                        Divider()
-
-                        ReadRail(viewer: viewer, ocr: ocr, document: document, showsFind: $showsFind)
+                    case .pages:
+                        PageGrid(document: document, selection: $selection) { index in
+                            mode = .read
+                            viewer.goToPage(index)
+                        }
                     }
-                case .pages:
-                    PageGrid(document: document, selection: $selection) { index in
-                        mode = .read
-                        viewer.goToPage(index)
-                    }
+
+                    Divider()
+
+                    ReadRail(
+                        viewer: viewer,
+                        ocr: ocr,
+                        document: document,
+                        showsFind: $showsFind,
+                        mode: $mode,
+                        showsThumbnails: $showsThumbnails
+                    )
                 }
             }
         }
@@ -104,31 +111,6 @@ struct ContentView: View {
             Button("OK") {}
         } message: {
             Text(ocr.summary ?? "")
-        }
-        .toolbar {
-            ToolbarItem(placement: .principal) {
-                Picker("Mode", selection: $mode) {
-                    ForEach(Mode.allCases) { mode in
-                        Text(mode.rawValue).tag(mode)
-                    }
-                }
-                .pickerStyle(.segmented)
-                .frame(width: 140)
-            }
-
-            if mode == .read {
-                ToolbarItem(placement: .navigation) {
-                    Button {
-                        showsThumbnails.toggle()
-                    } label: {
-                        Label("Thumbnails", systemImage: "sidebar.left")
-                    }
-                    .help("Show or hide page thumbnails")
-                    .keyboardShortcut("t", modifiers: [.command, .option])
-                }
-
-            }
-
         }
     }
 
