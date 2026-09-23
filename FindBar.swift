@@ -17,6 +17,12 @@ import SwiftUI
 /// The field takes focus a moment after the panel appears, rather than immediately: the
 /// panel is not yet in the window when `onAppear` runs, and focus asked for then is lost.
 struct FindBar: View {
+    /// How the panel arrives and leaves, and how its results appear.
+    ///
+    /// Set where `showsFind` changes rather than in the view, because a panel being
+    /// inserted or removed cannot animate its own arrival.
+    static let animation = Animation.spring(duration: 0.28, bounce: 0.12)
+
     let viewer: ViewerController
     let pdf: PDFDocument
     @Binding var isPresented: Bool
@@ -30,9 +36,12 @@ struct FindBar: View {
 
             if !query.trimmingCharacters(in: .whitespaces).isEmpty {
                 results
+                    .transition(.scale(scale: 0.94, anchor: .top).combined(with: .opacity))
             }
         }
         .frame(width: 320)
+        .animation(Self.animation, value: query.isEmpty)
+        .animation(Self.animation, value: viewer.matches.count)
         .onAppear {
             Task {
                 try? await Task.sleep(for: .milliseconds(60))
@@ -124,7 +133,7 @@ struct FindBar: View {
             } else {
                 ScrollView {
                     VStack(spacing: 0) {
-                        ForEach(viewer.matchGroups, id: \.text) { group in
+                        ForEach(Array(viewer.matchGroups.enumerated()), id: \.element.text) { position, group in
                             Button {
                                 viewer.goToMatch(group.firstIndex)
                             } label: {
@@ -145,6 +154,11 @@ struct FindBar: View {
                                 .contentShape(.rect)
                             }
                             .buttonStyle(.plain)
+                            .transition(
+                                .opacity
+                                    .combined(with: .offset(y: -4))
+                                    .animation(.easeOut(duration: 0.2).delay(Double(position) * 0.025))
+                            )
                         }
                     }
                 }
@@ -170,6 +184,8 @@ struct FindBar: View {
     private func close() {
         viewer.clearSearch()
         query = ""
-        isPresented = false
+        withAnimation(Self.animation) {
+            isPresented = false
+        }
     }
 }
