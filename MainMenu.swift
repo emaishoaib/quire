@@ -76,12 +76,6 @@ enum MainMenu {
         menu.addItem(withTitle: "Copy", action: #selector(NSText.copy(_:)), keyEquivalent: "c")
         menu.addItem(withTitle: "Paste", action: #selector(NSText.paste(_:)), keyEquivalent: "v")
         menu.addItem(withTitle: "Select All", action: #selector(NSText.selectAll(_:)), keyEquivalent: "a")
-        menu.addItem(.separator())
-
-        let find = NSMenuItem(title: "Find", action: nil, keyEquivalent: "")
-        find.submenu = NSMenu(title: "Find")
-        find.submenu?.addItem(withTitle: "Find…", action: #selector(NSResponder.performTextFinderAction(_:)), keyEquivalent: "f")
-        menu.addItem(find)
         return menu
     }
 

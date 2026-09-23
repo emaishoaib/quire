@@ -15,6 +15,13 @@ import SwiftUI
 @Observable
 final class ViewerController {
 
+    /// How the rail's find control changes shape, and how the match count rolls over.
+    ///
+    /// The animation is applied where the values change rather than in the view: a view
+    /// appearing or disappearing is not covered by `animation(_:value:)` on the view
+    /// itself, so without this the swap happens instantly.
+    static let searchAnimation = Animation.spring(duration: 0.32, bounce: 0.2)
+
     private(set) var matches: [PDFSelection] = []
     private(set) var matchIndex = 0
     private(set) var currentPage = 0
@@ -23,6 +30,7 @@ final class ViewerController {
     private(set) var isContinuous = true
     private(set) var showsCoverPage = false
     private(set) var attachCount = 0
+    var matchCase = false
 
     @ObservationIgnored private weak var view: PDFView?
     @ObservationIgnored private var lastQuery = ""
@@ -167,6 +175,59 @@ final class ViewerController {
         self.pendingPage = nil
     }
 
+    /// Runs a search, replacing any results already on screen.
+    ///
+    /// Typing re-runs this on every keystroke, so it always starts from the first match
+    /// rather than advancing, which is what `submitSearch` does when the query is unchanged.
+    func search(_ query: String, in pdf: PDFDocument) {
+        let query = query.trimmingCharacters(in: .whitespaces)
+        guard !query.isEmpty else {
+            clearSearch()
+            return
+        }
+
+        lastQuery = query
+        let found = pdf.findString(query, withOptions: matchCase ? [] : .caseInsensitive)
+        for match in found {
+            match.color = .systemYellow
+        }
+        withAnimation(Self.searchAnimation) {
+            matches = found
+            matchIndex = 0
+        }
+        view?.highlightedSelections = found.isEmpty ? nil : found
+        showCurrentMatch()
+    }
+
+    /// The matched text grouped by what it actually says, with how often each form occurs.
+    ///
+    /// A case-insensitive search for "delivery" can match "Delivery" and "delivery", and
+    /// the results list names each form rather than pretending they were identical.
+    var matchGroups: [(text: String, count: Int, firstIndex: Int)] {
+        var order: [String] = []
+        var counts: [String: Int] = [:]
+        var first: [String: Int] = [:]
+
+        for (index, match) in matches.enumerated() {
+            let text = match.string ?? ""
+            guard !text.isEmpty else { continue }
+            if counts[text] == nil {
+                order.append(text)
+                first[text] = index
+            }
+            counts[text, default: 0] += 1
+        }
+        return order.map { ($0, counts[$0] ?? 0, first[$0] ?? 0) }
+    }
+
+    func goToMatch(_ index: Int) {
+        guard matches.indices.contains(index) else { return }
+        withAnimation(Self.searchAnimation) {
+            matchIndex = index
+        }
+        showCurrentMatch()
+    }
+
     /// Searches for `query`, or advances to the next match when the query is unchanged.
     func submitSearch(_ query: String, in pdf: PDFDocument) {
         let query = query.trimmingCharacters(in: .whitespaces)
@@ -180,7 +241,7 @@ final class ViewerController {
         }
 
         lastQuery = query
-        matches = pdf.findString(query, withOptions: .caseInsensitive)
+        matches = pdf.findString(query, withOptions: matchCase ? [] : .caseInsensitive)
         for match in matches {
             match.color = .systemYellow
         }
@@ -191,20 +252,26 @@ final class ViewerController {
 
     func nextMatch() {
         guard !matches.isEmpty else { return }
-        matchIndex = (matchIndex + 1) % matches.count
+        withAnimation(Self.searchAnimation) {
+            matchIndex = (matchIndex + 1) % matches.count
+        }
         showCurrentMatch()
     }
 
     func previousMatch() {
         guard !matches.isEmpty else { return }
-        matchIndex = (matchIndex - 1 + matches.count) % matches.count
+        withAnimation(Self.searchAnimation) {
+            matchIndex = (matchIndex - 1 + matches.count) % matches.count
+        }
         showCurrentMatch()
     }
 
     func clearSearch() {
         lastQuery = ""
-        matches = []
-        matchIndex = 0
+        withAnimation(Self.searchAnimation) {
+            matches = []
+            matchIndex = 0
+        }
         view?.highlightedSelections = nil
         view?.clearSelection()
     }
