@@ -7,78 +7,8 @@
 
 import SwiftUI
 
-/// The zoom and view controls that float in the bottom-right of the Read view.
-///
-/// The percentage opens a menu holding the page layout options and the fit modes,
-/// with minus and plus either side for stepping through zoom levels.
-struct ZoomControl: View {
-    let viewer: ViewerController
-
-    private let presets: [Double] = [0.25, 0.5, 0.75, 1, 1.25, 1.5, 2, 4]
-
-    var body: some View {
-        HStack(spacing: 2) {
-            stepper("Zoom Out", systemImage: "minus") { viewer.zoomOut() }
-
-            Menu {
-                Toggle("Single-Page View", isOn: binding(viewer.isTwoUp == false) { viewer.setTwoUp(!$0) })
-                Toggle("Two-Page View", isOn: binding(viewer.isTwoUp) { viewer.setTwoUp($0) })
-                Toggle("Show Cover Page", isOn: binding(viewer.showsCoverPage) { viewer.setShowsCoverPage($0) })
-                    .disabled(!viewer.isTwoUp)
-
-                Divider()
-
-                Toggle("Enable Scrolling", isOn: binding(viewer.isContinuous) { viewer.setContinuous($0) })
-
-                Divider()
-
-                Button("Actual Size") { viewer.setScale(1) }
-                Button("Zoom to Page Level") { viewer.fitPage() }
-                Button("Fit to Width") { viewer.fitWidth() }
-                Button("Fit Height") { viewer.fitHeight() }
-
-                Divider()
-
-                ForEach(presets, id: \.self) { preset in
-                    Button(Self.percentage(preset)) { viewer.setScale(preset) }
-                }
-            } label: {
-                HStack(spacing: 3) {
-                    Text(Self.percentage(viewer.scale))
-                        .font(.system(size: 13))
-                        .monospacedDigit()
-                    Image(systemName: "chevron.up.chevron.down")
-                        .font(.system(size: 10, weight: .semibold))
-                        .foregroundStyle(.secondary)
-                }
-                .frame(width: 66, height: FloatingCapsule.contentHeight)
-                .contentShape(.rect)
-            }
-            .menuStyle(.borderlessButton)
-            .menuIndicator(.hidden)
-            .fixedSize()
-            .help("Zoom and page layout")
-
-            stepper("Zoom In", systemImage: "plus") { viewer.zoomIn() }
-        }
-        .floatingCapsule()
-    }
-
-    private func stepper(_ title: String, systemImage: String, action: @escaping () -> Void) -> some View {
-        Button(action: action) {
-            Image(systemName: systemImage)
-                .font(.system(size: 13, weight: .semibold))
-                .frame(width: 28, height: FloatingCapsule.contentHeight)
-                .contentShape(.rect)
-        }
-        .buttonStyle(.plain)
-        .help(title)
-    }
-
-    private func binding(_ value: Bool, set: @escaping (Bool) -> Void) -> Binding<Bool> {
-        Binding(get: { value }, set: set)
-    }
-
+/// Formatting shared by the zoom controls.
+enum ZoomControl {
     static func percentage(_ scale: Double) -> String {
         "\(Int((scale * 100).rounded()))%"
     }

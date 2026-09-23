@@ -7,7 +7,7 @@
 
 import SwiftUI
 
-/// The page number in the bottom-right of the Read view.
+/// The page number in the Read view's right-hand rail.
 ///
 /// The number is a field: type a page and press Return to jump there. It follows the
 /// document as you scroll, except while you are typing in it, so your half-entered
@@ -20,22 +20,21 @@ struct PageIndicator: View {
     @FocusState private var isFocused: Bool
 
     var body: some View {
-        HStack(spacing: 3) {
+        VStack(spacing: 6) {
             TextField("", text: $text)
                 .textFieldStyle(.plain)
-                .multilineTextAlignment(.trailing)
-                .frame(width: fieldWidth)
+                .multilineTextAlignment(.center)
+                .frame(width: fieldWidth, height: 24)
+                .background(.background.secondary, in: .rect(cornerRadius: 5))
+                .overlay(RoundedRectangle(cornerRadius: 5).strokeBorder(.separator))
                 .focused($isFocused)
                 .onSubmit(jump)
 
-            Text("/ \(pageCount)")
+            Text("\(pageCount)")
                 .foregroundStyle(.secondary)
         }
         .font(.system(size: 13))
         .monospacedDigit()
-        .padding(.horizontal, 6)
-        .floatingCapsule()
-        .fixedSize()
         .help("Current page. Type a number and press Return to go there.")
         .onAppear { showCurrentPage() }
         .onChange(of: viewer.currentPage) {
@@ -45,7 +44,7 @@ struct PageIndicator: View {
     }
 
     private var fieldWidth: Double {
-        Double("\(pageCount)".count) * 10 + 10
+        max(Double("\(pageCount)".count) * 9 + 14, 30)
     }
 
     private func showCurrentPage() {
