@@ -69,7 +69,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
         let window = NSWindow(contentViewController: hosting)
         window.title = "Quire"
-        window.setContentSize(NSSize(width: 900, height: 700))
 
         let controller = NSWindowController(window: window)
         startWindows.append(controller)

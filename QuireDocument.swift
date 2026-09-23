@@ -45,9 +45,7 @@ final class QuireDocument: NSDocument {
         hosting.sizingOptions = []
 
         let window = NSWindow(contentViewController: hosting)
-        window.setContentSize(NSSize(width: 1180, height: 820))
-        window.minSize = NSSize(width: 720, height: 520)
-        window.setFrameAutosaveName("QuireDocumentWindow")
+        WindowTabs.prepare(window)
         addWindowController(NSWindowController(window: window))
     }
 
@@ -57,7 +55,7 @@ final class QuireDocument: NSDocument {
             super.showWindows()
             return
         }
-        WindowTabs.show(window)
+        WindowTabs.show(window, replacingStartTabs: true)
     }
 
     /// Writes the current pages to another file, leaving this document where it is.
