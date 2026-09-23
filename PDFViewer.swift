@@ -18,7 +18,12 @@ struct PDFViewer: NSViewRepresentable {
     let controller: ViewerController
 
     func makeCoordinator() -> Coordinator {
-        Coordinator(revision: revision)
+        Coordinator(revision: revision, controller: controller)
+    }
+
+    /// Hands the view's zoom and position to the controller as SwiftUI removes it.
+    static func dismantleNSView(_ view: PDFView, coordinator: Coordinator) {
+        coordinator.controller.detach(view)
     }
 
     func makeNSView(context: Context) -> PDFView {
@@ -50,12 +55,14 @@ struct PDFViewer: NSViewRepresentable {
         }
     }
 
-    /// Remembers the page list the view was last loaded with.
+    /// Remembers the page list the view was last loaded with, and which controller drives it.
     final class Coordinator {
         var revision: Int
+        let controller: ViewerController
 
-        init(revision: Int) {
+        init(revision: Int, controller: ViewerController) {
             self.revision = revision
+            self.controller = controller
         }
     }
 }

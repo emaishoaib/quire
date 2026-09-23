@@ -37,23 +37,42 @@ final class ViewerController {
     @ObservationIgnored private var pendingPage: Int?
     @ObservationIgnored private var observers: [any NSObjectProtocol] = []
     @ObservationIgnored private var pulse: Task<Void, Never>?
+    @ObservationIgnored private var snapshot: Snapshot?
 
-    /// Takes hold of a newly created view and restores what the old one was showing.
-    ///
-    /// Switching between Read and Pages destroys the view, so any scroll target or
-    /// search highlight asked for while it was gone is applied here instead.
+    /// What the Read view was showing when it was torn down, for the next one to pick up.
+    private struct Snapshot {
+        let scale: CGFloat
+        let autoScales: Bool
+        let destination: PDFDestination?
+    }
+
     /// The live view, for the thumbnail sidebar to hand itself to.
     var attachedView: PDFView? { view }
 
+    /// Takes hold of a newly created view and restores what the old one was showing.
+    ///
+    /// Switching between Read and Pages destroys the view. The page layout and search
+    /// highlights are applied here. The zoom and scroll position wait for
+    /// `viewDidFirstLayout`, because they need the view to have a size.
     func attach(_ view: PDFView) {
         self.view = view
         attachCount += 1
+        applyDisplayMode()
+        view.displaysAsBook = showsCoverPage
         if !matches.isEmpty {
             view.highlightedSelections = matches
         }
         observeChanges(of: view)
-        goToPendingPage()
-        showCurrentMatch()
+    }
+
+    /// Remembers what the view is showing before SwiftUI tears it down.
+    func detach(_ view: PDFView) {
+        guard view === self.view else { return }
+        snapshot = Snapshot(
+            scale: view.scaleFactor,
+            autoScales: view.autoScales,
+            destination: view.currentDestination
+        )
     }
 
     /// Republishes PDFKit's page and zoom changes as observable state.
@@ -131,9 +150,26 @@ final class ViewerController {
         setScale((view.bounds.width - 24) / size.width)
     }
 
-    /// Sets the opening zoom, once the view has a size to fit against.
+    /// Sets the zoom and scroll position, once the view has a size to fit against.
+    ///
+    /// A fresh document is fitted to the window's height. A view rebuilt after visiting
+    /// Pages goes back to where the old one was, unless a page was picked there.
     func viewDidFirstLayout() {
-        fitHeight()
+        guard let view else { return }
+        if let snapshot {
+            self.snapshot = nil
+            if snapshot.autoScales {
+                view.autoScales = true
+            } else {
+                setScale(snapshot.scale)
+            }
+            if let destination = snapshot.destination {
+                view.go(to: destination)
+            }
+        } else {
+            fitHeight()
+        }
+        goToPendingPage()
     }
 
     /// Fits the page's height to the window, the counterpart to `fitWidth`.
