@@ -32,9 +32,9 @@ struct ContentView: View {
             } else {
                 switch mode {
                 case .read:
-                    PDFViewer(pdf: document.pdf, controller: viewer)
+                    PDFViewer(pdf: document.pdf, revision: document.revision, controller: viewer)
                 case .pages:
-                    PageGrid(pdf: document.pdf, selection: $selection) { index in
+                    PageGrid(document: document, selection: $selection) { index in
                         mode = .read
                         viewer.goToPage(index)
                     }
@@ -51,6 +51,10 @@ struct ContentView: View {
             if newValue.isEmpty {
                 viewer.clearSearch()
             }
+        }
+        .onChange(of: document.revision) {
+            viewer.clearSearch()
+            selection = selection.filter { $0 < document.pageCount }
         }
         .toolbar {
             ToolbarItem(placement: .principal) {
