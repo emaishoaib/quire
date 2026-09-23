@@ -120,6 +120,12 @@ leaving that out is why every window used to open at its coded size.
 **A start tab closes when a document opens in that window.** The start screen exists to
 open something, so it is replaced rather than joined, however the file was opened.
 
+**Settings that drive animation use `.animation(_:value:)`, not `withAnimation`.** The
+sidebar toggle and the thumbnail size are `@AppStorage`, so the new value comes back from
+UserDefaults outside whatever transaction set it, and an animation wrapped around the
+change is simply lost. Both are animated from the container that holds them, keyed to the
+setting.
+
 **Page edits animate because pages are identified by object.** `PageGrid` and
 `ThumbnailSidebar` list `document.pages`, whose elements survive a reorder, and
 `applyPages` wraps its change in a spring. Adding `.id(document.revision)` to either view
