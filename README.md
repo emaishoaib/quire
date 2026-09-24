@@ -25,7 +25,8 @@ chapter around it opens as you reach it. Scans have no table of contents, and sa
 appear as you type, listed by the text that actually matched and how often, so a
 case-insensitive search names each form it found rather than merging them.
 
-**Organise.** A grid of page thumbnails. Drag to reorder, drag a marquee across empty space
+**Organise.** A grid of page thumbnails, which opens on the page you were reading, already
+selected as though you had clicked it. Drag to reorder, drag a marquee across empty space
 to select a run of pages, and hover any page for rotate and delete. Those act on the whole
 selection when the page you are pointing at belongs to it. Hover between pages for a plus
 that inserts another PDF at that exact spot, or drop a PDF from Finder anywhere in the grid.
