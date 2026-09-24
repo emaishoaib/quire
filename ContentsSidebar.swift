@@ -28,12 +28,6 @@ enum SidebarTab: String, CaseIterable, Identifiable {
 /// The entries come from the PDF's outline, which is the list of sections a PDF can carry
 /// for readers to show. Scans and many generated PDFs have none, and get an empty state.
 struct ContentsSidebar: View {
-    /// The sidebar's width on this tab.
-    ///
-    /// Fixed rather than following the thumbnail size, because titles need room that a
-    /// small thumbnail setting would not leave them.
-    static let width = 240.0
-
     let document: QuireDocument
     let viewer: ViewerController
 
