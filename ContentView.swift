@@ -208,10 +208,7 @@ struct ContentView: View {
 
     /// Why the rename button is disabled, or nil when it is not.
     private var renameUnavailableReason: String? {
-        if namePattern == nil {
-            return "The other PDFs in this folder don't share a naming pattern to rename to"
-        }
-        return NameExtractor.unavailableReason
+        namePattern == nil ? "The other PDFs in this folder don't share a naming pattern to rename to" : nil
     }
 
     private var mergeConfirmation: String {
