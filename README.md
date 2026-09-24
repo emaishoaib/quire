@@ -17,7 +17,9 @@ rail down the right edge, which also holds the page number, text recognition, re
 merging, find, the fit modes and the switch between reading and organising. A thumbnail
 sidebar sized by its own slider, where pages can be dragged into a new order, hovering a
 page reveals rotate and delete, and hovering between pages reveals a plus that inserts
-there.
+there. A button on the rail swaps the thumbnails for the PDF's table of contents, where
+clicking a title jumps to that section. The section being read is highlighted, and the
+chapter around it opens as you reach it. Scans have no table of contents, and say so.
 
 **Find.** Cmd-F, or the rail's magnifying glass, opens a panel over the document. Results
 appear as you type, listed by the text that actually matched and how often, so a
@@ -142,6 +144,13 @@ reimplemented in `ThumbnailSidebar.swift`. The reason is that a single AppKit vi
 give individual pages their own hover controls, which is what the rotate, delete and insert
 buttons need.
 
+**The table of contents is built from disclosure groups, not `List(_:children:)`.** The
+list's own form keeps which entries are expanded to itself, so nothing outside it can open
+the chapter around the section being read. `ContentsSidebar.swift` keeps the expanded
+entries in a set of its own instead. Its rows also respond to a tap rather than to the
+list's selection, because clicking the section already selected would not change the
+selection, and so would not jump back to the section's start.
+
 **The window has no toolbar, and the controls live in a rail.** Two reasons. SwiftUI
 toolbars hosted in an AppKit window ignore trailing placement, so items land at the far
 left however they are declared. More importantly, a window without a toolbar shows its
@@ -163,10 +172,11 @@ leaving that out is why every window used to open at its coded size.
 open something, so it is replaced rather than joined, however the file was opened.
 
 **Settings that drive animation use `.animation(_:value:)`, not `withAnimation`.** The
-sidebar toggle and the thumbnail size are `@AppStorage`, so the new value comes back from
-UserDefaults outside whatever transaction set it, and an animation wrapped around the
-change is simply lost. Both are animated from the container that holds them, keyed to the
-setting.
+sidebar toggle, the sidebar's tab and the thumbnail size are `@AppStorage`, so the new
+value comes back from UserDefaults outside whatever transaction set it, and an animation
+wrapped around the change is simply lost. Each is animated from the container that holds
+what it changes, keyed to the setting. The tab's container holds the rail as well as the
+sidebar, so that the rail's icon animates too.
 
 **Page edits animate because pages are identified by object.** `PageGrid` and
 `ThumbnailSidebar` list `document.pages`, whose elements survive a reorder, and
