@@ -15,6 +15,11 @@ enum SidebarTab: String, CaseIterable, Identifiable {
 
     var id: Self { self }
 
+    /// The tab a PDF opens on: its table of contents when it has one, or its thumbnails.
+    static func opening(_ pdf: PDFDocument) -> SidebarTab {
+        (pdf.outlineRoot?.numberOfChildren ?? 0) > 0 ? .contents : .thumbnails
+    }
+
     var systemImage: String {
         switch self {
         case .thumbnails: "rectangle.portrait.on.rectangle.portrait"

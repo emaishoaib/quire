@@ -42,7 +42,17 @@ struct ContentView: View {
     @State private var folderNotice: FolderNotice?
     @AppStorage("showsThumbnails") private var showsThumbnails = true
     @AppStorage("thumbnailWidth") private var thumbnailWidth = 120.0
-    @AppStorage("sidebarTab") private var sidebarTab = SidebarTab.thumbnails
+    @State private var sidebarTab: SidebarTab
+
+    /// Opens on the table of contents when the PDF has one, and on thumbnails otherwise.
+    ///
+    /// The tab is chosen here rather than when the view appears, so the window opens
+    /// on it instead of animating over to it. It belongs to this window rather than
+    /// being a setting, because each PDF gets its own starting tab.
+    init(document: QuireDocument) {
+        _document = Bindable(document)
+        _sidebarTab = State(initialValue: SidebarTab.opening(document.pdf))
+    }
 
     var body: some View {
         Group {
@@ -158,9 +168,9 @@ struct ContentView: View {
 
     /// The sidebar beside the document in Read mode, showing thumbnails or contents.
     ///
-    /// The rail switches between the two. The tab is `@AppStorage`, so the switch is
-    /// animated from the container holding both the sidebar and the rail, keyed to the
-    /// tab, for the same reason as the sidebar's toggle.
+    /// The rail switches between the two. The switch is animated from the container
+    /// holding both the sidebar and the rail, keyed to the tab, so the rail's icon
+    /// animates along with the sidebar.
     ///
     /// Both tabs share one width, set by the size slider beneath them, so switching tabs
     /// leaves the document where it is.

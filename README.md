@@ -19,7 +19,8 @@ sidebar sized by its own slider, where pages can be dragged into a new order, ho
 page reveals rotate and delete, and hovering between pages reveals a plus that inserts
 there. A button on the rail swaps the thumbnails for the PDF's table of contents, where
 clicking a title jumps to that section. The section being read is highlighted, and the
-chapter around it opens as you reach it. Scans have no table of contents, and say so. The
+chapter around it opens as you reach it. Scans have no table of contents, and say so. A
+PDF with a table of contents opens on it, and any other opens on its thumbnails. The
 sidebar keeps its size when you switch, and the slider sizes it on either side.
 
 **Find.** Cmd-F, or the rail's magnifying glass, opens a panel over the document. Results
@@ -174,11 +175,12 @@ leaving that out is why every window used to open at its coded size.
 open something, so it is replaced rather than joined, however the file was opened.
 
 **Settings that drive animation use `.animation(_:value:)`, not `withAnimation`.** The
-sidebar toggle, the sidebar's tab and the thumbnail size are `@AppStorage`, so the new
-value comes back from UserDefaults outside whatever transaction set it, and an animation
-wrapped around the change is simply lost. Each is animated from the container that holds
-what it changes, keyed to the setting. The tab's container holds the rail as well as the
-sidebar, so that the rail's icon animates too.
+sidebar toggle and the thumbnail size are `@AppStorage`, so the new value comes back from
+UserDefaults outside whatever transaction set it, and an animation wrapped around the
+change is simply lost. Both are animated from the container that holds them, keyed to the
+setting. The sidebar's tab is plain window state, since each PDF picks its own, but it is
+animated the same way, from a container that holds the rail as well as the sidebar, so
+that the rail's icon animates too.
 
 **Page edits animate because pages are identified by object.** `PageGrid` and
 `ThumbnailSidebar` list `document.pages`, whose elements survive a reorder, and
