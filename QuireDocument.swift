@@ -194,24 +194,29 @@ extension QuireDocument {
     }
 
     /// Inserts copies of every page of the PDF at `url`, and reports how many were added.
-    ///
-    /// The pages are copied because a `PDFPage` belongs to one document at a time, and
-    /// moving them would strip the pages out of the document being inserted from.
     @discardableResult
     func insertPages(from url: URL, at index: Int) throws -> Int {
-        guard let other = PDFDocument(url: url), !other.isLocked else {
-            throw CocoaError(.fileReadCorruptFile)
-        }
-        let inserted = (0..<other.pageCount).compactMap { index -> PageState? in
-            guard let copy = other.page(at: index)?.copy() as? PDFPage else { return nil }
-            return PageState(page: copy, rotation: copy.rotation)
-        }
+        let inserted = try Self.copiedPages(of: url)
         guard !inserted.isEmpty else { return 0 }
 
         var newState = pageStates
         newState.insert(contentsOf: inserted, at: min(index, newState.count))
         applyPages(newState, actionName: "Insert Pages")
         return inserted.count
+    }
+
+    /// Copies of every page of the PDF at `url`.
+    ///
+    /// The pages are copied because a `PDFPage` belongs to one document at a time, and
+    /// moving them would strip the pages out of the document they are read from.
+    private static func copiedPages(of url: URL) throws -> [PageState] {
+        guard let other = PDFDocument(url: url), !other.isLocked else {
+            throw CocoaError(.fileReadCorruptFile)
+        }
+        return (0..<other.pageCount).compactMap { index -> PageState? in
+            guard let copy = other.page(at: index)?.copy() as? PDFPage else { return nil }
+            return PageState(page: copy, rotation: copy.rotation)
+        }
     }
 }
 
@@ -248,5 +253,31 @@ extension QuireDocument {
                 return Self.nameSeparators.contains(name[match.upperBound])
             }
             .sorted { $0.lastPathComponent.localizedStandardCompare($1.lastPathComponent) == .orderedAscending }
+    }
+
+    /// Adds every page of the PDFs at `files` to the end, saves, and moves them to the Trash.
+    ///
+    /// The pages arrive as one edit, in the order given, and nothing changes if any of the
+    /// files cannot be read. The files are only trashed once the save has succeeded, so a
+    /// failed save never leaves their pages existing nowhere on disk.
+    ///
+    /// Returns the files that could not be moved to the Trash.
+    func mergeAndTrash(_ files: [URL]) async throws -> [URL] {
+        guard let fileURL, let fileType else {
+            throw CocoaError(.fileNoSuchFile)
+        }
+        let merged = try files.flatMap { try Self.copiedPages(of: $0) }
+        applyPages(pageStates + merged, actionName: "Merge Similarly Named Files")
+        try await save(to: fileURL, ofType: fileType, for: .saveOperation)
+
+        var untrashed: [URL] = []
+        for file in files {
+            do {
+                try FileManager.default.trashItem(at: file, resultingItemURL: nil)
+            } catch {
+                untrashed.append(file)
+            }
+        }
+        return untrashed
     }
 }
