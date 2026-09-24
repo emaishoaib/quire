@@ -39,21 +39,22 @@ suggests a name for this one in the same pattern. The date, the period and the a
 read out of the document, each chosen by the label printed just before it. The free text
 is taken from the names already in the folder, by which one's words the document contains.
 The suggestion lands in a field you can edit before renaming, and anything that could not
-be read is left as a placeholder to fill in. A scan needs its text recognised first. The
-button is greyed out when the folder has no pattern, and hovering it says so.
+be read is left as a placeholder to fill in. A scan needs its text recognised first. When
+the folder has no pattern, clicking the button says so.
 
 **Merge.** The rail's merge button gathers the PDFs in the same folder whose names are this
 file's name with something added, so `Lease.pdf` gathers `Lease 2.pdf`, `Lease-signed.pdf`
 and `Lease (1).pdf`, but not `Leasehold.pdf`. After you confirm the list, their pages are
 added to the end in Finder's order, the PDF is saved, and the gathered files go to the
-Trash. The button is greyed out when there is nothing to gather.
+Trash. When there is nothing to gather, clicking the button says so.
 
 **Folder access.** Renaming and merging both read the folder the PDF is in, not only the
 PDF itself. Opening a PDF lets Quire read that one file, and macOS protects folders such
-as Documents, Desktop, Downloads and iCloud Drive separately. When Quire is not allowed
-into the folder, the rename and merge buttons stay clickable and explain this, with a
-button that opens Files and Folders in Privacy & Security. Once Quire is allowed in there,
-switching back to Quire is enough for both buttons to work.
+as Documents, Desktop, Downloads and iCloud Drive separately. Quire only reads the folder
+when rename or merge is clicked, so that is when macOS asks, not when the PDF opens. When
+Quire is not allowed into the folder, the button explains this, with a button that opens
+Files and Folders in Privacy & Security. Once Quire is allowed in there, clicking again
+works, without a restart.
 
 ## Requirements
 

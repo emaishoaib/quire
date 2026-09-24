@@ -38,6 +38,8 @@ struct ContentView: View {
     @State private var explainsFolderAccess = false
     @State private var confirmsMerge = false
     @State private var mergeSummary: String?
+    @State private var isMerging = false
+    @State private var folderNotice: FolderNotice?
     @AppStorage("showsThumbnails") private var showsThumbnails = true
     @AppStorage("thumbnailWidth") private var thumbnailWidth = 120.0
 
@@ -97,12 +99,9 @@ struct ContentView: View {
                         viewer: viewer,
                         ocr: ocr,
                         document: document,
-                        renameUnavailableReason: renameUnavailableReason,
-                        showsRename: $showsRename,
-                        canMerge: !mergeCandidates.isEmpty,
-                        confirmsMerge: $confirmsMerge,
-                        folderIsUnreadable: unreadableFolder != nil,
-                        explainsFolderAccess: $explainsFolderAccess,
+                        rename: startRename,
+                        merge: startMerge,
+                        isMerging: isMerging,
                         showsFind: $showsFind,
                         mode: $mode,
                         showsThumbnails: $showsThumbnails
@@ -143,11 +142,6 @@ struct ContentView: View {
         } message: {
             Text(ocr.summary ?? "")
         }
-        .onChange(of: showsRename) { _, isShown in
-            if !isShown {
-                refreshFolder()
-            }
-        }
         .alert("Merge Similarly Named PDFs", isPresented: $confirmsMerge) {
             Button("Merge and Move to Trash", role: .destructive) { merge() }
             Button("Cancel", role: .cancel) {}
@@ -165,11 +159,10 @@ struct ContentView: View {
         } message: {
             Text(folderAccessMessage)
         }
-        .task {
-            refreshFolder()
-            for await _ in NotificationCenter.default.notifications(named: NSApplication.didBecomeActiveNotification) {
-                refreshFolder()
-            }
+        .alert(folderNotice?.title ?? "", isPresented: showingFolderNotice) {
+            Button("OK") {}
+        } message: {
+            Text(folderNotice?.message ?? "")
         }
     }
 
@@ -206,47 +199,86 @@ struct ContentView: View {
         )
     }
 
-    /// Looks at the folder again, for similarly named PDFs and for a naming pattern.
+    /// What rename or merge found when the folder had nothing for it.
+    private struct FolderNotice {
+        let title: String
+        let message: String
+    }
+
+    private var showingFolderNotice: Binding<Bool> {
+        Binding(
+            get: { folderNotice != nil },
+            set: { if !$0 { folderNotice = nil } }
+        )
+    }
+
+    /// Reads the folder for a naming pattern, and opens the rename panel if there is one.
     ///
-    /// Files can appear in the folder while Quire is in the background, so this runs
-    /// whenever the app comes back to the front, as well as when the window opens and
-    /// after a merge or rename has changed the folder. Coming back to the front is also
-    /// when access to a folder that could not be read is likely to have been granted.
+    /// The folder is read on the click rather than when the window opens, because reading
+    /// a folder such as Documents or Downloads is what makes macOS ask whether Quire may.
+    /// Reading it at launch asked that question of everyone who opened a PDF, before
+    /// they had used anything that needs the answer.
+    private func startRename() {
+        do {
+            namePattern = try document.namePattern()
+        } catch {
+            explainUnreadableFolder()
+            return
+        }
+        guard namePattern != nil else {
+            folderNotice = FolderNotice(
+                title: "Rename to Match This Folder",
+                message: "The other PDFs in this folder don't share a naming pattern to rename to."
+            )
+            return
+        }
+        withAnimation(FindBar.animation) {
+            showsRename = true
+        }
+    }
+
+    /// Reads the folder for similarly named PDFs, and asks to merge them if there are any.
     ///
-    /// A folder that cannot be read is remembered as such, rather than passing for a
-    /// folder with nothing to merge and no pattern.
-    private func refreshFolder() {
+    /// The folder is read on the click for the same reason as in `startRename`.
+    private func startMerge() {
         do {
             mergeCandidates = try document.similarlyNamedFiles()
-            namePattern = try document.namePattern()
-            unreadableFolder = nil
         } catch {
-            mergeCandidates = []
-            namePattern = nil
-            unreadableFolder = document.fileURL?.deletingLastPathComponent()
+            explainUnreadableFolder()
+            return
         }
+        guard !mergeCandidates.isEmpty else {
+            let name = document.fileURL?.deletingPathExtension().lastPathComponent ?? "this PDF"
+            folderNotice = FolderNotice(
+                title: "Merge Similarly Named PDFs",
+                message: "There are no PDFs in this folder named \u{201C}\(name)\u{201D} with something added, "
+                    + "such as \u{201C}\(name) 2\u{201D}."
+            )
+            return
+        }
+        confirmsMerge = true
+    }
+
+    private func explainUnreadableFolder() {
+        unreadableFolder = document.fileURL?.deletingLastPathComponent()
+        explainsFolderAccess = true
     }
 
     private var folderAccessMessage: String {
         let name = unreadableFolder.map { FileManager.default.displayName(atPath: $0.path) } ?? "this folder"
         return "macOS isn't letting Quire look inside \u{201C}\(name)\u{201D}, so it can't find the other PDFs "
             + "there to rename to or merge.\n\nAllow Quire under Files and Folders in Privacy & Security, "
-            + "then come back to Quire."
+            + "then click the button again."
     }
 
     /// Opens the Files and Folders page of Privacy & Security in System Settings.
     ///
-    /// Coming back to Quire afterwards looks at the folder again, so access granted there
-    /// takes effect without a restart.
+    /// The folder is read again on the next click, so access granted there takes effect
+    /// without a restart.
     private func openFilesAndFolders() {
         if let url = URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_FilesAndFolders") {
             NSWorkspace.shared.open(url)
         }
-    }
-
-    /// Why the rename button is disabled, or nil when it is not.
-    private var renameUnavailableReason: String? {
-        namePattern == nil ? "The other PDFs in this folder don't share a naming pattern to rename to" : nil
     }
 
     private var mergeConfirmation: String {
@@ -257,12 +289,13 @@ struct ContentView: View {
 
     /// Merges the files listed in the confirmation, and reports how it went.
     ///
-    /// The list is emptied first, which disables the button, so a second click cannot
-    /// start a second merge of the same files while the first is saving.
+    /// The button is disabled until it finishes, because the files stay in the folder
+    /// until the save succeeds, and a second click would offer to merge them again.
     private func merge() {
         let files = mergeCandidates
         let pagesBefore = document.pageCount
         mergeCandidates = []
+        isMerging = true
 
         Task {
             do {
@@ -280,7 +313,7 @@ struct ContentView: View {
             } catch {
                 mergeSummary = "The files were left where they are. \(error.localizedDescription)"
             }
-            refreshFolder()
+            isMerging = false
         }
     }
 }
