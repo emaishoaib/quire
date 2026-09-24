@@ -69,7 +69,9 @@ struct ReadRail: View {
                 renameUnavailableReason ?? "Rename to match the other PDFs in this folder",
                 systemImage: "pencil.line"
             ) {
-                showsRename = true
+                withAnimation(FindBar.animation) {
+                    showsRename = true
+                }
             }
             .disabled(renameUnavailableReason != nil)
 

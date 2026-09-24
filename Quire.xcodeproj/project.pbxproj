@@ -22,7 +22,7 @@
 		2D693FD930633E2F0016D532 /* PageIndicator.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2D693FD830633E2F0016D532 /* PageIndicator.swift */; };
 		2D694F0130633E2F0016D532 /* NamePattern.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2D694F0030633E2F0016D532 /* NamePattern.swift */; };
 		2D694F0330633E2F0016D532 /* NameExtractor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2D694F0230633E2F0016D532 /* NameExtractor.swift */; };
-		2D694F0530633E2F0016D532 /* RenameSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2D694F0430633E2F0016D532 /* RenameSheet.swift */; };
+		2D694F0530633E2F0016D532 /* RenamePanel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2D694F0430633E2F0016D532 /* RenamePanel.swift */; };
 		2D693FDD30633E2F0016D532 /* ReadRail.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2D693FDC30633E2F0016D532 /* ReadRail.swift */; };
 		2D693FDF30633E2F0016D532 /* FindBar.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2D693FDE30633E2F0016D532 /* FindBar.swift */; };
 		2D693FE130633E2F0016D532 /* StartView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2D693FE030633E2F0016D532 /* StartView.swift */; };
@@ -46,7 +46,7 @@
 		2D693FD830633E2F0016D532 /* PageIndicator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PageIndicator.swift; sourceTree = "<group>"; };
 		2D694F0030633E2F0016D532 /* NamePattern.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NamePattern.swift; sourceTree = "<group>"; };
 		2D694F0230633E2F0016D532 /* NameExtractor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NameExtractor.swift; sourceTree = "<group>"; };
-		2D694F0430633E2F0016D532 /* RenameSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RenameSheet.swift; sourceTree = "<group>"; };
+		2D694F0430633E2F0016D532 /* RenamePanel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RenamePanel.swift; sourceTree = "<group>"; };
 		2D693FDC30633E2F0016D532 /* ReadRail.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReadRail.swift; sourceTree = "<group>"; };
 		2D693FDE30633E2F0016D532 /* FindBar.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FindBar.swift; sourceTree = "<group>"; };
 		2D693FE030633E2F0016D532 /* StartView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StartView.swift; sourceTree = "<group>"; };
@@ -88,7 +88,7 @@
 				2D693FD830633E2F0016D532 /* PageIndicator.swift */,
 				2D694F0030633E2F0016D532 /* NamePattern.swift */,
 				2D694F0230633E2F0016D532 /* NameExtractor.swift */,
-				2D694F0430633E2F0016D532 /* RenameSheet.swift */,
+				2D694F0430633E2F0016D532 /* RenamePanel.swift */,
 				2D693FD130633E2F0016D532 /* MainMenu.swift */,
 				2D693FB530633E2F0016D532 /* QuireDocument.swift */,
 			);
@@ -184,7 +184,7 @@
 				2D693FD930633E2F0016D532 /* PageIndicator.swift in Sources */,
 				2D694F0130633E2F0016D532 /* NamePattern.swift in Sources */,
 				2D694F0330633E2F0016D532 /* NameExtractor.swift in Sources */,
-				2D694F0530633E2F0016D532 /* RenameSheet.swift in Sources */,
+				2D694F0530633E2F0016D532 /* RenamePanel.swift in Sources */,
 				2D693FCF30633E2F0016D532 /* MainMenu.swift in Sources */,
 				2D693FB830633E2F0016D532 /* QuireDocument.swift in Sources */,
 			);
