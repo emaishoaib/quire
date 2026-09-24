@@ -13,10 +13,10 @@ opens a tab listing recently opened files, which is also what you get when Quire
 launched with nothing to read.
 
 **Read.** Continuous scrolling, single or two-page layout, and zoom by pinch or from the
-rail down the right edge, which also holds the page number, text recognition, find, the
-fit modes and the switch between reading and organising. A thumbnail sidebar sized by its
-own slider, where pages can be dragged into a new order, hovering a page reveals rotate
-and delete, and hovering between pages reveals a plus that inserts there.
+rail down the right edge, which also holds the page number, text recognition, merging,
+find, the fit modes and the switch between reading and organising. A thumbnail sidebar
+sized by its own slider, where pages can be dragged into a new order, hovering a page
+reveals rotate and delete, and hovering between pages reveals a plus that inserts there.
 
 **Find.** Cmd-F, or the rail's magnifying glass, opens a panel over the document. Results
 appear as you type, listed by the text that actually matched and how often, so a
@@ -32,6 +32,12 @@ Every edit undoes with Cmd-Z.
 text layer over the scan. The page looks identical, but the text is now selectable and
 searchable, in Quire and in every other PDF reader. Pages that already have text are left
 alone. The whole run undoes as one action.
+
+**Merge.** The rail's merge button gathers the PDFs in the same folder whose names are this
+file's name with something added, so `Lease.pdf` gathers `Lease 2.pdf`, `Lease-signed.pdf`
+and `Lease (1).pdf`, but not `Leasehold.pdf`. After you confirm the list, their pages are
+added to the end in Finder's order, the PDF is saved, and the gathered files go to the
+Trash. The button is greyed out when there is nothing to gather.
 
 ## Requirements
 
@@ -71,6 +77,15 @@ place, with no way to turn it off, so editing a PDF would silently rewrite the o
 file. Quire uses `NSDocument` with `autosavesInPlace` false, so edits stay in memory until
 you save, and closing or quitting with unsaved work prompts. The views are still SwiftUI,
 hosted in an AppKit window.
+
+**The app is not sandboxed.** A sandboxed app can only touch the files the user picked, so
+Quire could open `Lease.pdf` but never see `Lease 2.pdf` beside it, let alone move it to the
+Trash. Merging needs the whole folder. Asking for folder access through an Open panel would
+keep the sandbox, but the app is signed ad-hoc and never goes near the App Store, so the
+sandbox was protecting little.
+
+**Merged files are trashed only after the save succeeds.** Trashing first would leave their
+pages existing only in memory until the save, and a failed save would lose them from disk.
 
 **The app is started by hand in `AppDelegate.swift`.** `@main` on an AppKit delegate class
 expects a MainMenu nib to create the delegate, and this app has no nibs. Without the
