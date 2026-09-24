@@ -18,8 +18,8 @@ import UniformTypeIdentifiers
 /// Editing is done in place: hovering a page reveals rotate and delete buttons beneath
 /// it, and hovering the gap between two pages reveals a plus that inserts there.
 ///
-/// The page being read arrives selected, as though it had been clicked, so switching
-/// over from Read starts from where you were.
+/// The page being read arrives selected, as though it had been clicked, and scrolled to
+/// the middle of the grid, so switching over from Read starts from where you were.
 struct PageGrid: View {
     @Bindable var document: QuireDocument
     @Binding var selection: Set<Int>
@@ -42,20 +42,23 @@ struct PageGrid: View {
 
     var body: some View {
         ScrollView {
-            LazyVGrid(columns: columns, spacing: 28) {
-                ForEach(Array(document.pages.enumerated()), id: \.element) { index, page in
-                    cell(index: index, page: page)
+            ScrollViewReader { scroller in
+                LazyVGrid(columns: columns, spacing: 28) {
+                    ForEach(Array(document.pages.enumerated()), id: \.element) { index, page in
+                        cell(index: index, page: page)
+                    }
+                }
+                .padding(32)
+                .frame(maxWidth: .infinity, alignment: .top)
+                .onAppear {
+                    guard document.pages.indices.contains(currentPage) else { return }
+                    selection = [currentPage]
+                    anchor = currentPage
+                    scroller.scrollTo(document.pages[currentPage], anchor: .center)
                 }
             }
-            .padding(32)
-            .frame(maxWidth: .infinity, alignment: .top)
         }
         .coordinateSpace(.named("grid"))
-        .onAppear {
-            guard document.pages.indices.contains(currentPage) else { return }
-            selection = [currentPage]
-            anchor = currentPage
-        }
         .onPreferenceChange(CellFramesKey.self) { frames in
             cellFrames = frames
         }
