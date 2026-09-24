@@ -31,6 +31,9 @@ struct ContentView: View {
     @State private var showsFind = false
     @State private var mode: Mode = .read
     @State private var selection = Set<Int>()
+    @State private var mergeCandidates: [URL] = []
+    @State private var confirmsMerge = false
+    @State private var mergeSummary: String?
     @AppStorage("showsThumbnails") private var showsThumbnails = true
     @AppStorage("thumbnailWidth") private var thumbnailWidth = 120.0
 
@@ -95,6 +98,8 @@ struct ContentView: View {
                         viewer: viewer,
                         ocr: ocr,
                         document: document,
+                        canMerge: !mergeCandidates.isEmpty,
+                        confirmsMerge: $confirmsMerge,
                         showsFind: $showsFind,
                         mode: $mode,
                         showsThumbnails: $showsThumbnails
@@ -135,6 +140,23 @@ struct ContentView: View {
         } message: {
             Text(ocr.summary ?? "")
         }
+        .alert("Merge Similarly Named PDFs", isPresented: $confirmsMerge) {
+            Button("Merge and Move to Trash", role: .destructive) { merge() }
+            Button("Cancel", role: .cancel) {}
+        } message: {
+            Text(mergeConfirmation)
+        }
+        .alert("Merge Similarly Named PDFs", isPresented: showingMergeSummary) {
+            Button("OK") {}
+        } message: {
+            Text(mergeSummary ?? "")
+        }
+        .task {
+            refreshMergeCandidates()
+            for await _ in NotificationCenter.default.notifications(named: NSApplication.didBecomeActiveNotification) {
+                refreshMergeCandidates()
+            }
+        }
     }
 
     private var showingSummary: Binding<Bool> {
@@ -142,6 +164,56 @@ struct ContentView: View {
             get: { ocr.summary != nil },
             set: { if !$0 { ocr.summary = nil } }
         )
+    }
+
+    private var showingMergeSummary: Binding<Bool> {
+        Binding(
+            get: { mergeSummary != nil },
+            set: { if !$0 { mergeSummary = nil } }
+        )
+    }
+
+    /// Looks for similarly named PDFs again.
+    ///
+    /// Files can appear in the folder while Quire is in the background, so this runs
+    /// whenever the app comes back to the front, as well as when the window opens.
+    private func refreshMergeCandidates() {
+        mergeCandidates = document.similarlyNamedFiles()
+    }
+
+    private var mergeConfirmation: String {
+        let names = mergeCandidates.map(\.lastPathComponent).joined(separator: "\n")
+        return "The pages of these files will be added to the end of this PDF:\n\n\(names)\n\n"
+            + "This PDF will then be saved, and the files moved to the Trash."
+    }
+
+    /// Merges the files listed in the confirmation, and reports how it went.
+    ///
+    /// The list is emptied first, which disables the button, so a second click cannot
+    /// start a second merge of the same files while the first is saving.
+    private func merge() {
+        let files = mergeCandidates
+        let pagesBefore = document.pageCount
+        mergeCandidates = []
+
+        Task {
+            do {
+                let untrashed = try await document.mergeAndTrash(files)
+                let added = document.pageCount - pagesBefore
+                var message = "Added \(added) page\(added == 1 ? "" : "s") from \(files.count) "
+                    + "file\(files.count == 1 ? "" : "s") and saved this PDF."
+                if untrashed.isEmpty {
+                    message += " The files were moved to the Trash."
+                } else {
+                    let names = untrashed.map(\.lastPathComponent).joined(separator: "\n")
+                    message += " These could not be moved to the Trash:\n\n\(names)"
+                }
+                mergeSummary = message
+            } catch {
+                mergeSummary = "The files were left where they are. \(error.localizedDescription)"
+            }
+            refreshMergeCandidates()
+        }
     }
 }
 

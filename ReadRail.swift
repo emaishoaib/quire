@@ -21,6 +21,8 @@ struct ReadRail: View {
     let viewer: ViewerController
     let ocr: OCRRunner
     let document: QuireDocument
+    let canMerge: Bool
+    @Binding var confirmsMerge: Bool
     @Binding var showsFind: Bool
     @Binding var mode: Mode
     @Binding var showsThumbnails: Bool
@@ -60,6 +62,11 @@ struct ReadRail: View {
                 ocr.run(on: document)
             }
             .disabled(document.pageCount == 0 || ocr.isRunning)
+
+            button("Merge similarly named PDFs into this one", systemImage: "arrow.triangle.merge") {
+                confirmsMerge = true
+            }
+            .disabled(!canMerge)
 
             Spacer(minLength: 20)
 
