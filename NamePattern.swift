@@ -28,6 +28,10 @@ struct NamePattern: CustomStringConvertible {
     /// The names that follow the pattern, as examples of it filled in.
     let examples: [String]
 
+    /// What the example names have in the text slot, without repeats, in the order they
+    /// first appear. Empty when the pattern has no text slot.
+    let knownTexts: [String]
+
     var description: String {
         name(day: nil, amount: nil, text: nil)
     }
@@ -117,6 +121,7 @@ struct NamePattern: CustomStringConvertible {
     /// Combines names with the same shape into one pattern.
     private static func merge(_ members: [Member]) -> NamePattern? {
         var parts: [Part] = []
+        var knownTexts: [String] = []
         var hasText = false
 
         for (index, part) in members[0].parts.enumerated() {
@@ -131,18 +136,22 @@ struct NamePattern: CustomStringConvertible {
             }
             guard !hasText else { return nil }
             hasText = true
-            parts += textSlot(across: literals)
+            let slot = textSlot(across: literals)
+            parts += slot.parts
+            knownTexts = slot.values
         }
 
         guard parts != [.text] else { return nil }
-        return NamePattern(parts: parts, examples: members.map(\.name))
+        return NamePattern(parts: parts, examples: members.map(\.name), knownTexts: knownTexts)
     }
 
-    /// Splits fixed text that differs between names into a text slot and the words around it.
+    /// Splits fixed text that differs between names into a text slot and the words around
+    /// it, and says what each name has in the slot.
     ///
-    /// The shared text is trimmed back to whole words, so that `Tesco` and `Tiger` do not
-    /// leave a fixed `T` in front of the slot.
-    private static func textSlot(across literals: [String]) -> [Part] {
+    /// The shared text is trimmed back to whole words, so that names whose differing words
+    /// happen to start or end with the same letters do not leave those letters fixed
+    /// around the slot.
+    private static func textSlot(across literals: [String]) -> (parts: [Part], values: [String]) {
         var prefix = literals.dropFirst().reduce(literals[0]) { $0.sharedPrefix(with: $1) }
         while let last = prefix.last, last.isLetter || last.isNumber {
             prefix.removeLast()
@@ -154,7 +163,16 @@ struct NamePattern: CustomStringConvertible {
             suffix.removeFirst()
         }
 
-        return [.literal(prefix), .text, .literal(suffix)].filter { $0 != .literal("") }
+        var values: [String] = []
+        for literal in literals {
+            let value = String(literal.dropFirst(prefix.count).dropLast(suffix.count))
+            if !value.isEmpty && !values.contains(value) {
+                values.append(value)
+            }
+        }
+
+        let parts: [Part] = [.literal(prefix), .text, .literal(suffix)].filter { $0 != .literal("") }
+        return (parts, values)
     }
 
     /// Reads a name as fixed text with dates and amounts in it.
