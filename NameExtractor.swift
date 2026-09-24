@@ -39,6 +39,22 @@ enum NameExtractor {
         var text: String?
     }
 
+    /// Why the on-device model cannot be used right now, or nil when it can.
+    static var unavailableReason: String? {
+        switch SystemLanguageModel.default.availability {
+        case .available:
+            nil
+        case .unavailable(.deviceNotEligible):
+            "Renaming from the document needs a Mac that can run Apple Intelligence"
+        case .unavailable(.appleIntelligenceNotEnabled):
+            "Renaming from the document needs Apple Intelligence, which is turned off in System Settings"
+        case .unavailable(.modelNotReady):
+            "Renaming from the document will work once Apple Intelligence finishes downloading"
+        case .unavailable:
+            "Apple Intelligence is not available right now"
+        }
+    }
+
     /// A name for the document with `text`, following `pattern`.
     ///
     /// A slot the model cannot fill keeps its placeholder, such as `<date>`, for the user

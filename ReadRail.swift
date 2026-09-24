@@ -21,6 +21,8 @@ struct ReadRail: View {
     let viewer: ViewerController
     let ocr: OCRRunner
     let document: QuireDocument
+    let renameUnavailableReason: String?
+    @Binding var showsRename: Bool
     let canMerge: Bool
     @Binding var confirmsMerge: Bool
     @Binding var showsFind: Bool
@@ -62,6 +64,14 @@ struct ReadRail: View {
                 ocr.run(on: document)
             }
             .disabled(document.pageCount == 0 || ocr.isRunning)
+
+            button(
+                renameUnavailableReason ?? "Rename to match the other PDFs in this folder",
+                systemImage: "pencil.line"
+            ) {
+                showsRename = true
+            }
+            .disabled(renameUnavailableReason != nil)
 
             button("Merge similarly named PDFs into this one", systemImage: "arrow.triangle.merge") {
                 confirmsMerge = true

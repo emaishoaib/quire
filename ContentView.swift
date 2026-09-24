@@ -31,6 +31,8 @@ struct ContentView: View {
     @State private var showsFind = false
     @State private var mode: Mode = .read
     @State private var selection = Set<Int>()
+    @State private var namePattern: NamePattern?
+    @State private var showsRename = false
     @State private var mergeCandidates: [URL] = []
     @State private var confirmsMerge = false
     @State private var mergeSummary: String?
@@ -98,6 +100,8 @@ struct ContentView: View {
                         viewer: viewer,
                         ocr: ocr,
                         document: document,
+                        renameUnavailableReason: renameUnavailableReason,
+                        showsRename: $showsRename,
                         canMerge: !mergeCandidates.isEmpty,
                         confirmsMerge: $confirmsMerge,
                         showsFind: $showsFind,
@@ -140,6 +144,11 @@ struct ContentView: View {
         } message: {
             Text(ocr.summary ?? "")
         }
+        .sheet(isPresented: $showsRename, onDismiss: refreshFolder) {
+            if let namePattern {
+                RenameSheet(document: document, pattern: namePattern)
+            }
+        }
         .alert("Merge Similarly Named PDFs", isPresented: $confirmsMerge) {
             Button("Merge and Move to Trash", role: .destructive) { merge() }
             Button("Cancel", role: .cancel) {}
@@ -152,9 +161,9 @@ struct ContentView: View {
             Text(mergeSummary ?? "")
         }
         .task {
-            refreshMergeCandidates()
+            refreshFolder()
             for await _ in NotificationCenter.default.notifications(named: NSApplication.didBecomeActiveNotification) {
-                refreshMergeCandidates()
+                refreshFolder()
             }
         }
     }
@@ -173,12 +182,22 @@ struct ContentView: View {
         )
     }
 
-    /// Looks for similarly named PDFs again.
+    /// Looks at the folder again, for similarly named PDFs and for a naming pattern.
     ///
     /// Files can appear in the folder while Quire is in the background, so this runs
-    /// whenever the app comes back to the front, as well as when the window opens.
-    private func refreshMergeCandidates() {
+    /// whenever the app comes back to the front, as well as when the window opens and
+    /// after a merge or rename has changed the folder.
+    private func refreshFolder() {
         mergeCandidates = document.similarlyNamedFiles()
+        namePattern = document.namePattern()
+    }
+
+    /// Why the rename button is disabled, or nil when it is not.
+    private var renameUnavailableReason: String? {
+        if namePattern == nil {
+            return "The other PDFs in this folder don't share a naming pattern to rename to"
+        }
+        return NameExtractor.unavailableReason
     }
 
     private var mergeConfirmation: String {
@@ -212,7 +231,7 @@ struct ContentView: View {
             } catch {
                 mergeSummary = "The files were left where they are. \(error.localizedDescription)"
             }
-            refreshMergeCandidates()
+            refreshFolder()
         }
     }
 }
