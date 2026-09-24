@@ -294,4 +294,43 @@ extension QuireDocument {
         }
         return untrashed
     }
+
+    /// Renames this document's file within its folder, keeping it a PDF.
+    ///
+    /// This goes through AppKit's `move(to:)` rather than a plain file move, so the
+    /// document follows its file: the tab shows the new name, and the next save writes
+    /// there. Unsaved edits stay unsaved.
+    ///
+    /// A name that is already taken is refused rather than replacing that file. Only a
+    /// change of case in this file's own name gets past that check, because the Mac's
+    /// file system sees `tiger.pdf` and `Tiger.pdf` as the same file.
+    func rename(to name: String) async throws {
+        guard let fileURL else {
+            throw CocoaError(.fileNoSuchFile)
+        }
+        var name = name.trimmingCharacters(in: .whitespacesAndNewlines)
+        if name.lowercased().hasSuffix(".pdf") {
+            name = String(name.dropLast(4))
+        }
+        let destination = fileURL.deletingLastPathComponent()
+            .appendingPathComponent(name)
+            .appendingPathExtension("pdf")
+
+        guard !name.isEmpty, !name.contains("/"), !name.contains(":") else {
+            throw CocoaError(.fileWriteInvalidFileName, userInfo: [NSFilePathErrorKey: destination.path])
+        }
+        guard destination.lastPathComponent != fileURL.lastPathComponent else { return }
+        if FileManager.default.fileExists(atPath: destination.path), !isSameFile(destination, fileURL) {
+            throw CocoaError(.fileWriteFileExists, userInfo: [NSFilePathErrorKey: destination.path])
+        }
+        try await move(to: destination)
+    }
+
+    private func isSameFile(_ a: URL, _ b: URL) -> Bool {
+        let key = URLResourceKey.fileResourceIdentifierKey
+        guard let first = try? a.resourceValues(forKeys: [key]).fileResourceIdentifier,
+              let second = try? b.resourceValues(forKeys: [key]).fileResourceIdentifier
+        else { return false }
+        return first.isEqual(second)
+    }
 }
