@@ -161,34 +161,32 @@ struct ContentView: View {
     /// The rail switches between the two. The tab is `@AppStorage`, so the switch is
     /// animated from the container holding both the sidebar and the rail, keyed to the
     /// tab, for the same reason as the sidebar's toggle.
+    ///
+    /// Both tabs share one width, set by the size slider beneath them, so switching tabs
+    /// leaves the document where it is.
     private var sidebar: some View {
         VStack(spacing: 0) {
-            switch sidebarTab {
-            case .thumbnails:
-                ThumbnailSidebar(
-                    document: document,
-                    viewer: viewer,
-                    thumbnailWidth: thumbnailWidth
-                )
-
-                Divider()
-
-                ThumbnailSizeControl(thumbnailWidth: $thumbnailWidth)
-            case .contents:
-                ContentsSidebar(document: document, viewer: viewer)
-                    .frame(maxHeight: .infinity)
+            Group {
+                switch sidebarTab {
+                case .thumbnails:
+                    ThumbnailSidebar(
+                        document: document,
+                        viewer: viewer,
+                        thumbnailWidth: thumbnailWidth
+                    )
+                case .contents:
+                    ContentsSidebar(document: document, viewer: viewer)
+                }
             }
+            .frame(maxHeight: .infinity)
+
+            Divider()
+
+            ThumbnailSizeControl(thumbnailWidth: $thumbnailWidth)
         }
-        .frame(width: sidebarWidth)
+        .frame(width: ThumbnailSidebar.sidebarWidth(for: thumbnailWidth))
         .background(Color(nsColor: .underPageBackgroundColor))
         .animation(ThumbnailSidebar.sizeAnimation, value: thumbnailWidth)
-    }
-
-    private var sidebarWidth: Double {
-        switch sidebarTab {
-        case .thumbnails: ThumbnailSidebar.sidebarWidth(for: thumbnailWidth)
-        case .contents: ContentsSidebar.width
-        }
     }
 
     /// The Find and rename panels, stacked in the top-right corner of the document.

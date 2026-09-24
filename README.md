@@ -19,7 +19,8 @@ sidebar sized by its own slider, where pages can be dragged into a new order, ho
 page reveals rotate and delete, and hovering between pages reveals a plus that inserts
 there. A button on the rail swaps the thumbnails for the PDF's table of contents, where
 clicking a title jumps to that section. The section being read is highlighted, and the
-chapter around it opens as you reach it. Scans have no table of contents, and say so.
+chapter around it opens as you reach it. Scans have no table of contents, and say so. The
+sidebar keeps its size when you switch, and the slider sizes it on either side.
 
 **Find.** Cmd-F, or the rail's magnifying glass, opens a panel over the document. Results
 appear as you type, listed by the text that actually matched and how often, so a
