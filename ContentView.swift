@@ -35,6 +35,7 @@ struct ContentView: View {
     @State private var showsRename = false
     @State private var mergeCandidates: [URL] = []
     @State private var unreadableFolder: URL?
+    @State private var explainsFolderAccess = false
     @State private var confirmsMerge = false
     @State private var mergeSummary: String?
     @AppStorage("showsThumbnails") private var showsThumbnails = true
@@ -100,6 +101,8 @@ struct ContentView: View {
                         showsRename: $showsRename,
                         canMerge: !mergeCandidates.isEmpty,
                         confirmsMerge: $confirmsMerge,
+                        folderIsUnreadable: unreadableFolder != nil,
+                        explainsFolderAccess: $explainsFolderAccess,
                         showsFind: $showsFind,
                         mode: $mode,
                         showsThumbnails: $showsThumbnails
@@ -155,6 +158,12 @@ struct ContentView: View {
             Button("OK") {}
         } message: {
             Text(mergeSummary ?? "")
+        }
+        .alert("Quire Can't Read This Folder", isPresented: $explainsFolderAccess) {
+            Button("Open Privacy Settings", action: openFilesAndFolders)
+            Button("Cancel", role: .cancel) {}
+        } message: {
+            Text(folderAccessMessage)
         }
         .task {
             refreshFolder()
@@ -215,6 +224,23 @@ struct ContentView: View {
             mergeCandidates = []
             namePattern = nil
             unreadableFolder = document.fileURL?.deletingLastPathComponent()
+        }
+    }
+
+    private var folderAccessMessage: String {
+        let name = unreadableFolder.map { FileManager.default.displayName(atPath: $0.path) } ?? "this folder"
+        return "macOS isn't letting Quire look inside \u{201C}\(name)\u{201D}, so it can't find the other PDFs "
+            + "there to rename to or merge.\n\nAllow Quire under Files and Folders in Privacy & Security, "
+            + "then come back to Quire."
+    }
+
+    /// Opens the Files and Folders page of Privacy & Security in System Settings.
+    ///
+    /// Coming back to Quire afterwards looks at the folder again, so access granted there
+    /// takes effect without a restart.
+    private func openFilesAndFolders() {
+        if let url = URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_FilesAndFolders") {
+            NSWorkspace.shared.open(url)
         }
     }
 
