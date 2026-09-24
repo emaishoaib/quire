@@ -237,15 +237,9 @@ extension QuireDocument {
     func similarlyNamedFiles() -> [URL] {
         guard let fileURL else { return [] }
         let base = fileURL.deletingPathExtension().lastPathComponent
-        let contents = (try? FileManager.default.contentsOfDirectory(
-            at: fileURL.deletingLastPathComponent(),
-            includingPropertiesForKeys: nil,
-            options: .skipsHiddenFiles
-        )) ?? []
 
-        return contents
+        return pdfsInFolder()
             .filter { url in
-                guard url.pathExtension.lowercased() == "pdf" else { return false }
                 let name = url.deletingPathExtension().lastPathComponent
                 guard let match = name.range(of: base, options: [.anchored, .caseInsensitive]),
                       match.upperBound < name.endIndex
@@ -253,6 +247,26 @@ extension QuireDocument {
                 return Self.nameSeparators.contains(name[match.upperBound])
             }
             .sorted { $0.lastPathComponent.localizedStandardCompare($1.lastPathComponent) == .orderedAscending }
+    }
+
+    /// The naming pattern the other PDFs in this file's folder share, if they share one.
+    func namePattern() -> NamePattern? {
+        guard let fileURL else { return nil }
+        let names = pdfsInFolder()
+            .filter { $0.lastPathComponent != fileURL.lastPathComponent }
+            .map { $0.deletingPathExtension().lastPathComponent }
+        return NamePattern.find(in: names)
+    }
+
+    /// The PDFs in this file's folder, this one included.
+    private func pdfsInFolder() -> [URL] {
+        guard let fileURL else { return [] }
+        let contents = (try? FileManager.default.contentsOfDirectory(
+            at: fileURL.deletingLastPathComponent(),
+            includingPropertiesForKeys: nil,
+            options: .skipsHiddenFiles
+        )) ?? []
+        return contents.filter { $0.pathExtension.lowercased() == "pdf" }
     }
 
     /// Adds every page of the PDFs at `files` to the end, saves, and moves them to the Trash.
