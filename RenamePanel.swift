@@ -14,10 +14,10 @@ import SwiftUI
 /// document stays usable underneath, and the suggestion can be checked against the pages
 /// by scrolling to them while the panel is open.
 ///
-/// The on-device model reads the document as soon as the panel opens, and its suggestion
-/// lands in an editable field, because it can misread a date or pick the wrong words. If
-/// the model fails, the field shows the pattern itself, placeholders and all, so the name
-/// can still be typed by hand. Renaming stays disabled while any placeholder is left.
+/// The document is read as soon as the panel opens, and the suggestion lands in an
+/// editable field, because it can pick the wrong date, amount or words. Whatever could not
+/// be read keeps its placeholder, and a document with no text gets the pattern itself, so
+/// the name can still be typed by hand. Renaming stays disabled while any placeholder is left.
 ///
 /// Return in the field renames. The button has no Return shortcut of its own, because
 /// with no sheet around it, that shortcut would also catch Return pressed in the Find panel.
@@ -27,7 +27,6 @@ struct RenamePanel: View {
     @Binding var isPresented: Bool
 
     @State private var name = ""
-    @State private var isReading = true
     @State private var isRenaming = false
     @State private var failure: String?
     @FocusState private var isFocused: Bool
@@ -68,21 +67,10 @@ struct RenamePanel: View {
                 .foregroundStyle(.secondary)
             }
 
-            if isReading {
-                HStack(spacing: 6) {
-                    ProgressView()
-                        .controlSize(.small)
-                    Text("Reading the document…")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                }
-                .frame(height: 22)
-            } else {
-                TextField("Name", text: $name)
-                    .textFieldStyle(.roundedBorder)
-                    .focused($isFocused)
-                    .onSubmit(rename)
-            }
+            TextField("Name", text: $name)
+                .textFieldStyle(.roundedBorder)
+                .focused($isFocused)
+                .onSubmit(rename)
 
             if let failure {
                 Text(failure)
@@ -114,32 +102,31 @@ struct RenamePanel: View {
     private var namesBefore: [String] {
         let sorted = pattern.examples.sorted { $0.localizedStandardCompare($1) == .orderedAscending }
         let current = name.trimmingCharacters(in: .whitespaces)
-        guard !isReading, !current.isEmpty else {
+        guard !current.isEmpty else {
             return Array(sorted.suffix(3))
         }
         return Array(sorted.prefix(while: { $0.localizedStandardCompare(current) == .orderedAscending }).suffix(3))
     }
 
     private var canRename: Bool {
-        !isReading && !isRenaming && !hasPlaceholder && !name.trimmingCharacters(in: .whitespaces).isEmpty
+        !isRenaming && !hasPlaceholder && !name.trimmingCharacters(in: .whitespaces).isEmpty
     }
 
     private var hasPlaceholder: Bool {
         ["<date>", "<period>", "<amount>", "<text>"].contains { name.contains($0) }
     }
 
-    /// Fills the field with the model's suggestion, then puts the cursor in it.
+    /// Fills the field with the suggestion, then puts the cursor in it.
     ///
-    /// Focus waits a moment, as in the Find panel, because the field has only just been
+    /// Focus waits a moment, as in the Find panel, because the panel has only just been
     /// added and focus asked for straight away is lost.
     private func suggest() async {
         do {
-            name = try await NameExtractor.suggestName(following: pattern, for: document.pdf.string ?? "")
+            name = try NameReader.suggestName(following: pattern, for: document.pdf.string ?? "")
         } catch {
             name = pattern.description
             failure = error.localizedDescription
         }
-        isReading = false
         try? await Task.sleep(for: .milliseconds(60))
         isFocused = true
     }
