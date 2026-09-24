@@ -9,8 +9,9 @@ import Foundation
 
 /// A way of naming files, worked out from the names already in a folder.
 ///
-/// A name is read as fixed text with slots in it: dates, amounts, and at most one run of
-/// free text, such as a shop's name.
+/// A name is read as fixed text with slots in it: dates, periods of days, amounts, and at
+/// most one run of free text, such as a shop's name. A period is two month-and-day pairs
+/// joined by a dash, with no year.
 ///
 /// Only numbers with two decimal places count as amounts, because a whole number in a
 /// name is as likely to be a reference or a page count as a price.
@@ -20,7 +21,14 @@ struct NamePattern: CustomStringConvertible {
         case literal(String)
         case text
         case date(format: String)
+        case period(format: String)
         case amount(decimalSeparator: String)
+    }
+
+    /// The first and last day of a period, each written in the period's format.
+    struct Period {
+        let start: DateComponents
+        let end: DateComponents
     }
 
     let parts: [Part]
@@ -33,14 +41,14 @@ struct NamePattern: CustomStringConvertible {
     let knownTexts: [String]
 
     var description: String {
-        name(day: nil, amount: nil, text: nil)
+        name(day: nil, period: nil, amount: nil, text: nil)
     }
 
     /// The pattern filled in, keeping a slot's placeholder where its value is missing.
     ///
-    /// Each value is written the way the example names write it: the date in their
-    /// format, and the amount with two decimal places and their decimal separator.
-    func name(day: DateComponents?, amount: Decimal?, text: String?) -> String {
+    /// Each value is written the way the example names write it: the date and the period
+    /// in their formats, and the amount with two decimal places and their decimal separator.
+    func name(day: DateComponents?, period: Period?, amount: Decimal?, text: String?) -> String {
         parts.map { part in
             switch part {
             case .literal(let literal):
@@ -49,10 +57,19 @@ struct NamePattern: CustomStringConvertible {
                 text ?? "<text>"
             case .date(let format):
                 day.flatMap { Self.string(from: $0, format: format) } ?? "<date>"
+            case .period(let format):
+                period.flatMap { Self.string(from: $0, format: format) } ?? "<period>"
             case .amount(let separator):
                 amount.flatMap { Self.string(from: $0, decimalSeparator: separator) } ?? "<amount>"
             }
         }.joined()
+    }
+
+    private static func string(from period: Period, format: String) -> String? {
+        guard let start = string(from: period.start, format: format),
+              let end = string(from: period.end, format: format)
+        else { return nil }
+        return "\(start)-\(end)"
     }
 
     /// Writes a day in `format`, in UTC throughout, so that no time zone can move it to the day before.
@@ -175,7 +192,7 @@ struct NamePattern: CustomStringConvertible {
         return (parts, values)
     }
 
-    /// Reads a name as fixed text with dates and amounts in it.
+    /// Reads a name as fixed text with dates, periods and amounts in it.
     private static func parts(of name: String) -> [Part] {
         let text = name as NSString
         var parts: [Part] = []
@@ -194,7 +211,7 @@ struct NamePattern: CustomStringConvertible {
         return parts
     }
 
-    /// The first date or amount at or after `location`.
+    /// The first date, period or amount at or after `location`.
     ///
     /// When two start at the same place the longer one wins, so `2026.09.01` is read as a
     /// date rather than as the amount `2026.09`.
@@ -221,8 +238,16 @@ struct NamePattern: CustomStringConvertible {
         ["yyyy\(separator)MM\(separator)dd", "dd\(separator)MM\(separator)yyyy"]
     }
 
+    /// The formats recognised for each end of a period.
+    ///
+    /// Month first comes first, so a period that reads correctly either way is taken as
+    /// month then day: when two finders match the same text, the earlier one wins.
+    private static let periodFormats = ["MMdd", "ddMM"]
+
     private static let finders: [Finder] = dateFormats.map { format in
         Finder(regex: regex(forDateFormat: format)) { _ in .date(format: format) }
+    } + periodFormats.map { format in
+        Finder(regex: regex(forDateFormat: "\(format)-\(format)")) { _ in .period(format: format) }
     } + [
         Finder(regex: try! NSRegularExpression(pattern: #"(?<![\d.,])\d+[.,]\d{2}(?![\d.,])"#)) { match in
             .amount(decimalSeparator: match.contains(",") ? "," : ".")

@@ -125,7 +125,7 @@ struct RenamePanel: View {
     }
 
     private var hasPlaceholder: Bool {
-        ["<date>", "<amount>", "<text>"].contains { name.contains($0) }
+        ["<date>", "<period>", "<amount>", "<text>"].contains { name.contains($0) }
     }
 
     /// Fills the field with the model's suggestion, then puts the cursor in it.

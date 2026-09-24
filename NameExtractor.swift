@@ -72,7 +72,7 @@ enum NameExtractor {
             options: GenerationOptions(samplingMode: .greedy)
         ).content
 
-        return pattern.name(day: day(values.date), amount: amount(values.amount), text: words(values.text))
+        return pattern.name(day: day(values.date), period: nil, amount: amount(values.amount), text: words(values.text))
     }
 
     private static let instructions = """
