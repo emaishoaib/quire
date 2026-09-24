@@ -21,24 +21,14 @@ struct ReadRail: View {
     let viewer: ViewerController
     let ocr: OCRRunner
     let document: QuireDocument
-    let renameUnavailableReason: String?
-    @Binding var showsRename: Bool
-    let canMerge: Bool
-    @Binding var confirmsMerge: Bool
-    let folderIsUnreadable: Bool
-    @Binding var explainsFolderAccess: Bool
+    let rename: () -> Void
+    let merge: () -> Void
+    let isMerging: Bool
     @Binding var showsFind: Bool
     @Binding var mode: Mode
     @Binding var showsThumbnails: Bool
 
     private let width = 62.0
-
-    /// The rename and merge buttons' tooltip while the folder cannot be read.
-    ///
-    /// Both buttons stay clickable then, rather than greying out, because a greyed-out
-    /// button keeps its reason in a tooltip that nobody thinks to look for. Clicking one
-    /// explains the problem and how to fix it.
-    private static let unreadableFolderHelp = "Quire isn't allowed to read this folder. Click to see how to allow it."
 
     var body: some View {
         VStack(spacing: 8) {
@@ -74,33 +64,10 @@ struct ReadRail: View {
             }
             .disabled(document.pageCount == 0 || ocr.isRunning)
 
-            button(
-                folderIsUnreadable
-                    ? Self.unreadableFolderHelp
-                    : renameUnavailableReason ?? "Rename to match the other PDFs in this folder",
-                systemImage: "pencil.line"
-            ) {
-                if folderIsUnreadable {
-                    explainsFolderAccess = true
-                } else {
-                    withAnimation(FindBar.animation) {
-                        showsRename = true
-                    }
-                }
-            }
-            .disabled(!folderIsUnreadable && renameUnavailableReason != nil)
+            button("Rename to match the other PDFs in this folder", systemImage: "pencil.line", action: rename)
 
-            button(
-                folderIsUnreadable ? Self.unreadableFolderHelp : "Merge similarly named PDFs into this one",
-                systemImage: "arrow.triangle.merge"
-            ) {
-                if folderIsUnreadable {
-                    explainsFolderAccess = true
-                } else {
-                    confirmsMerge = true
-                }
-            }
-            .disabled(!folderIsUnreadable && !canMerge)
+            button("Merge similarly named PDFs into this one", systemImage: "arrow.triangle.merge", action: merge)
+                .disabled(isMerging)
 
             Spacer(minLength: 20)
 
