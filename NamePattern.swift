@@ -29,14 +29,51 @@ struct NamePattern: CustomStringConvertible {
     let examples: [String]
 
     var description: String {
+        name(day: nil, amount: nil, text: nil)
+    }
+
+    /// The pattern filled in, keeping a slot's placeholder where its value is missing.
+    ///
+    /// Each value is written the way the example names write it: the date in their
+    /// format, and the amount with two decimal places and their decimal separator.
+    func name(day: DateComponents?, amount: Decimal?, text: String?) -> String {
         parts.map { part in
             switch part {
-            case .literal(let text): text
-            case .text: "<text>"
-            case .date: "<date>"
-            case .amount: "<amount>"
+            case .literal(let literal):
+                literal
+            case .text:
+                text ?? "<text>"
+            case .date(let format):
+                day.flatMap { Self.string(from: $0, format: format) } ?? "<date>"
+            case .amount(let separator):
+                amount.flatMap { Self.string(from: $0, decimalSeparator: separator) } ?? "<amount>"
             }
         }.joined()
+    }
+
+    /// Writes a day in `format`, in UTC throughout, so that no time zone can move it to the day before.
+    private static func string(from day: DateComponents, format: String) -> String? {
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.timeZone = .gmt
+        guard let date = calendar.date(from: day) else { return nil }
+
+        let formatter = DateFormatter()
+        formatter.calendar = calendar
+        formatter.timeZone = .gmt
+        formatter.locale = Locale(identifier: "en_US_POSIX")
+        formatter.dateFormat = format
+        return formatter.string(from: date)
+    }
+
+    private static func string(from amount: Decimal, decimalSeparator: String) -> String? {
+        let formatter = NumberFormatter()
+        formatter.locale = Locale(identifier: "en_US_POSIX")
+        formatter.numberStyle = .decimal
+        formatter.usesGroupingSeparator = false
+        formatter.minimumFractionDigits = 2
+        formatter.maximumFractionDigits = 2
+        formatter.decimalSeparator = decimalSeparator
+        return formatter.string(from: amount as NSDecimalNumber)
     }
 
     /// The pattern shared by the most of `names`, or nil when no two names share one.
