@@ -66,32 +66,27 @@ struct ContentView: View {
                             .transition(.opacity)
                     }
 
-                    switch mode {
-                    case .read:
-                        PDFViewer(pdf: document.pdf, revision: document.revision, controller: viewer)
-                            .overlay(alignment: .topTrailing) {
-                                if showsFind {
-                                    FindBar(viewer: viewer, pdf: document.pdf, isPresented: $showsFind)
-                                        .padding(16)
-                                        .transition(
-                                            .scale(scale: 0.85, anchor: .topTrailing)
-                                                .combined(with: .opacity)
-                                        )
+                    Group {
+                        switch mode {
+                        case .read:
+                            PDFViewer(pdf: document.pdf, revision: document.revision, controller: viewer)
+                                .overlay(alignment: .trailing) {
+                                    ZoomHUD(viewer: viewer)
+                                        .padding(.trailing, 16)
                                 }
+                                .transition(.opacity.combined(with: .scale(scale: 1.02)))
+                        case .pages:
+                            PageGrid(document: document, selection: $selection) { index in
+                                withAnimation(Mode.animation) {
+                                    mode = .read
+                                }
+                                viewer.goToPage(index)
                             }
-                            .overlay(alignment: .trailing) {
-                                ZoomHUD(viewer: viewer)
-                                    .padding(.trailing, 16)
-                            }
-                            .transition(.opacity.combined(with: .scale(scale: 1.02)))
-                    case .pages:
-                        PageGrid(document: document, selection: $selection) { index in
-                            withAnimation(Mode.animation) {
-                                mode = .read
-                            }
-                            viewer.goToPage(index)
+                            .transition(.opacity.combined(with: .scale(scale: 0.98)))
                         }
-                        .transition(.opacity.combined(with: .scale(scale: 0.98)))
+                    }
+                    .overlay(alignment: .topTrailing) {
+                        panels
                     }
 
                     Divider()
@@ -144,9 +139,9 @@ struct ContentView: View {
         } message: {
             Text(ocr.summary ?? "")
         }
-        .sheet(isPresented: $showsRename, onDismiss: refreshFolder) {
-            if let namePattern {
-                RenameSheet(document: document, pattern: namePattern)
+        .onChange(of: showsRename) { _, isShown in
+            if !isShown {
+                refreshFolder()
             }
         }
         .alert("Merge Similarly Named PDFs", isPresented: $confirmsMerge) {
@@ -166,6 +161,25 @@ struct ContentView: View {
                 refreshFolder()
             }
         }
+    }
+
+    /// The Find and rename panels, stacked in the top-right corner of the document.
+    ///
+    /// They share one corner so that with both open, the rename panel sits below Find
+    /// rather than on top of it. Find belongs to reading, while renaming works from
+    /// Pages too.
+    private var panels: some View {
+        VStack(alignment: .trailing, spacing: 12) {
+            if mode == .read && showsFind {
+                FindBar(viewer: viewer, pdf: document.pdf, isPresented: $showsFind)
+                    .transition(.scale(scale: 0.85, anchor: .topTrailing).combined(with: .opacity))
+            }
+            if showsRename, let namePattern {
+                RenamePanel(document: document, pattern: namePattern, isPresented: $showsRename)
+                    .transition(.scale(scale: 0.85, anchor: .topTrailing).combined(with: .opacity))
+            }
+        }
+        .padding(16)
     }
 
     private var showingSummary: Binding<Bool> {
