@@ -55,6 +55,19 @@ struct RenamePanel: View {
             }
             .font(.callout)
 
+            if !namesBefore.isEmpty {
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("Before this one")
+                    ForEach(namesBefore, id: \.self) { example in
+                        Text(example)
+                            .lineLimit(1)
+                            .truncationMode(.middle)
+                    }
+                }
+                .font(.caption)
+                .foregroundStyle(.secondary)
+            }
+
             if isReading {
                 HStack(spacing: 6) {
                     ProgressView()
@@ -92,6 +105,19 @@ struct RenamePanel: View {
         .shadow(color: .black.opacity(0.2), radius: 8, y: 3)
         .task { await suggest() }
         .onExitCommand(perform: close)
+    }
+
+    /// The three names following the pattern that would sit just above this one in Finder.
+    ///
+    /// They are worked out against the name in the field, so editing its date moves the
+    /// list with it. Until there is a name, the last three are shown.
+    private var namesBefore: [String] {
+        let sorted = pattern.examples.sorted { $0.localizedStandardCompare($1) == .orderedAscending }
+        let current = name.trimmingCharacters(in: .whitespaces)
+        guard !isReading, !current.isEmpty else {
+            return Array(sorted.suffix(3))
+        }
+        return Array(sorted.prefix(while: { $0.localizedStandardCompare(current) == .orderedAscending }).suffix(3))
     }
 
     private var canRename: Bool {
