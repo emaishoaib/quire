@@ -214,3 +214,39 @@ extension QuireDocument {
         return inserted.count
     }
 }
+
+extension QuireDocument {
+
+    /// What may follow this file's name in the name of a file that belongs with it.
+    ///
+    /// Requiring one of these keeps `Lease.pdf` from claiming `Leasehold.pdf`, whose name
+    /// only happens to start the same way.
+    private static let nameSeparators: Set<Character> = [" ", "-", "_", ".", "("]
+
+    /// The PDFs in this file's folder whose names are its name with something added.
+    ///
+    /// For `Lease.pdf` that is `Lease 2.pdf`, `Lease-signed.pdf`, `Lease (1).pdf` and so
+    /// on, sorted the way Finder sorts them, so `Lease 2` comes before `Lease 10`. Case is
+    /// ignored, as it is by the Mac's file system. A document that has never been saved
+    /// has no folder, and finds nothing.
+    func similarlyNamedFiles() -> [URL] {
+        guard let fileURL else { return [] }
+        let base = fileURL.deletingPathExtension().lastPathComponent
+        let contents = (try? FileManager.default.contentsOfDirectory(
+            at: fileURL.deletingLastPathComponent(),
+            includingPropertiesForKeys: nil,
+            options: .skipsHiddenFiles
+        )) ?? []
+
+        return contents
+            .filter { url in
+                guard url.pathExtension.lowercased() == "pdf" else { return false }
+                let name = url.deletingPathExtension().lastPathComponent
+                guard let match = name.range(of: base, options: [.anchored, .caseInsensitive]),
+                      match.upperBound < name.endIndex
+                else { return false }
+                return Self.nameSeparators.contains(name[match.upperBound])
+            }
+            .sorted { $0.lastPathComponent.localizedStandardCompare($1.lastPathComponent) == .orderedAscending }
+    }
+}
