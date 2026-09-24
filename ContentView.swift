@@ -34,6 +34,7 @@ struct ContentView: View {
     @State private var namePattern: NamePattern?
     @State private var showsRename = false
     @State private var mergeCandidates: [URL] = []
+    @State private var unreadableFolder: URL?
     @State private var confirmsMerge = false
     @State private var mergeSummary: String?
     @AppStorage("showsThumbnails") private var showsThumbnails = true
@@ -200,10 +201,21 @@ struct ContentView: View {
     ///
     /// Files can appear in the folder while Quire is in the background, so this runs
     /// whenever the app comes back to the front, as well as when the window opens and
-    /// after a merge or rename has changed the folder.
+    /// after a merge or rename has changed the folder. Coming back to the front is also
+    /// when access to a folder that could not be read is likely to have been granted.
+    ///
+    /// A folder that cannot be read is remembered as such, rather than passing for a
+    /// folder with nothing to merge and no pattern.
     private func refreshFolder() {
-        mergeCandidates = document.similarlyNamedFiles()
-        namePattern = document.namePattern()
+        do {
+            mergeCandidates = try document.similarlyNamedFiles()
+            namePattern = try document.namePattern()
+            unreadableFolder = nil
+        } catch {
+            mergeCandidates = []
+            namePattern = nil
+            unreadableFolder = document.fileURL?.deletingLastPathComponent()
+        }
     }
 
     /// Why the rename button is disabled, or nil when it is not.

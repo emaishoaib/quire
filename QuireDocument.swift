@@ -233,12 +233,12 @@ extension QuireDocument {
     /// For `Lease.pdf` that is `Lease 2.pdf`, `Lease-signed.pdf`, `Lease (1).pdf` and so
     /// on, sorted the way Finder sorts them, so `Lease 2` comes before `Lease 10`. Case is
     /// ignored, as it is by the Mac's file system. A document that has never been saved
-    /// has no folder, and finds nothing.
-    func similarlyNamedFiles() -> [URL] {
+    /// has no folder, and finds nothing. Throws when the folder cannot be read.
+    func similarlyNamedFiles() throws -> [URL] {
         guard let fileURL else { return [] }
         let base = fileURL.deletingPathExtension().lastPathComponent
 
-        return pdfsInFolder()
+        return try pdfsInFolder()
             .filter { url in
                 let name = url.deletingPathExtension().lastPathComponent
                 guard let match = name.range(of: base, options: [.anchored, .caseInsensitive]),
@@ -250,22 +250,27 @@ extension QuireDocument {
     }
 
     /// The naming pattern the other PDFs in this file's folder share, if they share one.
-    func namePattern() -> NamePattern? {
+    /// Throws when the folder cannot be read.
+    func namePattern() throws -> NamePattern? {
         guard let fileURL else { return nil }
-        let names = pdfsInFolder()
+        let names = try pdfsInFolder()
             .filter { $0.lastPathComponent != fileURL.lastPathComponent }
             .map { $0.deletingPathExtension().lastPathComponent }
         return NamePattern.find(in: names)
     }
 
     /// The PDFs in this file's folder, this one included.
-    private func pdfsInFolder() -> [URL] {
+    ///
+    /// Throws rather than returning an empty list when the folder cannot be read. The two
+    /// look the same otherwise, and macOS refusing access to the folder would pass for a
+    /// folder with nothing in it.
+    private func pdfsInFolder() throws -> [URL] {
         guard let fileURL else { return [] }
-        let contents = (try? FileManager.default.contentsOfDirectory(
+        let contents = try FileManager.default.contentsOfDirectory(
             at: fileURL.deletingLastPathComponent(),
             includingPropertiesForKeys: nil,
             options: .skipsHiddenFiles
-        )) ?? []
+        )
         return contents.filter { $0.pathExtension.lowercased() == "pdf" }
     }
 
