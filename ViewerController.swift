@@ -265,6 +265,14 @@ final class ViewerController {
         goToPendingPage()
     }
 
+    /// Scrolls to a spot on a page, such as where a section in the table of contents starts.
+    ///
+    /// Unlike `goToPage`, nothing is remembered when there is no view, because the table
+    /// of contents is only shown beside a live one.
+    func go(to destination: PDFDestination) {
+        view?.go(to: destination)
+    }
+
     private func goToPendingPage() {
         guard let view, let pendingPage, let page = view.document?.page(at: pendingPage) else { return }
         view.go(to: page)

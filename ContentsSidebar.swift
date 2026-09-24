@@ -35,6 +35,7 @@ struct ContentsSidebar: View {
     static let width = 240.0
 
     let document: QuireDocument
+    let viewer: ViewerController
 
     @State private var items: [OutlineItem] = []
 
@@ -50,6 +51,13 @@ struct ContentsSidebar: View {
                 List(items, children: \.children) { item in
                     Text(item.label)
                         .lineLimit(2)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .contentShape(.rect)
+                        .onTapGesture {
+                            if let destination = item.destination {
+                                viewer.go(to: destination)
+                            }
+                        }
                         .help(item.label)
                 }
                 .listStyle(.sidebar)
@@ -76,6 +84,14 @@ struct OutlineItem: Identifiable {
 
     var label: String {
         outline.label?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+    }
+
+    /// Where the entry leads.
+    ///
+    /// A PDF can store this either as the entry's destination or as a go-to action
+    /// carrying one, and both are common, so both are read.
+    var destination: PDFDestination? {
+        outline.destination ?? (outline.action as? PDFActionGoTo)?.destination
     }
 
     init(_ outline: PDFOutline) {
