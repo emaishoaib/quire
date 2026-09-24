@@ -35,11 +35,12 @@ searchable, in Quire and in every other PDF reader. Pages that already have text
 alone. The whole run undoes as one action.
 
 **Rename.** The rail's pencil works out how the other PDFs in the folder are named, and
-suggests a name for this one in the same pattern. Apple's on-device model reads the date,
-the amount and the shop or sender out of the document, and the suggestion lands in a field
-you can edit before renaming. A scan needs its text recognised first. The button is greyed 
-out when the folder has no pattern or Apple Intelligence is unavailable, and hovering it
-says which.
+suggests a name for this one in the same pattern. The date, the period and the amount are
+read out of the document, each chosen by the label printed just before it. The free text
+is taken from the names already in the folder, by which one's words the document contains.
+The suggestion lands in a field you can edit before renaming, and anything that could not
+be read is left as a placeholder to fill in. A scan needs its text recognised first. The
+button is greyed out when the folder has no pattern, and hovering it says so.
 
 **Merge.** The rail's merge button gathers the PDFs in the same folder whose names are this
 file's name with something added, so `Lease.pdf` gathers `Lease 2.pdf`, `Lease-signed.pdf`
@@ -49,8 +50,7 @@ Trash. The button is greyed out when there is nothing to gather.
 
 ## Requirements
 
-macOS 27 and Xcode 26. No third-party dependencies: PDFKit, Vision and Foundation Models
-ship with macOS. Renaming also needs a Mac with Apple Intelligence turned on.
+macOS 27 and Xcode 26. No third-party dependencies: PDFKit and Vision ship with macOS.
 
 ## Building
 
@@ -96,15 +96,11 @@ sandbox was protecting little.
 **Merged files are trashed only after the save succeeds.** Trashing first would leave their
 pages existing only in memory until the save, and a failed save would lose them from disk.
 
-**Renaming uses only the model stored on the Mac.** macOS 27 lets apps send prompts to
-Apple's cloud model too, through `PrivateCloudComputeLanguageModel`. `NameExtractor.swift`
-deliberately uses `SystemLanguageModel` alone, so a document's text never leaves the Mac.
-
-**Code finds the pattern and writes the name, and the model only reads.** Working out a
-pattern from file names is something plain code does reliably, and the same folder always
-gives the same pattern. The model's one job is reading values out of the document. Code
-then writes those values in the example names' own formats, so a date always comes out as
-`20260901` or `01.09.2026`, whichever the folder uses.
+**Renaming uses no language model.** An earlier version asked Apple's on-device model to
+read the document. `NameReader.swift` replaced it with plain code, so renaming works on any
+Mac, the same document always gets the same suggestion, and there is no question of where
+a document's text goes. The cost is a sender the folder has not seen before, which is left
+as a placeholder to type once. After that, the folder's names include it.
 
 **The app is started by hand in `AppDelegate.swift`.** `@main` on an AppKit delegate class
 expects a MainMenu nib to create the delegate, and this app has no nibs. Without the
