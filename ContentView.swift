@@ -42,6 +42,7 @@ struct ContentView: View {
     @State private var folderNotice: FolderNotice?
     @AppStorage("showsThumbnails") private var showsThumbnails = true
     @AppStorage("thumbnailWidth") private var thumbnailWidth = 120.0
+    @AppStorage("sidebarTab") private var sidebarTab = SidebarTab.thumbnails
 
     var body: some View {
         Group {
@@ -50,21 +51,8 @@ struct ContentView: View {
             } else {
                 HStack(spacing: 0) {
                     if mode == .read && showsThumbnails {
-                        VStack(spacing: 0) {
-                            ThumbnailSidebar(
-                                document: document,
-                                viewer: viewer,
-                                thumbnailWidth: thumbnailWidth
-                            )
-
-                            Divider()
-
-                            ThumbnailSizeControl(thumbnailWidth: $thumbnailWidth)
-                        }
-                        .frame(width: ThumbnailSidebar.sidebarWidth(for: thumbnailWidth))
-                        .background(Color(nsColor: .underPageBackgroundColor))
-                        .animation(ThumbnailSidebar.sizeAnimation, value: thumbnailWidth)
-                        .transition(.move(edge: .leading).combined(with: .opacity))
+                        sidebar
+                            .transition(.move(edge: .leading).combined(with: .opacity))
 
                         Divider()
                             .transition(.opacity)
@@ -104,10 +92,12 @@ struct ContentView: View {
                         isMerging: isMerging,
                         showsFind: $showsFind,
                         mode: $mode,
-                        showsThumbnails: $showsThumbnails
+                        showsThumbnails: $showsThumbnails,
+                        sidebarTab: $sidebarTab
                     )
                 }
                 .animation(ThumbnailSidebar.animation, value: showsThumbnails)
+                .animation(ThumbnailSidebar.animation, value: sidebarTab)
             }
         }
         .frame(minWidth: 640, minHeight: 480)
@@ -163,6 +153,41 @@ struct ContentView: View {
             Button("OK") {}
         } message: {
             Text(folderNotice?.message ?? "")
+        }
+    }
+
+    /// The sidebar beside the document in Read mode, showing thumbnails or contents.
+    ///
+    /// The rail switches between the two. The tab is `@AppStorage`, so the switch is
+    /// animated from the container holding both the sidebar and the rail, keyed to the
+    /// tab, for the same reason as the sidebar's toggle.
+    private var sidebar: some View {
+        VStack(spacing: 0) {
+            switch sidebarTab {
+            case .thumbnails:
+                ThumbnailSidebar(
+                    document: document,
+                    viewer: viewer,
+                    thumbnailWidth: thumbnailWidth
+                )
+
+                Divider()
+
+                ThumbnailSizeControl(thumbnailWidth: $thumbnailWidth)
+            case .contents:
+                ContentsSidebar()
+                    .frame(maxHeight: .infinity)
+            }
+        }
+        .frame(width: sidebarWidth)
+        .background(Color(nsColor: .underPageBackgroundColor))
+        .animation(ThumbnailSidebar.sizeAnimation, value: thumbnailWidth)
+    }
+
+    private var sidebarWidth: Double {
+        switch sidebarTab {
+        case .thumbnails: ThumbnailSidebar.sidebarWidth(for: thumbnailWidth)
+        case .contents: ContentsSidebar.width
         }
     }
 

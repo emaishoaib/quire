@@ -58,6 +58,10 @@ struct ThumbnailSidebar: View {
                 }
                 .padding(.vertical, 14)
             }
+            .onAppear {
+                guard document.pages.indices.contains(viewer.currentPage) else { return }
+                scroller.scrollTo(document.pages[viewer.currentPage], anchor: .center)
+            }
             .onChange(of: viewer.currentPage) { _, index in
                 guard document.pages.indices.contains(index) else { return }
                 withAnimation(.easeOut(duration: 0.2)) {
