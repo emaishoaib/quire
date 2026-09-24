@@ -48,6 +48,13 @@ and `Lease (1).pdf`, but not `Leasehold.pdf`. After you confirm the list, their 
 added to the end in Finder's order, the PDF is saved, and the gathered files go to the
 Trash. The button is greyed out when there is nothing to gather.
 
+**Folder access.** Renaming and merging both read the folder the PDF is in, not only the
+PDF itself. Opening a PDF lets Quire read that one file, and macOS protects folders such
+as Documents, Desktop, Downloads and iCloud Drive separately. When Quire is not allowed
+into the folder, the rename and merge buttons stay clickable and explain this, with a
+button that opens Files and Folders in Privacy & Security. Once Quire is allowed in there,
+switching back to Quire is enough for both buttons to work.
+
 ## Requirements
 
 macOS 27 and Xcode 26. No third-party dependencies: PDFKit and Vision ship with macOS.
@@ -73,6 +80,10 @@ with but does not say who made it. macOS therefore blocks the first launch of a 
 arrived from elsewhere. **Tell whoever you send it to: right-click Quire and choose Open,
 then click Open in the dialog.** Double-clicking first gives a message with no way
 forward. After that one time, it launches normally on that machine.
+
+Renaming and merging on that machine also need Quire allowed into the folders the PDFs are
+in, under Files and Folders in Privacy & Security. The buttons explain this when it is
+missing.
 
 Building from source avoids that entirely, since locally built apps are not quarantined.
 
