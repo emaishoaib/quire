@@ -17,9 +17,13 @@ import UniformTypeIdentifiers
 ///
 /// Editing is done in place: hovering a page reveals rotate and delete buttons beneath
 /// it, and hovering the gap between two pages reveals a plus that inserts there.
+///
+/// The page being read arrives selected, as though it had been clicked, so switching
+/// over from Read starts from where you were.
 struct PageGrid: View {
     @Bindable var document: QuireDocument
     @Binding var selection: Set<Int>
+    let currentPage: Int
     var onOpenPage: (Int) -> Void
 
     @State private var thumbnails = ThumbnailCache()
@@ -47,6 +51,11 @@ struct PageGrid: View {
             .frame(maxWidth: .infinity, alignment: .top)
         }
         .coordinateSpace(.named("grid"))
+        .onAppear {
+            guard document.pages.indices.contains(currentPage) else { return }
+            selection = [currentPage]
+            anchor = currentPage
+        }
         .onPreferenceChange(CellFramesKey.self) { frames in
             cellFrames = frames
         }

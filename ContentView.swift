@@ -68,7 +68,7 @@ struct ContentView: View {
                                 }
                                 .transition(.opacity.combined(with: .scale(scale: 1.02)))
                         case .pages:
-                            PageGrid(document: document, selection: $selection) { index in
+                            PageGrid(document: document, selection: $selection, currentPage: viewer.currentPage) { index in
                                 withAnimation(Mode.animation) {
                                     mode = .read
                                 }
