@@ -175,7 +175,7 @@ struct ContentView: View {
 
                 ThumbnailSizeControl(thumbnailWidth: $thumbnailWidth)
             case .contents:
-                ContentsSidebar()
+                ContentsSidebar(document: document)
                     .frame(maxHeight: .infinity)
             }
         }
