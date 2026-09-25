@@ -79,7 +79,27 @@ xcodebuild -project Quire.xcodeproj -scheme Quire -configuration Debug \
 open build/Build/Products/Debug/Quire.app
 ```
 
+## Releasing
+
+Push a version tag to publish a release:
+
+```bash
+git tag v1.1
+git push origin v1.1
+```
+
+GitHub then builds `Quire.app` and attaches it as `Quire.zip` to a release for that tag.
+The app's version is the tag's number without the `v`. The `MARKETING_VERSION` build
+setting is only what a local build reports. The workflow is `.github/workflows/release.yml`.
+
+On a Mac set up with [workshop](https://github.com/emaishoaib/workshop), the next
+`setup.sh` run replaces the installed Quire with the new release. That copy is downloaded
+with curl, which does not quarantine it, so it opens without the step below.
+
 ## Giving someone a copy
+
+Send them the [latest release](https://github.com/emaishoaib/quire/releases/latest). They
+download `Quire.zip` from it, unzip it and move Quire to Applications.
 
 The app is signed ad-hoc, which means the signature proves the app has not been tampered
 with but does not say who made it. macOS therefore blocks the first launch of a copy that
