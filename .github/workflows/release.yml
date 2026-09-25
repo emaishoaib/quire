@@ -1,0 +1,34 @@
+# Builds Quire.app when a version tag such as v1.1 is pushed, and publishes
+# it as a zip on a GitHub release for that tag. The tag's number, without the
+# leading v, becomes the app's version. Runs on the xcode-27 image because
+# Quire targets macOS 27, which needs Xcode 27's SDK.
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: xcode-27
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Build
+        run: |
+          xcodebuild -project Quire.xcodeproj -scheme Quire -configuration Release \
+            -derivedDataPath build \
+            MARKETING_VERSION="${GITHUB_REF_NAME#v}" CODE_SIGN_IDENTITY=- \
+            build
+
+      - name: Zip the app
+        run: ditto -c -k --keepParent build/Build/Products/Release/Quire.app Quire.zip
+
+      - name: Publish the release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh release create "$GITHUB_REF_NAME" Quire.zip --title "$GITHUB_REF_NAME" --generate-notes
