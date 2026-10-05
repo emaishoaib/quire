@@ -195,7 +195,7 @@ struct ThumbnailSidebar: View {
                 insertionPoint = inside ? index : (insertionPoint == index ? nil : insertionPoint)
             }
             .dropDestination(for: URL.self) { urls, _ in
-                insert(pdfs: urls, at: index)
+                insert(files: urls, at: index)
             } isTargeted: { targeted in
                 insertionPoint = targeted ? index : (insertionPoint == index ? nil : insertionPoint)
             }
@@ -232,32 +232,32 @@ struct ThumbnailSidebar: View {
         document.movePages(IndexSet(integer: source), to: destination)
     }
 
-    /// Inserts dropped PDF files at `index`, refusing anything that is not a PDF.
-    private func insert(pdfs urls: [URL], at index: Int) -> Bool {
-        let pdfs = urls.filter { $0.pathExtension.lowercased() == "pdf" }
-        guard !pdfs.isEmpty else { return false }
+    /// Inserts dropped files at `index`, refusing anything that is not a PDF or an image.
+    private func insert(files urls: [URL], at index: Int) -> Bool {
+        let files = urls.filter { $0.pathExtension.lowercased() == "pdf" || QuireDocument.isImage($0) }
+        guard !files.isEmpty else { return false }
 
         var insertAt = index
         do {
-            for url in pdfs {
+            for url in files {
                 insertAt += try document.insertPages(from: url, at: insertAt)
             }
         } catch {
-            errorMessage = "One of the PDFs could not be read. It may be damaged or password protected."
+            errorMessage = "One of the files could not be read. It may be damaged or password protected."
             return false
         }
         return true
     }
 
-    /// Asks for PDFs and inserts their pages at `index`.
+    /// Asks for PDFs or images and inserts them at `index`.
     private func insertPages(at index: Int) {
         let panel = NSOpenPanel()
-        panel.allowedContentTypes = [.pdf]
+        panel.allowedContentTypes = [.pdf, .image]
         panel.allowsMultipleSelection = true
-        panel.message = "Choose PDFs to insert"
+        panel.message = "Choose PDFs or images to insert"
         guard panel.runModal() == .OK else { return }
 
-        _ = insert(pdfs: panel.urls, at: index)
+        _ = insert(files: panel.urls, at: index)
         insertionPoint = nil
     }
 
