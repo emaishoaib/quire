@@ -41,7 +41,7 @@ enum MainMenu {
 
     private static func fileMenu() -> NSMenu {
         let menu = NSMenu(title: "File")
-        menu.addItem(withTitle: "New", action: Selector(("showStart:")), keyEquivalent: "n")
+        menu.addItem(withTitle: "New Tab", action: Selector(("showStart:")), keyEquivalent: "n")
         menu.addItem(withTitle: "Open…", action: #selector(NSDocumentController.openDocument(_:)), keyEquivalent: "o")
 
         let recent = NSMenuItem(title: "Open Recent", action: nil, keyEquivalent: "")
@@ -85,9 +85,36 @@ enum MainMenu {
         menu.addItem(withTitle: "Minimize", action: #selector(NSWindow.performMiniaturize(_:)), keyEquivalent: "m")
         menu.addItem(withTitle: "Zoom", action: #selector(NSWindow.performZoom(_:)), keyEquivalent: "")
         menu.addItem(.separator())
+        addTabItems(to: menu)
+        menu.addItem(.separator())
         menu.addItem(withTitle: "Bring All to Front", action: #selector(NSApplication.arrangeInFront(_:)), keyEquivalent: "")
         NSApp.windowsMenu = menu
         return menu
+    }
+}
+
+private extension MainMenu {
+    /// Adds the items that move between tabs.
+    ///
+    /// Each direction has two shortcuts, as in Safari: Control-Tab, and Command-Shift with
+    /// a square bracket. A menu item holds one shortcut, so the second pair are items of
+    /// their own, hidden from the menu but still answering their keys.
+    static func addTabItems(to menu: NSMenu) {
+        let next = #selector(WorkspaceWindowController.showNextTab(_:))
+        let previous = #selector(WorkspaceWindowController.showPreviousTab(_:))
+
+        let showNext = menu.addItem(withTitle: "Show Next Tab", action: next, keyEquivalent: "\t")
+        showNext.keyEquivalentModifierMask = .control
+
+        let showPrevious = menu.addItem(withTitle: "Show Previous Tab", action: previous, keyEquivalent: "\u{19}")
+        showPrevious.keyEquivalentModifierMask = [.control, .shift]
+
+        for (title, action, key) in [("Show Next Tab", next, "}"), ("Show Previous Tab", previous, "{")] {
+            let item = menu.addItem(withTitle: title, action: action, keyEquivalent: key)
+            item.keyEquivalentModifierMask = .command
+            item.isHidden = true
+            item.allowsKeyEquivalentWhenHidden = true
+        }
     }
 }
 

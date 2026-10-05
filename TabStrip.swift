@@ -8,6 +8,8 @@
 import SwiftUI
 
 /// The row of tabs along the top of the window, one for each open PDF.
+///
+/// The plus button after the last tab opens a start tab, the same as File → New Tab.
 struct TabStrip: View {
     let workspace: Workspace
 
@@ -22,6 +24,18 @@ struct TabStrip: View {
                         close: { workspace.close(tab) }
                     )
                 }
+
+                Button {
+                    workspace.openStart()
+                } label: {
+                    Image(systemName: "plus")
+                        .font(.system(size: 12, weight: .medium))
+                        .foregroundStyle(.secondary)
+                        .frame(width: 26, height: 26)
+                        .contentShape(.rect)
+                }
+                .buttonStyle(.plain)
+                .help("New Tab")
 
                 Spacer(minLength: 0)
             }

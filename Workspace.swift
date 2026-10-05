@@ -74,6 +74,15 @@ final class Workspace {
         windowController.display(tab)
     }
 
+    /// Shows the tab after the showing one, or before it for a negative offset.
+    ///
+    /// Going past either end comes round to the other, so one key walks every tab.
+    func selectTab(offsetBy offset: Int) {
+        guard tabs.count > 1, let index = tabs.firstIndex(where: { $0.id == selectedID }) else { return }
+        let next = ((index + offset) % tabs.count + tabs.count) % tabs.count
+        select(tabs[next])
+    }
+
     /// Brings an open document's tab to the front, along with the window.
     func show(_ document: QuireDocument) {
         if let tab = tabs.first(where: { $0.document === document }) {
@@ -163,7 +172,7 @@ final class Workspace {
 /// Closing is taken over as well. AppKit would close the showing document along with
 /// the window and leave the rest open with nowhere to appear, so Cmd-W closes one tab,
 /// and the window's close button closes every tab, asking about each unsaved PDF.
-final class WorkspaceWindowController: NSWindowController {
+final class WorkspaceWindowController: NSWindowController, NSMenuItemValidation {
     /// The window saves and restores its size under this name.
     private static let frameName = NSWindow.FrameAutosaveName("QuireWindow")
 
@@ -242,6 +251,24 @@ final class WorkspaceWindowController: NSWindowController {
 
     @objc func closeTab(_ sender: Any?) {
         Workspace.shared.closeSelected()
+    }
+
+    @objc func showNextTab(_ sender: Any?) {
+        Workspace.shared.selectTab(offsetBy: 1)
+    }
+
+    @objc func showPreviousTab(_ sender: Any?) {
+        Workspace.shared.selectTab(offsetBy: -1)
+    }
+
+    /// Moving between tabs needs a second tab to move to.
+    func validateMenuItem(_ menuItem: NSMenuItem) -> Bool {
+        switch menuItem.action {
+        case #selector(showNextTab(_:)), #selector(showPreviousTab(_:)):
+            Workspace.shared.tabs.count > 1
+        default:
+            true
+        }
     }
 
     /// Closes every document in turn, stopping at the first one the user cancels on.
