@@ -16,8 +16,8 @@ launched with nothing to read.
 rail down the right edge, which also holds the page number, text recognition, renaming,
 merging, find, the fit modes and the switch between reading and organising. A thumbnail
 sidebar sized by its own slider, where pages can be dragged into a new order, hovering a
-page reveals rotate and delete, and hovering between pages reveals a plus that inserts
-there. A button on the rail swaps the thumbnails for the PDF's table of contents, where
+page reveals rotate and delete, and hovering between pages reveals a plus that inserts a
+PDF or an image there. A button on the rail swaps the thumbnails for the PDF's table of contents, where
 clicking a title jumps to that section. The section being read is highlighted, and the
 chapter around it opens as you reach it. Scans have no table of contents, and say so. A
 PDF with a table of contents opens on it, and any other opens on its thumbnails. The
@@ -31,8 +31,8 @@ case-insensitive search names each form it found rather than merging them.
 selected as though you had clicked it. Drag to reorder, drag a marquee across empty space
 to select a run of pages, and hover any page for rotate and delete. Those act on the whole
 selection when the page you are pointing at belongs to it. Hover between pages for a plus
-that inserts another PDF at that exact spot, or drop a PDF from Finder anywhere in the grid.
-Every edit undoes with Cmd-Z.
+that inserts another PDF or an image at that exact spot, or drop either from Finder anywhere
+in the grid. An image becomes a page of its own. Every edit undoes with Cmd-Z.
 
 **Recognise text.** Vision reads each page and Quire writes the words back as an invisible
 text layer over the scan. The page looks identical, but the text is now selectable and
@@ -132,6 +132,11 @@ sandbox was protecting little.
 
 **Merged files are trashed only after the save succeeds.** Trashing first would leave their
 pages existing only in memory until the save, and a failed save would lose them from disk.
+
+**An inserted image keeps its own size.** Its page is the size the file states for print,
+which is its pixels divided by its dots per inch, as in Preview. A photo can therefore land
+as a page much larger than the ones around it. A photo taken upright arrives upright,
+because the camera's note about which way is up becomes the page's rotation.
 
 **Renaming uses no language model.** An earlier version asked Apple's on-device model to
 read the document. `NameReader.swift` replaced it with plain code, so renaming works on any
