@@ -13,6 +13,14 @@ import SwiftUI
 /// The tabs share the width between them. Each is as wide as it likes while there is
 /// room, and they all narrow together, shortening their names, once there is not.
 ///
+/// Dragging a tab along the strip reorders it. The tab follows the pointer, and the
+/// others step aside as it passes over them, so the order on release is the order shown.
+///
+/// The real order does not change until the tab is let go. While it is held the tabs are
+/// only drawn out of place, each shifted by an offset. Changing the order mid-drag has
+/// the strip animate the dragged tab to its new place while the pointer is also moving
+/// it, and the two disagree for a moment, which shows as the tab jumping away and back.
+///
 /// The plus button after the last tab opens a start tab, the same as File → New Tab.
 /// The empty stretch after it stands in for the title bar this strip covers: dragging
 /// it moves the window, and double-clicking it does what the user has set a title bar's
@@ -21,11 +29,34 @@ struct TabStrip: View {
     /// How tabs arrive, leave and make room for one another.
     static let animation = Animation.spring(duration: 0.26, bounce: 0.1)
 
+    /// A tab being dragged.
+    ///
+    /// `origin` is its place in the order, which stays its place until the drag is over.
+    /// `target` is the place it would take if let go now. `isSettling` is true from the
+    /// release until the tab has slid into that place.
+    private struct TabDrag {
+        let id: WorkspaceTab.ID
+        let origin: Int
+        var target: Int
+        var translation: Double
+        var isSettling = false
+    }
+
+    private static let spacing = 3.0
+
     let workspace: Workspace
+
+    @State private var drag: TabDrag?
+    @State private var tabWidth = 0.0
+
+    /// The distance from one tab's leading edge to the next one's.
+    ///
+    /// One figure serves for every tab, because the tabs share the width equally.
+    private var step: Double { tabWidth + Self.spacing }
 
     var body: some View {
         VStack(spacing: 0) {
-            HStack(spacing: 3) {
+            HStack(spacing: Self.spacing) {
                 ForEach(Array(workspace.tabs.enumerated()), id: \.element.id) { index, tab in
                     TabButton(
                         tab: tab,
@@ -34,6 +65,19 @@ struct TabStrip: View {
                         select: { workspace.select(tab) },
                         close: { workspace.close(tab) }
                     )
+                    .onGeometryChange(for: Double.self) { proxy in
+                        proxy.size.width
+                    } action: { width in
+                        tabWidth = width
+                    }
+                    .offset(x: dragOffset(for: tab, at: index))
+                    .transaction { transaction in
+                        if let drag, drag.id == tab.id, !drag.isSettling {
+                            transaction.animation = nil
+                        }
+                    }
+                    .zIndex(drag?.id == tab.id ? 1 : 0)
+                    .simultaneousGesture(dragGesture(for: tab))
                     .transition(.scale(scale: 0.8, anchor: .leading).combined(with: .opacity))
                 }
 
@@ -58,13 +102,86 @@ struct TabStrip: View {
             }
             .padding(.leading, workspace.stripLeadingInset)
             .padding(.trailing, 8)
-            .animation(Self.animation, value: workspace.tabs.map(\.id))
+            .animation(Self.animation, value: Set(workspace.tabs.map(\.id)))
             .animation(Self.animation, value: workspace.stripLeadingInset)
 
             Divider()
         }
         .background(Color(nsColor: .windowBackgroundColor))
         .clipped()
+    }
+
+    /// How far a tab is drawn from its place in the order while a drag is going on.
+    ///
+    /// The dragged tab is at the pointer. The tabs between where it started and where it
+    /// would land are one step over, towards the gap it left.
+    private func dragOffset(for tab: WorkspaceTab, at index: Int) -> Double {
+        guard let drag else { return 0 }
+
+        if drag.id == tab.id {
+            return drag.translation
+        }
+        if index > drag.origin && index <= drag.target {
+            return -step
+        }
+        if index < drag.origin && index >= drag.target {
+            return step
+        }
+        return 0
+    }
+
+    /// Follows the pointer with a tab, and works out where it would land.
+    ///
+    /// The distance is held between the first and last places, so a tab cannot be pulled
+    /// off either end of the row. Only a change of landing place is animated, which is
+    /// what slides the other tabs aside. The dragged tab itself is left out of that, or
+    /// it would lag behind the pointer.
+    private func dragGesture(for tab: WorkspaceTab) -> some Gesture {
+        DragGesture(minimumDistance: 4, coordinateSpace: .global)
+            .onChanged { value in
+                if drag == nil {
+                    guard step > 0, let index = workspace.tabs.firstIndex(where: { $0.id == tab.id }) else { return }
+                    drag = TabDrag(id: tab.id, origin: index, target: index, translation: 0)
+                    workspace.select(tab)
+                }
+                guard let current = drag, current.id == tab.id, !current.isSettling else { return }
+
+                let lowest = Double(-current.origin) * step
+                let highest = Double(workspace.tabs.count - 1 - current.origin) * step
+                let translation = min(max(value.translation.width, lowest), highest)
+                let target = current.origin + Int((translation / step).rounded())
+
+                drag?.translation = translation
+                if target != current.target {
+                    withAnimation(Self.animation) {
+                        drag?.target = target
+                    }
+                }
+            }
+            .onEnded { _ in
+                guard let current = drag, current.id == tab.id, !current.isSettling else { return }
+
+                withAnimation(Self.animation) {
+                    drag?.isSettling = true
+                    drag?.translation = Double(current.target - current.origin) * step
+                } completion: {
+                    finishDrag(of: tab, at: current.target)
+                }
+            }
+    }
+
+    /// Makes the order that is being shown the real one, once the tab has settled.
+    ///
+    /// Animations are off for this. Every tab is already drawn where the new order puts
+    /// it, so the order and the offsets change together and nothing is seen to move.
+    private func finishDrag(of tab: WorkspaceTab, at index: Int) {
+        var transaction = Transaction()
+        transaction.disablesAnimations = true
+
+        withTransaction(transaction) {
+            workspace.move(tab, to: index)
+            drag = nil
+        }
     }
 
     /// Zooms or minimises the window, whichever System Settings says a double-click on a

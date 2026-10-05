@@ -122,6 +122,14 @@ final class Workspace {
         refreshTabs()
     }
 
+    /// Moves a tab to a position in the strip, counting from zero.
+    func move(_ tab: WorkspaceTab, to index: Int) {
+        guard let current = tabs.firstIndex(where: { $0.id == tab.id }),
+              current != index, tabs.indices.contains(index)
+        else { return }
+        tabs.insert(tabs.remove(at: current), at: index)
+    }
+
     /// Shows the tab at a position in the strip, counting from zero.
     func selectTab(at index: Int) {
         if tabs.indices.contains(index) {
