@@ -10,7 +10,7 @@ import PDFKit
 import SwiftUI
 import UniformTypeIdentifiers
 
-/// A PDF open in a window.
+/// A PDF open in a tab.
 ///
 /// This is an `NSDocument` rather than a SwiftUI document because SwiftUI's
 /// `DocumentGroup` always autosaves in place and offers no way to turn that off. Owning
@@ -35,27 +35,20 @@ final class QuireDocument: NSDocument {
 
     nonisolated override class var autosavesInPlace: Bool { false }
 
-    /// Builds the window.
-    ///
-    /// `sizingOptions` is emptied so the hosting controller stops pushing SwiftUI's
-    /// preferred size onto the window: without that, switching between Read and Pages
-    /// resizes the window under the user.
+    /// Opens this document as a tab of Quire's window, rather than in a window of its own.
     override func makeWindowControllers() {
-        let hosting = NSHostingController(rootView: ContentView(document: self))
-        hosting.sizingOptions = []
-
-        let window = NSWindow(contentViewController: hosting)
-        WindowTabs.prepare(window)
-        addWindowController(NSWindowController(window: window))
+        Workspace.shared.open(self)
     }
 
-    /// Shows this document's window as a tab of whatever Quire window is already open.
+    /// Brings this document's tab to the front.
     override func showWindows() {
-        guard let window = windowControllers.first?.window else {
-            super.showWindows()
-            return
-        }
-        WindowTabs.show(window, replacingStartTabs: true)
+        Workspace.shared.show(self)
+    }
+
+    /// Closes the document, and its tab with it.
+    override func close() {
+        super.close()
+        Workspace.shared.remove(self)
     }
 
     /// Writes the current pages to another file, leaving this document where it is.

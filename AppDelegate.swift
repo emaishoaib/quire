@@ -34,8 +34,6 @@ enum QuireMain {
 /// is safe because an unsaved document is asked about before its window closes.
 final class AppDelegate: NSObject, NSApplicationDelegate {
 
-    private var startWindows: [NSWindowController] = []
-
     func applicationDidFinishLaunching(_ notification: Notification) {
         NSApp.mainMenu = MainMenu.make()
         OCRRunner.warmUp()
@@ -52,37 +50,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     func applicationShouldHandleReopen(_ sender: NSApplication, hasVisibleWindows: Bool) -> Bool {
         if !hasVisibleWindows {
-            showStart(nil)
+            Workspace.shared.reveal()
         }
         return true
     }
 
-    /// The plus button at the end of the tab bar, which AppKit shows because this exists.
-    @objc func newWindowForTab(_ sender: Any?) {
-        showStart(sender)
-    }
-
     /// Opens a tab showing the list of recent PDFs.
     @objc func showStart(_ sender: Any?) {
-        let hosting = NSHostingController(rootView: StartView())
-        hosting.sizingOptions = []
-
-        let window = NSWindow(contentViewController: hosting)
-        window.title = "Quire"
-
-        let controller = NSWindowController(window: window)
-        startWindows.append(controller)
-        WindowTabs.show(window)
-
-        NotificationCenter.default.addObserver(
-            forName: NSWindow.willCloseNotification,
-            object: window,
-            queue: .main
-        ) { [weak self] _ in
-            MainActor.assumeIsolated {
-                self?.startWindows.removeAll { $0.window === window }
-            }
-        }
+        Workspace.shared.openStart()
     }
 
     func applicationShouldTerminateAfterLastWindowClosed(_ sender: NSApplication) -> Bool {

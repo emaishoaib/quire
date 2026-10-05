@@ -27,7 +27,8 @@
 		2D693FDD30633E2F0016D532 /* ReadRail.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2D693FDC30633E2F0016D532 /* ReadRail.swift */; };
 		2D693FDF30633E2F0016D532 /* FindBar.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2D693FDE30633E2F0016D532 /* FindBar.swift */; };
 		2D693FE130633E2F0016D532 /* StartView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2D693FE030633E2F0016D532 /* StartView.swift */; };
-		2D693FE330633E2F0016D532 /* WindowTabs.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2D693FE230633E2F0016D532 /* WindowTabs.swift */; };
+		2D693FE330633E2F0016D532 /* Workspace.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2D693FE230633E2F0016D532 /* Workspace.swift */; };
+		2D693FE530633E2F0016D532 /* TabStrip.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2D693FE430633E2F0016D532 /* TabStrip.swift */; };
 		2D693FB930633E2F0016D532 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 2D693FB130633E2F0016D532 /* Assets.xcassets */; };
 /* End PBXBuildFile section */
 
@@ -52,7 +53,8 @@
 		2D693FDC30633E2F0016D532 /* ReadRail.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReadRail.swift; sourceTree = "<group>"; };
 		2D693FDE30633E2F0016D532 /* FindBar.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FindBar.swift; sourceTree = "<group>"; };
 		2D693FE030633E2F0016D532 /* StartView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StartView.swift; sourceTree = "<group>"; };
-		2D693FE230633E2F0016D532 /* WindowTabs.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WindowTabs.swift; sourceTree = "<group>"; };
+		2D693FE230633E2F0016D532 /* Workspace.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Workspace.swift; sourceTree = "<group>"; };
+		2D693FE430633E2F0016D532 /* TabStrip.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TabStrip.swift; sourceTree = "<group>"; };
 		2D693FD030633E2F0016D532 /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
 		2D693FD130633E2F0016D532 /* MainMenu.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MainMenu.swift; sourceTree = "<group>"; };
 		2D693FB530633E2F0016D532 /* QuireDocument.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = QuireDocument.swift; sourceTree = "<group>"; };
@@ -84,7 +86,8 @@
 				2D693FB330633E2F0016D532 /* Info.plist */,
 				2D693FD630633E2F0016D532 /* DocumentIcon.icns */,
 				2D693FD030633E2F0016D532 /* AppDelegate.swift */,
-				2D693FE230633E2F0016D532 /* WindowTabs.swift */,
+				2D693FE230633E2F0016D532 /* Workspace.swift */,
+				2D693FE430633E2F0016D532 /* TabStrip.swift */,
 				2D693FE030633E2F0016D532 /* StartView.swift */,
 				2D693FDE30633E2F0016D532 /* FindBar.swift */,
 				2D693FDC30633E2F0016D532 /* ReadRail.swift */,
@@ -181,7 +184,8 @@
 				2D693FCD30633E2F0016D532 /* ThumbnailSidebar.swift in Sources */,
 				2D694F0930633E2F0016D532 /* ContentsSidebar.swift in Sources */,
 				2D693FCE30633E2F0016D532 /* AppDelegate.swift in Sources */,
-				2D693FE330633E2F0016D532 /* WindowTabs.swift in Sources */,
+				2D693FE330633E2F0016D532 /* Workspace.swift in Sources */,
+				2D693FE530633E2F0016D532 /* TabStrip.swift in Sources */,
 				2D693FE130633E2F0016D532 /* StartView.swift in Sources */,
 				2D693FDF30633E2F0016D532 /* FindBar.swift in Sources */,
 				2D693FDD30633E2F0016D532 /* ReadRail.swift in Sources */,
