@@ -16,10 +16,11 @@ struct TabStrip: View {
     var body: some View {
         VStack(spacing: 0) {
             HStack(spacing: 4) {
-                ForEach(workspace.tabs) { tab in
+                ForEach(Array(workspace.tabs.enumerated()), id: \.element.id) { index, tab in
                     TabButton(
                         tab: tab,
                         isSelected: tab.id == workspace.selectedID,
+                        number: workspace.showsTabNumbers && index < Workspace.numberedTabs ? index + 1 : nil,
                         select: { workspace.select(tab) },
                         close: { workspace.close(tab) }
                     )
@@ -53,9 +54,14 @@ struct TabStrip: View {
 /// Clicking it shows the tab, and the tab that is showing has a filled background. The
 /// close button only appears on that tab and on the one under the pointer, so a row of
 /// tabs is a row of names rather than a row of crosses.
+///
+/// While Command is held, `number` is the digit that shows this tab, and it takes the
+/// close button's place. Sharing that spot means the tabs do not change width, and so
+/// do not shift about, each time the key goes down.
 private struct TabButton: View {
     let tab: WorkspaceTab
     let isSelected: Bool
+    let number: Int?
     let select: () -> Void
     let close: () -> Void
 
@@ -70,16 +76,30 @@ private struct TabButton: View {
                 .truncationMode(.middle)
                 .frame(maxWidth: 200)
 
-            Button(action: close) {
-                Image(systemName: "xmark")
-                    .font(.system(size: 9, weight: .bold))
-                    .foregroundStyle(.secondary)
-                    .frame(width: 16, height: 16)
-                    .contentShape(.rect)
+            ZStack {
+                if let number {
+                    Text("\(number)")
+                        .font(.system(size: 10, weight: .semibold))
+                        .monospacedDigit()
+                        .foregroundStyle(.secondary)
+                        .frame(width: 16, height: 16)
+                        .background(.quaternary, in: .rect(cornerRadius: 4))
+                        .transition(.scale(scale: 0.7).combined(with: .opacity))
+                } else {
+                    Button(action: close) {
+                        Image(systemName: "xmark")
+                            .font(.system(size: 9, weight: .bold))
+                            .foregroundStyle(.secondary)
+                            .frame(width: 16, height: 16)
+                            .contentShape(.rect)
+                    }
+                    .buttonStyle(.plain)
+                    .opacity(isSelected || isHovered ? 1 : 0)
+                    .help("Close Tab")
+                    .transition(.opacity)
+                }
             }
-            .buttonStyle(.plain)
-            .opacity(isSelected || isHovered ? 1 : 0)
-            .help("Close Tab")
+            .animation(.easeOut(duration: 0.12), value: number)
         }
         .padding(.leading, 12)
         .padding(.trailing, 6)

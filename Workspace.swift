@@ -45,7 +45,39 @@ final class Workspace {
     private(set) var tabs: [WorkspaceTab] = []
     private(set) var selectedID: WorkspaceTab.ID?
 
+    /// True while Command is held, which is when each tab shows the number that picks it.
+    private(set) var showsTabNumbers = false
+
+    /// How many tabs have a number: Command-1 to Command-9.
+    static let numberedTabs = 9
+
     @ObservationIgnored private lazy var windowController = WorkspaceWindowController()
+
+    /// Starts watching the Command key.
+    ///
+    /// Leaving the app also counts as letting go. Command-Tab switches away with the key
+    /// still down, and its release then goes to the other app, never to this one.
+    private init() {
+        NSEvent.addLocalMonitorForEvents(matching: .flagsChanged) { [weak self] event in
+            self?.setShowsTabNumbers(event.modifierFlags.contains(.command))
+            return event
+        }
+        NotificationCenter.default.addObserver(
+            forName: NSApplication.didResignActiveNotification,
+            object: nil,
+            queue: .main
+        ) { [weak self] _ in
+            MainActor.assumeIsolated {
+                self?.setShowsTabNumbers(false)
+            }
+        }
+    }
+
+    private func setShowsTabNumbers(_ shows: Bool) {
+        if showsTabNumbers != shows {
+            showsTabNumbers = shows
+        }
+    }
 
     /// Adds a tab for a document that has just been opened, and shows it.
     func open(_ document: QuireDocument) {
@@ -74,13 +106,11 @@ final class Workspace {
         windowController.display(tab)
     }
 
-    /// Shows the tab after the showing one, or before it for a negative offset.
-    ///
-    /// Going past either end comes round to the other, so one key walks every tab.
-    func selectTab(offsetBy offset: Int) {
-        guard tabs.count > 1, let index = tabs.firstIndex(where: { $0.id == selectedID }) else { return }
-        let next = ((index + offset) % tabs.count + tabs.count) % tabs.count
-        select(tabs[next])
+    /// Shows the tab at a position in the strip, counting from zero.
+    func selectTab(at index: Int) {
+        if tabs.indices.contains(index) {
+            select(tabs[index])
+        }
     }
 
     /// Brings an open document's tab to the front, along with the window.
@@ -253,22 +283,19 @@ final class WorkspaceWindowController: NSWindowController, NSMenuItemValidation 
         Workspace.shared.closeSelected()
     }
 
-    @objc func showNextTab(_ sender: Any?) {
-        Workspace.shared.selectTab(offsetBy: 1)
-    }
-
-    @objc func showPreviousTab(_ sender: Any?) {
-        Workspace.shared.selectTab(offsetBy: -1)
-    }
-
-    /// Moving between tabs needs a second tab to move to.
-    func validateMenuItem(_ menuItem: NSMenuItem) -> Bool {
-        switch menuItem.action {
-        case #selector(showNextTab(_:)), #selector(showPreviousTab(_:)):
-            Workspace.shared.tabs.count > 1
-        default:
-            true
+    /// Shows the tab a menu item stands for, which it names by its tag.
+    @objc func showTab(_ sender: Any?) {
+        if let item = sender as? NSMenuItem {
+            Workspace.shared.selectTab(at: item.tag)
         }
+    }
+
+    /// A tab's shortcut only works while there is a tab in that position.
+    func validateMenuItem(_ menuItem: NSMenuItem) -> Bool {
+        if menuItem.action == #selector(showTab(_:)) {
+            return menuItem.tag < Workspace.shared.tabs.count
+        }
+        return true
     }
 
     /// Closes every document in turn, stopping at the first one the user cancels on.
