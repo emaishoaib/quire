@@ -16,6 +16,8 @@ import SwiftUI
 ///
 /// The field takes focus a moment after the panel appears, rather than immediately: the
 /// panel is not yet in the window when `onAppear` runs, and focus asked for then is lost.
+/// Asking for Find again while the panel is open returns focus to the field, which is
+/// what `focusRequests` counts.
 struct FindBar: View {
     /// How the panel arrives and leaves, and how its results appear.
     ///
@@ -25,6 +27,7 @@ struct FindBar: View {
 
     let viewer: ViewerController
     let pdf: PDFDocument
+    let focusRequests: Int
     @Binding var isPresented: Bool
 
     @State private var query = ""
@@ -47,6 +50,9 @@ struct FindBar: View {
                 try? await Task.sleep(for: .milliseconds(60))
                 isFocused = true
             }
+        }
+        .onChange(of: focusRequests) {
+            isFocused = true
         }
         .onExitCommand(perform: close)
     }

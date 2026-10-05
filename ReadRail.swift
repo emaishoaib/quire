@@ -23,8 +23,8 @@ struct ReadRail: View {
     let document: QuireDocument
     let rename: () -> Void
     let merge: () -> Void
+    let find: () -> Void
     let isMerging: Bool
-    @Binding var showsFind: Bool
     @Binding var mode: Mode
     @Binding var showsThumbnails: Bool
     @Binding var sidebarTab: SidebarTab
@@ -33,11 +33,7 @@ struct ReadRail: View {
 
     var body: some View {
         VStack(spacing: 8) {
-            button("Find", systemImage: "magnifyingglass") {
-                withAnimation(FindBar.animation) {
-                    showsFind = true
-                }
-            }
+            button("Find", systemImage: "magnifyingglass", action: find)
 
             separator
 

@@ -29,6 +29,7 @@ struct ContentView: View {
     @State private var viewer = ViewerController()
     @State private var ocr = OCRRunner()
     @State private var showsFind = false
+    @State private var findRequests = 0
     @State private var mode: Mode = .read
     @State private var selection = Set<Int>()
     @State private var namePattern: NamePattern?
@@ -99,8 +100,8 @@ struct ContentView: View {
                         document: document,
                         rename: startRename,
                         merge: startMerge,
+                        find: openFind,
                         isMerging: isMerging,
-                        showsFind: $showsFind,
                         mode: $mode,
                         showsThumbnails: $showsThumbnails,
                         sidebarTab: $sidebarTab
@@ -116,9 +117,7 @@ struct ContentView: View {
                 withAnimation(Mode.animation) {
                     mode = .read
                 }
-                withAnimation(FindBar.animation) {
-                    showsFind = true
-                }
+                openFind()
             }
             .keyboardShortcut("f", modifiers: .command)
             .opacity(0)
@@ -199,6 +198,17 @@ struct ContentView: View {
         .animation(ThumbnailSidebar.sizeAnimation, value: thumbnailWidth)
     }
 
+    /// Opens the find panel, or puts the cursor back in its field when it is already open.
+    ///
+    /// The count is what the panel watches: asking for a panel that is already showing
+    /// changes nothing else, so without it a second Cmd-F would go unnoticed.
+    private func openFind() {
+        findRequests += 1
+        withAnimation(FindBar.animation) {
+            showsFind = true
+        }
+    }
+
     /// The Find and rename panels, stacked in the top-right corner of the document.
     ///
     /// They share one corner so that with both open, the rename panel sits below Find
@@ -207,7 +217,7 @@ struct ContentView: View {
     private var panels: some View {
         VStack(alignment: .trailing, spacing: 12) {
             if mode == .read && showsFind {
-                FindBar(viewer: viewer, pdf: document.pdf, isPresented: $showsFind)
+                FindBar(viewer: viewer, pdf: document.pdf, focusRequests: findRequests, isPresented: $showsFind)
                     .transition(.scale(scale: 0.85, anchor: .topTrailing).combined(with: .opacity))
             }
             if showsRename, let namePattern {
