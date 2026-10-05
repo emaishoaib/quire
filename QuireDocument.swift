@@ -46,9 +46,24 @@ final class QuireDocument: NSDocument {
     }
 
     /// Closes the document, and its tab with it.
+    ///
+    /// The tab goes first, which hands the window to another tab. AppKit closes the
+    /// windows of a closing document, and would otherwise close the one every tab shares.
     override func close() {
-        super.close()
         Workspace.shared.remove(self)
+        super.close()
+    }
+
+    /// Asks about unsaved changes with this document's tab showing.
+    ///
+    /// The question is a sheet on the document's window, and only the showing tab has
+    /// one. Asked from a tab in the background, it would appear attached to nothing, and
+    /// the user could not see which PDF it was about.
+    override func canClose(withDelegate delegate: Any, shouldClose shouldCloseSelector: Selector?, contextInfo: UnsafeMutableRawPointer?) {
+        if isDocumentEdited {
+            Workspace.shared.show(self)
+        }
+        super.canClose(withDelegate: delegate, shouldClose: shouldCloseSelector, contextInfo: contextInfo)
     }
 
     /// Writes the current pages to another file, leaving this document where it is.

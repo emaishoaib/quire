@@ -11,7 +11,8 @@ import AppKit
 ///
 /// The items use AppKit's standard selectors, so the document system answers them:
 /// `NSDocumentController` handles New, Open and Open Recent, the open document handles
-/// Save, Save As, Revert and Close, and its undo manager handles Undo and Redo.
+/// Save, Save As and Revert, and its undo manager handles Undo and Redo. Close Tab goes
+/// to the window's controller, because a tab is Quire's own and AppKit knows nothing of it.
 enum MainMenu {
 
     static func make() -> NSMenu {
@@ -49,7 +50,7 @@ enum MainMenu {
         menu.addItem(recent)
 
         menu.addItem(.separator())
-        menu.addItem(withTitle: "Close", action: #selector(NSWindow.performClose(_:)), keyEquivalent: "w")
+        menu.addItem(withTitle: "Close Tab", action: #selector(WorkspaceWindowController.closeTab(_:)), keyEquivalent: "w")
         menu.addItem(withTitle: "Save…", action: #selector(NSDocument.save(_:)), keyEquivalent: "s")
 
         let saveAs = menu.addItem(withTitle: "Save As…", action: #selector(NSDocument.saveAs(_:)), keyEquivalent: "S")

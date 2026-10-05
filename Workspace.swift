@@ -93,17 +93,46 @@ final class Workspace {
         }
     }
 
-    /// Drops the tab of a document that has closed, and shows the tab that took its place.
+    /// Closes a tab, asking first if its PDF has unsaved changes.
+    func close(_ tab: WorkspaceTab) {
+        if let document = tab.document {
+            windowController.close(document)
+        } else {
+            remove(tab)
+        }
+    }
+
+    func closeSelected() {
+        if let tab = tabs.first(where: { $0.id == selectedID }) {
+            close(tab)
+        }
+    }
+
+    /// Drops the tab of a document that is closing.
     func remove(_ document: QuireDocument) {
-        guard let index = tabs.firstIndex(where: { $0.document === document }) else { return }
-        let wasSelected = tabs[index].id == selectedID
+        if let tab = tabs.first(where: { $0.document === document }) {
+            remove(tab)
+        }
+    }
+
+    /// Drops every tab and closes the window, once nothing in it needs saving.
+    func removeAll() {
+        tabs.removeAll()
+        selectedID = nil
+        windowController.shutWindow()
+    }
+
+    /// Drops a tab, and shows the tab that took its place.
+    ///
+    /// The window closes with its last tab, and the app quits with its last window.
+    private func remove(_ tab: WorkspaceTab) {
+        guard let index = tabs.firstIndex(where: { $0.id == tab.id }) else { return }
+        let wasSelected = tab.id == selectedID
         tabs.remove(at: index)
 
-        guard wasSelected else { return }
         if tabs.isEmpty {
-            selectedID = nil
-            windowController.displayNothing()
-        } else {
+            removeAll()
+        } else if wasSelected {
             select(tabs[min(index, tabs.count - 1)])
         }
     }
@@ -130,6 +159,10 @@ final class Workspace {
 /// always act on the PDF the user is looking at.
 ///
 /// The title is hidden because the tab already carries it.
+///
+/// Closing is taken over as well. AppKit would close the showing document along with
+/// the window and leave the rest open with nowhere to appear, so Cmd-W closes one tab,
+/// and the window's close button closes every tab, asking about each unsaved PDF.
 final class WorkspaceWindowController: NSWindowController {
     /// The window saves and restores its size under this name.
     private static let frameName = NSWindow.FrameAutosaveName("QuireWindow")
@@ -150,6 +183,7 @@ final class WorkspaceWindowController: NSWindowController {
         window.title = "Quire"
         window.tabbingMode = .disallowed
         window.titleVisibility = .hidden
+        window.isReleasedWhenClosed = false
         window.minSize = NSSize(width: 720, height: 520)
 
         window.setContentSize(Self.defaultSize)
@@ -159,6 +193,10 @@ final class WorkspaceWindowController: NSWindowController {
             window.center()
         }
         self.window = window
+
+        let closeButton = window.standardWindowButton(.closeButton)
+        closeButton?.target = self
+        closeButton?.action = #selector(closeWindow(_:))
     }
 
     /// Shows a tab, and hands this controller to its document.
@@ -176,10 +214,49 @@ final class WorkspaceWindowController: NSWindowController {
         container.show(tab.content)
     }
 
-    func displayNothing() {
+    /// Empties the window and closes it.
+    func shutWindow() {
         (document as? NSDocument)?.removeWindowController(self)
         document = nil
         container.show(nil)
+
+        if window?.isVisible == true {
+            window?.close()
+        }
+    }
+
+    /// Closes a document once it has been saved or the user has chosen not to.
+    func close(_ document: QuireDocument) {
+        document.canClose(
+            withDelegate: self,
+            shouldClose: #selector(document(_:shouldClose:contextInfo:)),
+            contextInfo: nil
+        )
+    }
+
+    @objc private func document(_ document: NSDocument, shouldClose: Bool, contextInfo: UnsafeMutableRawPointer?) {
+        if shouldClose {
+            document.close()
+        }
+    }
+
+    @objc func closeTab(_ sender: Any?) {
+        Workspace.shared.closeSelected()
+    }
+
+    /// Closes every document in turn, stopping at the first one the user cancels on.
+    @objc func closeWindow(_ sender: Any?) {
+        NSDocumentController.shared.closeAllDocuments(
+            withDelegate: self,
+            didCloseAllSelector: #selector(documentController(_:didCloseAll:contextInfo:)),
+            contextInfo: nil
+        )
+    }
+
+    @objc private func documentController(_ controller: NSDocumentController, didCloseAll: Bool, contextInfo: UnsafeMutableRawPointer?) {
+        if didCloseAll {
+            Workspace.shared.removeAll()
+        }
     }
 
     /// AppKit calls this when the showing document's name changes, which is the moment

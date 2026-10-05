@@ -8,8 +8,6 @@
 import SwiftUI
 
 /// The row of tabs along the top of the window, one for each open PDF.
-///
-/// Clicking a tab shows it. The tab that is showing is the one with a filled background.
 struct TabStrip: View {
     let workspace: Workspace
 
@@ -17,7 +15,12 @@ struct TabStrip: View {
         VStack(spacing: 0) {
             HStack(spacing: 4) {
                 ForEach(workspace.tabs) { tab in
-                    button(for: tab)
+                    TabButton(
+                        tab: tab,
+                        isSelected: tab.id == workspace.selectedID,
+                        select: { workspace.select(tab) },
+                        close: { workspace.close(tab) }
+                    )
                 }
 
                 Spacer(minLength: 0)
@@ -29,25 +32,48 @@ struct TabStrip: View {
         }
         .background(Color(nsColor: .windowBackgroundColor))
     }
+}
 
-    private func button(for tab: WorkspaceTab) -> some View {
-        let isSelected = tab.id == workspace.selectedID
+/// One tab in the strip.
+///
+/// Clicking it shows the tab, and the tab that is showing has a filled background. The
+/// close button only appears on that tab and on the one under the pointer, so a row of
+/// tabs is a row of names rather than a row of crosses.
+private struct TabButton: View {
+    let tab: WorkspaceTab
+    let isSelected: Bool
+    let select: () -> Void
+    let close: () -> Void
 
-        return Button {
-            workspace.select(tab)
-        } label: {
+    @State private var isHovered = false
+
+    var body: some View {
+        HStack(spacing: 4) {
             Text(tab.title)
                 .font(.system(size: 12, weight: isSelected ? .medium : .regular))
                 .foregroundStyle(isSelected ? .primary : .secondary)
                 .lineLimit(1)
                 .truncationMode(.middle)
-                .padding(.horizontal, 12)
-                .frame(maxWidth: 220)
-                .frame(height: 26)
-                .background(isSelected ? AnyShapeStyle(.quaternary) : AnyShapeStyle(.clear), in: .rect(cornerRadius: 6))
-                .contentShape(.rect)
+                .frame(maxWidth: 200)
+
+            Button(action: close) {
+                Image(systemName: "xmark")
+                    .font(.system(size: 9, weight: .bold))
+                    .foregroundStyle(.secondary)
+                    .frame(width: 16, height: 16)
+                    .contentShape(.rect)
+            }
+            .buttonStyle(.plain)
+            .opacity(isSelected || isHovered ? 1 : 0)
+            .help("Close Tab")
         }
-        .buttonStyle(.plain)
+        .padding(.leading, 12)
+        .padding(.trailing, 6)
+        .frame(height: 26)
+        .background(isSelected ? AnyShapeStyle(.quaternary) : AnyShapeStyle(.clear), in: .rect(cornerRadius: 6))
+        .contentShape(.rect)
+        .onTapGesture(perform: select)
+        .onHover { isHovered = $0 }
         .help(tab.title)
     }
 }
