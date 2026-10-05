@@ -201,10 +201,14 @@ extension QuireDocument {
         applyPages(newState, actionName: "Delete Pages")
     }
 
-    /// Inserts copies of every page of the PDF at `url`, and reports how many were added.
+    /// Inserts the file at `url`, and reports how many pages were added.
+    ///
+    /// A PDF adds a copy of every page it has. An image adds one page that shows it.
     @discardableResult
     func insertPages(from url: URL, at index: Int) throws -> Int {
-        let inserted = try Self.copiedPages(of: url)
+        let inserted = try Self.isImage(url)
+            ? [Self.imagePage(of: url)]
+            : Self.copiedPages(of: url)
         guard !inserted.isEmpty else { return 0 }
 
         var newState = pageStates
@@ -225,6 +229,57 @@ extension QuireDocument {
             guard let copy = other.page(at: index)?.copy() as? PDFPage else { return nil }
             return PageState(page: copy, rotation: copy.rotation)
         }
+    }
+
+    /// Whether the file at `url` is an image, going by its extension.
+    static func isImage(_ url: URL) -> Bool {
+        UTType(filenameExtension: url.pathExtension)?.conforms(to: .image) ?? false
+    }
+
+    /// A page showing the image at `url`, at the image's own size.
+    ///
+    /// That size is the one the file states for print: its pixels divided by its dots per
+    /// inch. A file that states no resolution is taken at 72 dots per inch, which makes
+    /// each pixel one point.
+    ///
+    /// The image is read through ImageIO rather than `NSImage(contentsOf:)`, which gives
+    /// the pixels exactly as stored. A camera stores a photo held upright as a sideways
+    /// picture with a note saying which way is up, so that note is read here and becomes
+    /// the page's rotation.
+    ///
+    /// Only the first picture of a file that holds several is used.
+    private static func imagePage(of url: URL) throws -> PageState {
+        guard let source = CGImageSourceCreateWithURL(url as CFURL, nil),
+              let pixels = CGImageSourceCreateImageAtIndex(source, 0, nil),
+              pixels.width > 0, pixels.height > 0
+        else {
+            throw CocoaError(.fileReadCorruptFile)
+        }
+
+        let properties = CGImageSourceCopyPropertiesAtIndex(source, 0, nil) as? [CFString: Any]
+        let orientation = properties?[kCGImagePropertyOrientation] as? UInt32 ?? 1
+        let rotation = switch orientation {
+        case 3, 4: 180
+        case 5, 6: 90
+        case 7, 8: 270
+        default: 0
+        }
+
+        let size = NSSize(
+            width: CGFloat(pixels.width) * 72 / dotsPerInch(properties, kCGImagePropertyDPIWidth),
+            height: CGFloat(pixels.height) * 72 / dotsPerInch(properties, kCGImagePropertyDPIHeight)
+        )
+
+        guard let page = PDFPage(image: NSImage(cgImage: pixels, size: size)) else {
+            throw CocoaError(.fileReadCorruptFile)
+        }
+        return PageState(page: page, rotation: rotation)
+    }
+
+    /// The resolution an image file states under `key`, or 72 when it states none.
+    private static func dotsPerInch(_ properties: [CFString: Any]?, _ key: CFString) -> CGFloat {
+        guard let stated = properties?[key] as? Double, stated > 0 else { return 72 }
+        return stated
     }
 }
 
