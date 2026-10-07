@@ -283,6 +283,81 @@ extension QuireDocument {
     }
 }
 
+/// A highlight together with the page it is drawn on.
+///
+/// The page is kept alongside because a highlight that has been taken off its page no
+/// longer knows which page that was, and undo needs to put it back.
+struct Highlight {
+    let annotation: PDFAnnotation
+    let page: PDFPage
+}
+
+extension QuireDocument {
+
+    /// Highlights the selected text in `colour`.
+    ///
+    /// The highlight is stored the way the PDF format stores one, as an annotation on the
+    /// page, so it is written into the file on save and other PDF readers show it too.
+    ///
+    /// A selection gets one annotation for each page it touches, however many lines it
+    /// covers there, so those lines stay one highlight. The annotation lists the corners
+    /// of every line, which is how a highlight follows the text rather than covering the
+    /// whole block the lines sit in.
+    func highlight(_ selection: PDFSelection, in colour: HighlightColour) {
+        var linesByPage: [(page: PDFPage, lines: [CGRect])] = []
+        for line in selection.selectionsByLine() {
+            for page in line.pages {
+                let rect = line.bounds(for: page)
+                guard !rect.isEmpty else { continue }
+                if let index = linesByPage.firstIndex(where: { $0.page === page }) {
+                    linesByPage[index].lines.append(rect)
+                } else {
+                    linesByPage.append((page, [rect]))
+                }
+            }
+        }
+
+        let highlights = linesByPage.map { page, lines in
+            let bounds = lines.dropFirst().reduce(lines[0]) { $0.union($1) }
+            let annotation = PDFAnnotation(bounds: bounds, forType: .highlight, withProperties: nil)
+            annotation.color = colour.colour
+            annotation.quadrilateralPoints = lines.flatMap { line in
+                [
+                    NSPoint(x: line.minX - bounds.minX, y: line.maxY - bounds.minY),
+                    NSPoint(x: line.maxX - bounds.minX, y: line.maxY - bounds.minY),
+                    NSPoint(x: line.minX - bounds.minX, y: line.minY - bounds.minY),
+                    NSPoint(x: line.maxX - bounds.minX, y: line.minY - bounds.minY)
+                ].map { NSValue(point: $0) }
+            }
+            return Highlight(annotation: annotation, page: page)
+        }
+        guard !highlights.isEmpty else { return }
+        setHighlights(highlights, shown: true)
+    }
+
+    /// Adds the highlights to their pages or takes them off, and registers the reverse as undo.
+    ///
+    /// Registering undo is also what marks the document as having unsaved changes. The
+    /// page list is untouched, so `revision` is not bumped: the Read view redraws an
+    /// annotated page by itself, and a bump would reload it and clear any search.
+    private func setHighlights(_ highlights: [Highlight], shown: Bool) {
+        for highlight in highlights {
+            if shown {
+                highlight.page.addAnnotation(highlight.annotation)
+            } else {
+                highlight.page.removeAnnotation(highlight.annotation)
+            }
+        }
+
+        undoManager?.registerUndo(withTarget: self) { document in
+            MainActor.assumeIsolated {
+                document.setHighlights(highlights, shown: !shown)
+            }
+        }
+        undoManager?.setActionName("Highlight")
+    }
+}
+
 extension QuireDocument {
 
     /// What may follow this file's name in the name of a file that belongs with it.

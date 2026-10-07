@@ -213,7 +213,9 @@ struct ContentView: View {
                     x: centre.x / max(proxy.size.width, 1),
                     y: centre.y / max(proxy.size.height, 1)
                 )
-                HighlightBar { _ in }
+                HighlightBar { colour in
+                    viewer.highlightSelection(in: colour, of: document)
+                }
                     .position(centre)
                     .transition(.scale(scale: 0.85, anchor: origin).combined(with: .opacity))
             }

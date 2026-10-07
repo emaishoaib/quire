@@ -474,6 +474,17 @@ extension ViewerController {
         }
     }
 
+    /// Highlights the selected text in `colour`, then lets go of the selection.
+    ///
+    /// The selection is cleared because it is drawn over the text in its own colour, and
+    /// would hide the highlight that was just made.
+    func highlightSelection(in colour: HighlightColour, of document: QuireDocument) {
+        guard let view, let selection = view.currentSelection else { return }
+        document.highlight(selection, in: colour)
+        hideHighlightBar()
+        view.clearSelection()
+    }
+
     private func selectionDidChange() {
         guard followsSelection else { return }
         placeHighlightBar()
