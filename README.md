@@ -1,6 +1,7 @@
 # Quire
 
-A Mac app for reading PDFs, reorganising their pages, and making scans searchable.
+A Mac app for reading and highlighting PDFs, reorganising their pages, and making scans
+searchable.
 
 Preview already reads PDFs and reorders pages. What it cannot do is add a text layer to a
 scan, so a scanned document stays unsearchable forever. That is the gap Quire fills, and
@@ -26,6 +27,13 @@ sidebar keeps its size when you switch, and the slider sizes it on either side.
 **Find.** Cmd-F, or the rail's magnifying glass, opens a panel over the document. Results
 appear as you type, listed by the text that actually matched and how often, so a
 case-insensitive search names each form it found rather than merging them.
+
+**Highlight.** Select text and a small bar of colour dots appears beside it. Clicking a dot
+highlights the selection in that colour, and the colour used last comes first the next
+time. Clicking a highlight brings the bar back, where the dots recolour it and the trash
+removes it. Highlights are saved into the PDF, so every other PDF reader shows them, and
+the ones made elsewhere can be recoloured and removed here. Each change undoes with Cmd-Z.
+A scan needs its text recognised first, since there is nothing to select before that.
 
 **Organise.** A grid of page thumbnails, which opens on the page you were reading, already
 selected as though you had clicked it. Drag to reorder, drag a marquee across empty space
@@ -212,7 +220,29 @@ that the rail's icon animates too.
 `applyPages` wraps its change in a spring. Adding `.id(document.revision)` to either view
 to "force a refresh" would tell SwiftUI to rebuild from scratch and kill every animation.
 
+**A highlight is a PDF annotation, and making one does not bump `revision`.** The
+annotation is what the PDF format itself stores for a highlight, which is why other readers
+show it. The page list is untouched, and the Read view redraws an annotated page by itself.
+Bumping `revision` would reload the view and clear any search. A highlight is one
+annotation for each page it touches, listing the corners of every line, so several lines
+stay one highlight that is recoloured and removed together.
+
+**The highlight bar is placed in `ViewerController.swift`, from the first and last lines of
+the selection.** The selection's overall bounds would centre the bar on the widest line
+rather than where the selection starts. The bar appears when the mouse is released, which
+`FittingPDFView` reports. It then follows the selection for a moment, because PDFKit can go
+on settling a selection after the release. A selection made from code, such as the current
+find match, gets no bar.
+
+**Recolouring takes the highlight off its page and puts it back.** Removing and adding an
+annotation is what the Read view is known to redraw for. Whether it also redraws for a
+colour changed in place was not tested, so the change is wrapped in the pair that is.
+
 ## Open questions
+
+**Thumbnails do not show a highlight until the file is reopened.** `ThumbnailCache` keeps a
+page's image until the page or its rotation changes, and a highlight changes neither. The
+fix is to drop a page's image when its highlights change, which nothing does yet.
 
 **PDFs show a preview of page one rather than Quire's document icon.** Finder prefers a
 generated preview over a handler's icon when it can make one, and turning off "Show icon
