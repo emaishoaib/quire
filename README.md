@@ -14,8 +14,8 @@ opens a tab listing recently opened files, which is also what you get when Quire
 launched with nothing to read.
 
 **Read.** Continuous scrolling, single or two-page layout, and zoom by pinch or from the
-rail down the right edge, which also holds the page number, text recognition, find, the
-fit modes and the switch between reading and organising. A thumbnail
+rail down the right edge, which also holds the page number, text recognition, highlight
+mode, find, the fit modes and the switch between reading and organising. A thumbnail
 sidebar sized by its own slider, where pages can be dragged into a new order, hovering a
 page reveals rotate and delete, and hovering between pages reveals a plus that inserts a
 PDF or an image there. A button on the rail swaps the thumbnails for the PDF's table of contents, where
@@ -34,6 +34,13 @@ time. Clicking a highlight brings the bar back, where the dots recolour it and t
 removes it. Highlights are saved into the PDF, so every other PDF reader shows them, and
 the ones made elsewhere can be recoloured and removed here. Each change undoes with Cmd-Z.
 A scan needs its text recognised first, since there is nothing to select before that.
+
+**Highlight mode.** The rail's highlighter turns it on, for highlighting a lot at once. The
+cursor becomes a pen, and dragging across text highlights it on release, with no bar in
+between. A palette of the five colours stands beside the rail for as long as the mode is
+on, with a ring around the one in use, and the colour can be changed between drags. Its
+dots keep one order, unlike the bar's. Right-clicking a highlight removes it. The mode
+belongs to its tab, and the colour is the same one the bar remembers.
 
 **Organise.** A grid of page thumbnails, which opens on the page you were reading, already
 selected as though you had clicked it. Drag to reorder, drag a marquee across empty space
@@ -198,6 +205,28 @@ rather than where the selection starts. The bar appears when the mouse is releas
 `FittingPDFView` reports. It then follows the selection for a moment, because PDFKit can go
 on settling a selection after the release. A selection made from code, such as the current
 find match, gets no bar.
+
+**The highlighter cursor is set in `setCursorFor`, in `FittingPDFView`.** PDFKit calls it
+on every mouse move to choose between the arrow, the text cursor and the pointing hand. A
+cursor set anywhere else lasts until the mouse next moves.
+
+**A right click is acted on once, though PDFKit asks for its menu twice.** It asks from the
+page under the mouse and again from the view. `FittingPDFView` remembers the click it has
+dealt with. Without that, a right click in highlight mode on two highlights lying one over
+the other would remove both.
+
+**The palette is drawn by the window, not by the rail.** It reaches out over the document,
+which the rail's bounds do not cover. The rail reports where its highlight button is, and
+`ContentView.swift` places the palette level with it.
+
+**A drag in highlight mode is highlighted by the window, not by `ViewerController`.** The
+controller knows when a drag ends, but the document and the colour belong to the window.
+The controller counts the drags and the window watches the count, the same arrangement as
+asking for Find a second time.
+
+**Highlights are paler than the dots that pick them.** `HighlightColour` carries two shades
+of each colour. The dots are full strength so they stand apart at their small size, and
+that strength is heavy behind whole lines of text.
 
 **Recolouring takes the highlight off its page and puts it back.** Removing and adding an
 annotation is what the Read view is known to redraw for. Whether it also redraws for a
