@@ -30,6 +30,9 @@ final class ViewerController {
     private(set) var isContinuous = true
     private(set) var showsCoverPage = false
     private(set) var attachCount = 0
+
+    /// Where the selected text is, while the highlight bar should be showing beside it.
+    private(set) var selectionAnchor: SelectionAnchor?
     var matchCase = false
 
     @ObservationIgnored private weak var view: PDFView?
@@ -53,6 +56,13 @@ final class ViewerController {
     /// PDFKit posts its scale notification from inside the assignment, before
     /// `appliedScale` can be updated, so the pinch check has to sit that one out.
     @ObservationIgnored private var isApplyingScale = false
+
+    /// True from the mouse being released over the view until the highlight bar is dismissed.
+    ///
+    /// PDFKit can go on settling a selection for a moment after the mouse is released, so
+    /// the bar follows the selection's changes while this is set. A selection made from
+    /// code, such as the current find match, arrives while it is clear and gets no bar.
+    @ObservationIgnored private var followsSelection = false
 
     /// What the Read view was showing when it was torn down, for the next one to pick up.
     private struct Snapshot {
@@ -88,6 +98,7 @@ final class ViewerController {
             autoScales: view.autoScales,
             destination: view.currentDestination
         )
+        hideHighlightBar()
     }
 
     /// Republishes PDFKit's page and zoom changes as observable state.
@@ -106,6 +117,28 @@ final class ViewerController {
                 }
             }
         }
+        observers += [Notification.Name.PDFViewScaleChanged, .PDFViewDisplayModeChanged].map { name in
+            NotificationCenter.default.addObserver(forName: name, object: view, queue: .main) { [weak self] _ in
+                MainActor.assumeIsolated {
+                    self?.hideHighlightBar()
+                }
+            }
+        }
+        observers.append(
+            NotificationCenter.default.addObserver(forName: .PDFViewSelectionChanged, object: view, queue: .main) { [weak self] _ in
+                MainActor.assumeIsolated {
+                    self?.selectionDidChange()
+                }
+            }
+        )
+        observers.append(
+            NotificationCenter.default.addObserver(forName: NSView.boundsDidChangeNotification, object: nil, queue: .main) { [weak self] note in
+                let scrolled = note.object as? NSClipView
+                MainActor.assumeIsolated {
+                    self?.viewDidScroll(scrolled)
+                }
+            }
+        )
         syncFromView()
     }
 
@@ -201,7 +234,10 @@ final class ViewerController {
     }
 
     /// Redoes the opening fit to height while the window is still settling.
+    ///
+    /// The highlight bar goes too, because the text it sat beside has moved.
     func viewDidResize(keeping top: PDFDestination?) {
+        hideHighlightBar()
         guard keepsHeightFitted else { return }
         applyHeightFit(keeping: top)
     }
@@ -390,6 +426,7 @@ final class ViewerController {
         guard matches.indices.contains(matchIndex), let view else { return }
         let match = matches[matchIndex]
 
+        hideHighlightBar()
         view.setCurrentSelection(match, animate: true)
         view.go(to: match)
 
@@ -412,5 +449,79 @@ final class ViewerController {
         }
         match.color = colour
         view?.highlightedSelections = matches
+    }
+}
+
+extension ViewerController {
+
+    /// Hides the highlight bar as a new click or drag begins.
+    func mouseWentDown() {
+        hideHighlightBar()
+    }
+
+    /// Shows the highlight bar beside whatever the click or drag left selected.
+    func mouseWentUp() {
+        followsSelection = true
+        placeHighlightBar()
+    }
+
+    /// Takes the highlight bar away, and stops it coming back until the next selection.
+    func hideHighlightBar() {
+        followsSelection = false
+        guard selectionAnchor != nil else { return }
+        withAnimation(HighlightBar.animation) {
+            selectionAnchor = nil
+        }
+    }
+
+    private func selectionDidChange() {
+        guard followsSelection else { return }
+        placeHighlightBar()
+    }
+
+    /// Hides the highlight bar when the document scrolls, since the text it sat beside has moved.
+    ///
+    /// Every scrolling view in the app posts the notification behind this, so it is only
+    /// acted on when it comes from inside the PDF view.
+    private func viewDidScroll(_ scrolled: NSClipView?) {
+        guard let view, let scrolled, scrolled.isDescendant(of: view) else { return }
+        hideHighlightBar()
+    }
+
+    /// Puts the highlight bar beside the selection, or removes it when nothing is selected.
+    private func placeHighlightBar() {
+        let anchor = currentSelectionAnchor
+        guard anchor != nil || selectionAnchor != nil else { return }
+        withAnimation(HighlightBar.animation) {
+            selectionAnchor = anchor
+        }
+    }
+
+    /// Where the first and last lines of the selection are in the view.
+    ///
+    /// A selection can run over several lines and pages, and its overall bounds would put
+    /// the bar beside the widest line rather than beside where the selection starts or ends.
+    private var currentSelectionAnchor: SelectionAnchor? {
+        guard let view,
+              let lines = view.currentSelection?.selectionsByLine(),
+              let first = lines.first,
+              let last = lines.last,
+              let firstLine = rect(of: first, in: view),
+              let lastLine = rect(of: last, in: view)
+        else { return nil }
+        return SelectionAnchor(firstLine: firstLine, lastLine: lastLine)
+    }
+
+    /// One line of a selection in the view's coordinates, measured from the top-left corner.
+    ///
+    /// AppKit measures from the bottom-left unless a view says otherwise, and SwiftUI,
+    /// which places the bar, measures from the top-left.
+    private func rect(of line: PDFSelection, in view: PDFView) -> CGRect? {
+        guard let page = line.pages.first else { return nil }
+        let rect = view.convert(line.bounds(for: page), from: page)
+        guard !rect.isEmpty else { return nil }
+        return view.isFlipped
+            ? rect
+            : CGRect(x: rect.minX, y: view.bounds.height - rect.maxY, width: rect.width, height: rect.height)
     }
 }

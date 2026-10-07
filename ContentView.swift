@@ -77,6 +77,9 @@ struct ContentView: View {
                                     ZoomHUD(viewer: viewer)
                                         .padding(.trailing, 16)
                                 }
+                                .overlay {
+                                    highlightBar
+                                }
                                 .transition(.opacity.combined(with: .scale(scale: 1.02)))
                         case .pages:
                             PageGrid(document: document, selection: $selection, currentPage: viewer.currentPage) { index in
@@ -196,6 +199,25 @@ struct ContentView: View {
         .frame(width: ThumbnailSidebar.sidebarWidth(for: thumbnailWidth))
         .background(Color(nsColor: .underPageBackgroundColor))
         .animation(ThumbnailSidebar.sizeAnimation, value: thumbnailWidth)
+    }
+
+    /// The highlight bar, placed beside the selected text while there is some.
+    ///
+    /// It grows out of its own centre as it appears. The transition is told where that is,
+    /// because the view it applies to is the whole overlay rather than the bar alone.
+    private var highlightBar: some View {
+        GeometryReader { proxy in
+            if let anchor = viewer.selectionAnchor {
+                let centre = HighlightBar.centre(for: anchor, in: proxy.size)
+                let origin = UnitPoint(
+                    x: centre.x / max(proxy.size.width, 1),
+                    y: centre.y / max(proxy.size.height, 1)
+                )
+                HighlightBar { _ in }
+                    .position(centre)
+                    .transition(.scale(scale: 0.85, anchor: origin).combined(with: .opacity))
+            }
+        }
     }
 
     /// Opens the find panel, or puts the cursor back in its field when it is already open.
