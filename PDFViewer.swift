@@ -16,6 +16,7 @@ struct PDFViewer: NSViewRepresentable {
     let pdf: PDFDocument
     let revision: Int
     let controller: ViewerController
+    let removeHighlight: (Highlight) -> Void
 
     func makeCoordinator() -> Coordinator {
         Coordinator(revision: revision, controller: controller)
@@ -40,6 +41,11 @@ struct PDFViewer: NSViewRepresentable {
         view.onMouseDown = { [weak controller] in controller?.mouseWentDown() }
         view.onMouseUp = { [weak controller] in controller?.mouseWentUp(at: $0) }
         view.showsHighlighterCursor = { [weak controller] in controller?.isHighlighting ?? false }
+        view.onContextClick = { [weak controller, removeHighlight] point in
+            guard let highlight = controller?.highlightToRemove(at: point) else { return false }
+            removeHighlight(highlight)
+            return true
+        }
         return view
     }
 
@@ -72,8 +78,8 @@ struct PDFViewer: NSViewRepresentable {
 }
 
 /// A `PDFView` that reports its first layout with a real size, and every resize after.
-/// It also reports the mouse being pressed and released over it, and swaps its cursor for
-/// a highlighter when asked to.
+/// It also reports the mouse being pressed and released over it, swaps its cursor for a
+/// highlighter when asked to, and offers right clicks to its owner before opening a menu.
 ///
 /// The view has no size when it is created, so anything that fits the page to the
 /// window has to wait until here. The window also keeps changing size while it opens,
@@ -84,6 +90,12 @@ final class FittingPDFView: PDFView {
     var onMouseDown: (() -> Void)?
     var onMouseUp: ((NSPoint) -> Void)?
     var showsHighlighterCursor: (() -> Bool)?
+
+    /// Offered each right click or Control-click, with where in this view it landed.
+    /// Returning true means the click has been dealt with, and no menu should open.
+    var onContextClick: ((NSPoint) -> Bool)?
+
+    private var dealtWithClick: TimeInterval?
 
     /// Reports the new size along with the spot that was at the top before the resize.
     ///
@@ -108,6 +120,23 @@ final class FittingPDFView: PDFView {
     override func mouseUp(with event: NSEvent) {
         super.mouseUp(with: event)
         onMouseUp?(convert(event.locationInWindow, from: nil))
+    }
+
+    /// Offers the click to `onContextClick` before letting PDFKit open its menu.
+    ///
+    /// PDFKit asks for the menu twice for one right click, once from the page under the
+    /// mouse and once from this view. The click is offered the first time only, and the
+    /// second is answered the same way without asking. Offered twice, a click on two
+    /// highlights lying one over the other would remove both.
+    override func menu(for event: NSEvent) -> NSMenu? {
+        if dealtWithClick == event.timestamp {
+            return nil
+        }
+        if onContextClick?(convert(event.locationInWindow, from: nil)) == true {
+            dealtWithClick = event.timestamp
+            return nil
+        }
+        return super.menu(for: event)
     }
 
     /// Shows the highlighter in place of whatever cursor PDFKit would have picked.

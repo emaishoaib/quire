@@ -503,14 +503,27 @@ extension ViewerController {
         placeHighlightBar()
         guard selectionAnchor == nil,
               let view,
-              let page = view.page(for: point, nearest: false),
-              let highlight = QuireDocument.highlight(at: view.convert(point, to: page), on: page),
-              let anchor = anchor(of: highlight.lines, on: page, in: view)
+              let highlight = highlight(at: point),
+              let anchor = anchor(of: highlight.lines, on: highlight.page, in: view)
         else { return }
         withAnimation(HighlightBar.animation) {
             selectedHighlight = highlight
             selectionAnchor = anchor
         }
+    }
+
+    /// The highlight a right click at `point` should remove, which is the one under it
+    /// while highlight mode is on.
+    ///
+    /// Outside the mode there is none, and the click opens PDFKit's menu as usual.
+    func highlightToRemove(at point: NSPoint) -> Highlight? {
+        isHighlighting ? highlight(at: point) : nil
+    }
+
+    /// The highlight under `point`, which is in the view's coordinates.
+    private func highlight(at point: NSPoint) -> Highlight? {
+        guard let view, let page = view.page(for: point, nearest: false) else { return nil }
+        return QuireDocument.highlight(at: view.convert(point, to: page), on: page)
     }
 
     /// Takes the highlight bar away, and stops it coming back until the next selection.

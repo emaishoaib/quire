@@ -64,7 +64,12 @@ struct ContentView: View {
                     Group {
                         switch mode {
                         case .read:
-                            PDFViewer(pdf: document.pdf, revision: document.revision, controller: viewer)
+                            PDFViewer(
+                                pdf: document.pdf,
+                                revision: document.revision,
+                                controller: viewer,
+                                removeHighlight: document.removeHighlight
+                            )
                                 .overlay(alignment: .trailing) {
                                     ZoomHUD(viewer: viewer)
                                         .padding(.trailing, 16)
