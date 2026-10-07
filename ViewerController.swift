@@ -34,6 +34,14 @@ final class ViewerController {
     /// True while highlight mode is on, in which dragging across text highlights it.
     private(set) var isHighlighting = false
 
+    /// Counts the drags released in highlight mode, each one a request to highlight
+    /// what it selected.
+    ///
+    /// The controller knows when a drag ends, but the document and the colour to highlight
+    /// in belong to the window. The window watches this count and does the highlighting,
+    /// the way the find panel watches the count of requests for it.
+    private(set) var highlightRequests = 0
+
     /// Where the highlight bar should sit, while it is showing.
     ///
     /// That is beside the selected text, or beside `selectedHighlight` when there is one.
@@ -483,9 +491,14 @@ extension ViewerController {
     /// A click that selected nothing but landed on a highlight shows the bar for that
     /// highlight instead. `point` is where the mouse was released, in the view's coordinates.
     ///
-    /// Nothing is shown in highlight mode.
+    /// In highlight mode no bar is shown, and a selection is asked to be highlighted instead.
     func mouseWentUp(at point: NSPoint) {
-        guard !isHighlighting else { return }
+        guard !isHighlighting else {
+            if view?.currentSelection != nil {
+                highlightRequests += 1
+            }
+            return
+        }
         followsSelection = true
         placeHighlightBar()
         guard selectionAnchor == nil,

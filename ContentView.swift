@@ -121,6 +121,9 @@ struct ContentView: View {
                 }
             }
         }
+        .onChange(of: viewer.highlightRequests) {
+            viewer.highlight(in: highlightColour, of: document)
+        }
         .onChange(of: document.revision) {
             viewer.clearSearch()
             selection = selection.filter { $0 < document.pageCount }
