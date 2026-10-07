@@ -40,7 +40,6 @@ struct PDFViewer: NSViewRepresentable {
         view.onResize = { [weak controller] top in controller?.viewDidResize(keeping: top) }
         view.onMouseDown = { [weak controller] in controller?.mouseWentDown() }
         view.onMouseUp = { [weak controller] in controller?.mouseWentUp(at: $0) }
-        view.showsHighlighterCursor = { [weak controller] in controller?.isHighlighting ?? false }
         view.onContextClick = { [weak controller, removeHighlight] point in
             guard let highlight = controller?.highlightToRemove(at: point) else { return false }
             removeHighlight(highlight)
@@ -78,8 +77,8 @@ struct PDFViewer: NSViewRepresentable {
 }
 
 /// A `PDFView` that reports its first layout with a real size, and every resize after.
-/// It also reports the mouse being pressed and released over it, swaps its cursor for a
-/// highlighter when asked to, and offers right clicks to its owner before opening a menu.
+/// It also reports the mouse being pressed and released over it, and offers right clicks
+/// to its owner before opening a menu.
 ///
 /// The view has no size when it is created, so anything that fits the page to the
 /// window has to wait until here. The window also keeps changing size while it opens,
@@ -89,7 +88,6 @@ final class FittingPDFView: PDFView {
     var onResize: ((PDFDestination?) -> Void)?
     var onMouseDown: (() -> Void)?
     var onMouseUp: ((NSPoint) -> Void)?
-    var showsHighlighterCursor: (() -> Bool)?
 
     /// Offered each right click or Control-click, with where in this view it landed.
     /// Returning true means the click has been dealt with, and no menu should open.
@@ -139,52 +137,10 @@ final class FittingPDFView: PDFView {
         return super.menu(for: event)
     }
 
-    /// Shows the highlighter in place of whatever cursor PDFKit would have picked.
-    ///
-    /// PDFKit calls this each time the mouse moves, to switch between the arrow, the text
-    /// cursor and the pointing hand. Setting a cursor any other way lasts only until the
-    /// next move.
-    override func setCursorFor(_ area: PDFAreaOfInterest) {
-        if showsHighlighterCursor?() == true {
-            NSCursor.highlighter.set()
-        } else {
-            super.setCursorFor(area)
-        }
-    }
-
     override func layout() {
         super.layout()
         guard bounds.height > 0, let action = onFirstLayout else { return }
         onFirstLayout = nil
         action()
     }
-}
-
-extension NSCursor {
-    /// A highlighter pen, which points with its tip.
-    ///
-    /// The pen is drawn in black over a white copy of itself nudged in every direction,
-    /// which gives it an outline. The system's own cursors are outlined the same way, so
-    /// that they show on dark pages as well as light ones.
-    static let highlighter: NSCursor = {
-        let configuration = NSImage.SymbolConfiguration(pointSize: 18, weight: .medium)
-        func pen(in colour: NSColor) -> NSImage? {
-            NSImage(systemSymbolName: "highlighter", accessibilityDescription: nil)?
-                .withSymbolConfiguration(configuration.applying(.init(paletteColors: [colour])))
-        }
-        guard let outline = pen(in: .white), let fill = pen(in: .black) else { return .iBeam }
-
-        let inset = 2.0
-        let size = NSSize(width: fill.size.width + inset * 2, height: fill.size.height + inset * 2)
-        let image = NSImage(size: size, flipped: false) { _ in
-            for x in [-1.0, 0, 1] {
-                for y in [-1.0, 0, 1] where x != 0 || y != 0 {
-                    outline.draw(at: NSPoint(x: inset + x, y: inset + y), from: .zero, operation: .sourceOver, fraction: 1)
-                }
-            }
-            fill.draw(at: NSPoint(x: inset, y: inset), from: .zero, operation: .sourceOver, fraction: 1)
-            return true
-        }
-        return NSCursor(image: image, hotSpot: NSPoint(x: 5, y: size.height - 7))
-    }()
 }

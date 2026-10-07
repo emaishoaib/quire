@@ -35,12 +35,12 @@ removes it. Highlights are saved into the PDF, so every other PDF reader shows t
 the ones made elsewhere can be recoloured and removed here. Each change undoes with Cmd-Z.
 A scan needs its text recognised first, since there is nothing to select before that.
 
-**Highlight mode.** The rail's highlighter turns it on, for highlighting a lot at once. The
-cursor becomes a pen, and dragging across text highlights it on release, with no bar in
-between. A palette of the five colours stands beside the rail for as long as the mode is
-on, with a ring around the one in use, and the colour can be changed between drags. Its
-dots keep one order, unlike the bar's. Right-clicking a highlight removes it. The mode
-belongs to its tab, and the colour is the same one the bar remembers.
+**Highlight mode.** The rail's highlighter turns it on, for highlighting a lot at once.
+Dragging across text highlights it on release, with no bar in between. A palette of the
+five colours stands beside the rail for as long as the mode is on, with a ring around the
+one in use, and the colour can be changed between drags. Its dots keep one order, unlike
+the bar's. Right-clicking a highlight removes it. The mode belongs to its tab, and the
+colour is the same one the bar remembers.
 
 **Organise.** A grid of page thumbnails, which opens on the page you were reading, already
 selected as though you had clicked it. Drag to reorder, drag a marquee across empty space
@@ -205,10 +205,6 @@ rather than where the selection starts. The bar appears when the mouse is releas
 `FittingPDFView` reports. It then follows the selection for a moment, because PDFKit can go
 on settling a selection after the release. A selection made from code, such as the current
 find match, gets no bar.
-
-**The highlighter cursor is set in `setCursorFor`, in `FittingPDFView`.** PDFKit calls it
-on every mouse move to choose between the arrow, the text cursor and the pointing hand. A
-cursor set anywhere else lasts until the mouse next moves.
 
 **A right click is acted on once, though PDFKit asks for its menu twice.** It asks from the
 page under the mouse and again from the view. `FittingPDFView` remembers the click it has
