@@ -38,7 +38,7 @@ struct PDFViewer: NSViewRepresentable {
         view.onFirstLayout = { [weak controller] in controller?.viewDidFirstLayout() }
         view.onResize = { [weak controller] top in controller?.viewDidResize(keeping: top) }
         view.onMouseDown = { [weak controller] in controller?.mouseWentDown() }
-        view.onMouseUp = { [weak controller] in controller?.mouseWentUp() }
+        view.onMouseUp = { [weak controller] in controller?.mouseWentUp(at: $0) }
         return view
     }
 
@@ -80,7 +80,7 @@ final class FittingPDFView: PDFView {
     var onFirstLayout: (() -> Void)?
     var onResize: ((PDFDestination?) -> Void)?
     var onMouseDown: (() -> Void)?
-    var onMouseUp: (() -> Void)?
+    var onMouseUp: ((NSPoint) -> Void)?
 
     /// Reports the new size along with the spot that was at the top before the resize.
     ///
@@ -99,10 +99,12 @@ final class FittingPDFView: PDFView {
         super.mouseDown(with: event)
     }
 
-    /// Reports the release after PDFKit has seen it, so the selection is the finished one.
+    /// Reports the release, and where in this view it happened.
+    ///
+    /// PDFKit sees the release first, so the selection is the finished one.
     override func mouseUp(with event: NSEvent) {
         super.mouseUp(with: event)
-        onMouseUp?()
+        onMouseUp?(convert(event.locationInWindow, from: nil))
     }
 
     override func layout() {

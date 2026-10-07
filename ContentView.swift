@@ -202,22 +202,27 @@ struct ContentView: View {
         .animation(ThumbnailSidebar.sizeAnimation, value: thumbnailWidth)
     }
 
-    /// The highlight bar, placed beside the selected text while there is some.
+    /// The highlight bar, placed beside the selected text or the clicked highlight.
     ///
     /// It grows out of its own centre as it appears. The transition is told where that is,
     /// because the view it applies to is the whole overlay rather than the bar alone.
     private var highlightBar: some View {
         GeometryReader { proxy in
             if let anchor = viewer.selectionAnchor {
-                let centre = HighlightBar.centre(for: anchor, in: proxy.size)
+                let hasRemove = viewer.selectedHighlight != nil
+                let centre = HighlightBar.centre(for: anchor, in: proxy.size, hasRemove: hasRemove)
                 let origin = UnitPoint(
                     x: centre.x / max(proxy.size.width, 1),
                     y: centre.y / max(proxy.size.height, 1)
                 )
-                HighlightBar(lastUsed: highlightColour) { colour in
-                    highlightColour = colour
-                    viewer.highlightSelection(in: colour, of: document)
-                }
+                HighlightBar(
+                    lastUsed: highlightColour,
+                    pick: { colour in
+                        highlightColour = colour
+                        viewer.highlight(in: colour, of: document)
+                    },
+                    remove: hasRemove ? { viewer.removeSelectedHighlight(from: document) } : nil
+                )
                     .position(centre)
                     .transition(.scale(scale: 0.85, anchor: origin).combined(with: .opacity))
             }

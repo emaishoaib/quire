@@ -290,6 +290,30 @@ extension QuireDocument {
 struct Highlight {
     let annotation: PDFAnnotation
     let page: PDFPage
+
+    /// Whether the highlight is still on its page, which undo may have taken it off.
+    var isOnPage: Bool { annotation.page === page }
+
+    /// The highlighted lines, each as a rectangle on the page.
+    ///
+    /// These come from the corners the annotation lists, four to a line. A highlight
+    /// that lists none is taken to cover its whole bounds.
+    var lines: [CGRect] {
+        let origin = annotation.bounds.origin
+        let corners = (annotation.quadrilateralPoints ?? []).map(\.pointValue)
+        let lines = stride(from: 0, to: corners.count - 3, by: 4).map { start in
+            let line = corners[start..<start + 4]
+            let xs = line.map(\.x)
+            let ys = line.map(\.y)
+            return CGRect(
+                x: origin.x + (xs.min() ?? 0),
+                y: origin.y + (ys.min() ?? 0),
+                width: (xs.max() ?? 0) - (xs.min() ?? 0),
+                height: (ys.max() ?? 0) - (ys.min() ?? 0)
+            )
+        }
+        return lines.isEmpty ? [annotation.bounds] : lines
+    }
 }
 
 extension QuireDocument {
@@ -332,7 +356,45 @@ extension QuireDocument {
             return Highlight(annotation: annotation, page: page)
         }
         guard !highlights.isEmpty else { return }
-        setHighlights(highlights, shown: true)
+        setHighlights(highlights, shown: true, actionName: "Highlight")
+    }
+
+    func removeHighlight(_ highlight: Highlight) {
+        setHighlights([highlight], shown: false, actionName: "Remove Highlight")
+    }
+
+    func recolourHighlight(_ highlight: Highlight, to colour: HighlightColour) {
+        setColour(colour.colour, of: highlight)
+    }
+
+    /// The highlight under `point` on `page`, taking the one drawn on top where two overlap.
+    ///
+    /// The point is tested against the highlighted lines rather than the annotation's
+    /// bounds. The bounds are one box around every line, and take in the blank space
+    /// beside a first or last line that stops short.
+    static func highlight(at point: CGPoint, on page: PDFPage) -> Highlight? {
+        page.annotations
+            .filter { $0.type == "Highlight" }
+            .map { Highlight(annotation: $0, page: page) }
+            .last { $0.lines.contains { $0.contains(point) } }
+    }
+
+    /// Changes a highlight's colour, and registers the old colour as undo.
+    ///
+    /// The highlight is taken off its page and put back around the change, because that
+    /// is what makes the Read view redraw it.
+    private func setColour(_ colour: NSColor, of highlight: Highlight) {
+        let oldColour = highlight.annotation.color
+        highlight.page.removeAnnotation(highlight.annotation)
+        highlight.annotation.color = colour
+        highlight.page.addAnnotation(highlight.annotation)
+
+        undoManager?.registerUndo(withTarget: self) { document in
+            MainActor.assumeIsolated {
+                document.setColour(oldColour, of: highlight)
+            }
+        }
+        undoManager?.setActionName("Change Highlight Colour")
     }
 
     /// Adds the highlights to their pages or takes them off, and registers the reverse as undo.
@@ -340,7 +402,7 @@ extension QuireDocument {
     /// Registering undo is also what marks the document as having unsaved changes. The
     /// page list is untouched, so `revision` is not bumped: the Read view redraws an
     /// annotated page by itself, and a bump would reload it and clear any search.
-    private func setHighlights(_ highlights: [Highlight], shown: Bool) {
+    private func setHighlights(_ highlights: [Highlight], shown: Bool, actionName: String) {
         for highlight in highlights {
             if shown {
                 highlight.page.addAnnotation(highlight.annotation)
@@ -351,10 +413,10 @@ extension QuireDocument {
 
         undoManager?.registerUndo(withTarget: self) { document in
             MainActor.assumeIsolated {
-                document.setHighlights(highlights, shown: !shown)
+                document.setHighlights(highlights, shown: !shown, actionName: actionName)
             }
         }
-        undoManager?.setActionName("Highlight")
+        undoManager?.setActionName(actionName)
     }
 }
 

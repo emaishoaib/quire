@@ -43,6 +43,9 @@ struct SelectionAnchor {
 ///
 /// It has no Highlight button: clicking a dot is what highlights, in that dot's colour.
 /// The colour used last comes first, so highlighting in it again is the nearest click.
+///
+/// Opened by clicking a highlight rather than by selecting text, the dots recolour that
+/// highlight, and a remove button joins them.
 struct HighlightBar: View {
     /// How the bar arrives and leaves.
     ///
@@ -52,15 +55,20 @@ struct HighlightBar: View {
 
     private static let dot = 18.0
     private static let spacing = 8.0
+    private static let divider = 1.0
     private static let padding = CGSize(width: 10, height: 7)
     private static let gap = 8.0
     private static let margin = 8.0
 
     /// The bar's size, worked out from its parts so it can be placed before it is drawn.
-    static var size: CGSize {
+    ///
+    /// The remove button adds its own width, and that of the line dividing it from the dots.
+    static func size(hasRemove: Bool) -> CGSize {
         let count = Double(HighlightColour.allCases.count)
+        let dots = count * dot + (count - 1) * spacing
+        let remove = hasRemove ? spacing + divider + spacing + dot : 0
         return CGSize(
-            width: count * dot + (count - 1) * spacing + padding.width * 2,
+            width: dots + remove + padding.width * 2,
             height: dot + padding.height * 2
         )
     }
@@ -71,7 +79,8 @@ struct HighlightBar: View {
     /// which includes the first line having scrolled off the top, it sits below the last
     /// line instead. A selection that fills the view leaves room in neither place, and the
     /// bar is then pinned to the top of the view. It is always kept within the view's sides.
-    static func centre(for anchor: SelectionAnchor, in container: CGSize) -> CGPoint {
+    static func centre(for anchor: SelectionAnchor, in container: CGSize, hasRemove: Bool) -> CGPoint {
+        let size = size(hasRemove: hasRemove)
         let above = anchor.firstLine.minY - gap - size.height
         let below = anchor.lastLine.maxY + gap
 
@@ -94,6 +103,7 @@ struct HighlightBar: View {
     }
 
     let pick: (HighlightColour) -> Void
+    let remove: (() -> Void)?
 
     @State private var colours: [HighlightColour]
 
@@ -102,9 +112,10 @@ struct HighlightBar: View {
     /// The order is fixed when the bar appears rather than read as it is drawn. Picking
     /// a colour changes which one was used last, and the dots would otherwise swap places
     /// while the bar is fading out.
-    init(lastUsed: HighlightColour, pick: @escaping (HighlightColour) -> Void) {
+    init(lastUsed: HighlightColour, pick: @escaping (HighlightColour) -> Void, remove: (() -> Void)?) {
         _colours = State(initialValue: [lastUsed] + HighlightColour.allCases.filter { $0 != lastUsed })
         self.pick = pick
+        self.remove = remove
     }
 
     var body: some View {
@@ -123,8 +134,24 @@ struct HighlightBar: View {
                 .help(colour.name)
                 .accessibilityLabel(colour.name)
             }
+
+            if let remove {
+                Rectangle()
+                    .fill(.separator)
+                    .frame(width: Self.divider, height: Self.dot)
+
+                Button(action: remove) {
+                    Image(systemName: "trash")
+                        .font(.system(size: 12, weight: .medium))
+                        .frame(width: Self.dot, height: Self.dot)
+                        .contentShape(.rect)
+                }
+                .buttonStyle(.plain)
+                .help("Remove Highlight")
+                .accessibilityLabel("Remove Highlight")
+            }
         }
-        .frame(width: Self.size.width, height: Self.size.height)
+        .frame(width: Self.size(hasRemove: remove != nil).width, height: Self.size(hasRemove: remove != nil).height)
         .background(.regularMaterial, in: .capsule)
         .overlay(Capsule().strokeBorder(.separator))
         .shadow(color: .black.opacity(0.2), radius: 6, y: 2)

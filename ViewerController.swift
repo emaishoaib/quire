@@ -31,8 +31,13 @@ final class ViewerController {
     private(set) var showsCoverPage = false
     private(set) var attachCount = 0
 
-    /// Where the selected text is, while the highlight bar should be showing beside it.
+    /// Where the highlight bar should sit, while it is showing.
+    ///
+    /// That is beside the selected text, or beside `selectedHighlight` when there is one.
     private(set) var selectionAnchor: SelectionAnchor?
+
+    /// The highlight the bar is showing for, when clicking one is what opened it.
+    private(set) var selectedHighlight: Highlight?
     var matchCase = false
 
     @ObservationIgnored private weak var view: PDFView?
@@ -460,9 +465,22 @@ extension ViewerController {
     }
 
     /// Shows the highlight bar beside whatever the click or drag left selected.
-    func mouseWentUp() {
+    ///
+    /// A click that selected nothing but landed on a highlight shows the bar for that
+    /// highlight instead. `point` is where the mouse was released, in the view's coordinates.
+    func mouseWentUp(at point: NSPoint) {
         followsSelection = true
         placeHighlightBar()
+        guard selectionAnchor == nil,
+              let view,
+              let page = view.page(for: point, nearest: false),
+              let highlight = QuireDocument.highlight(at: view.convert(point, to: page), on: page),
+              let anchor = anchor(of: highlight.lines, on: page, in: view)
+        else { return }
+        withAnimation(HighlightBar.animation) {
+            selectedHighlight = highlight
+            selectionAnchor = anchor
+        }
     }
 
     /// Takes the highlight bar away, and stops it coming back until the next selection.
@@ -471,18 +489,35 @@ extension ViewerController {
         guard selectionAnchor != nil else { return }
         withAnimation(HighlightBar.animation) {
             selectionAnchor = nil
+            selectedHighlight = nil
         }
     }
 
-    /// Highlights the selected text in `colour`, then lets go of the selection.
+    /// Applies `colour` to what the bar is showing for, and puts the bar away.
     ///
-    /// The selection is cleared because it is drawn over the text in its own colour, and
-    /// would hide the highlight that was just made.
-    func highlightSelection(in colour: HighlightColour, of document: QuireDocument) {
+    /// A clicked highlight is recoloured. Selected text is highlighted, and the selection
+    /// is then cleared, because it is drawn over the text in its own colour and would hide
+    /// the highlight that was just made.
+    func highlight(in colour: HighlightColour, of document: QuireDocument) {
+        if let highlight = selectedHighlight {
+            if highlight.isOnPage {
+                document.recolourHighlight(highlight, to: colour)
+            }
+            hideHighlightBar()
+            return
+        }
         guard let view, let selection = view.currentSelection else { return }
         document.highlight(selection, in: colour)
         hideHighlightBar()
         view.clearSelection()
+    }
+
+    /// Removes the highlight the bar is showing for, and puts the bar away.
+    func removeSelectedHighlight(from document: QuireDocument) {
+        if let highlight = selectedHighlight, highlight.isOnPage {
+            document.removeHighlight(highlight)
+        }
+        hideHighlightBar()
     }
 
     private func selectionDidChange() {
@@ -500,11 +535,15 @@ extension ViewerController {
     }
 
     /// Puts the highlight bar beside the selection, or removes it when nothing is selected.
+    ///
+    /// A bar showing for a clicked highlight is left alone while nothing is selected,
+    /// and gives way to the selection once there is one.
     private func placeHighlightBar() {
         let anchor = currentSelectionAnchor
-        guard anchor != nil || selectionAnchor != nil else { return }
+        guard anchor != nil || (selectionAnchor != nil && selectedHighlight == nil) else { return }
         withAnimation(HighlightBar.animation) {
             selectionAnchor = anchor
+            selectedHighlight = nil
         }
     }
 
@@ -517,22 +556,34 @@ extension ViewerController {
               let lines = view.currentSelection?.selectionsByLine(),
               let first = lines.first,
               let last = lines.last,
-              let firstLine = rect(of: first, in: view),
-              let lastLine = rect(of: last, in: view)
+              let firstPage = first.pages.first,
+              let lastPage = last.pages.last,
+              let top = anchor(of: [first.bounds(for: firstPage)], on: firstPage, in: view),
+              let bottom = anchor(of: [last.bounds(for: lastPage)], on: lastPage, in: view)
         else { return nil }
-        return SelectionAnchor(firstLine: firstLine, lastLine: lastLine)
+        return SelectionAnchor(firstLine: top.firstLine, lastLine: bottom.lastLine)
     }
 
-    /// One line of a selection in the view's coordinates, measured from the top-left corner.
+    /// Where the topmost and bottommost of some lines on a page are in the view.
     ///
-    /// AppKit measures from the bottom-left unless a view says otherwise, and SwiftUI,
-    /// which places the bar, measures from the top-left.
-    private func rect(of line: PDFSelection, in view: PDFView) -> CGRect? {
-        guard let page = line.pages.first else { return nil }
-        let rect = view.convert(line.bounds(for: page), from: page)
-        guard !rect.isEmpty else { return nil }
-        return view.isFlipped
-            ? rect
-            : CGRect(x: rect.minX, y: view.bounds.height - rect.maxY, width: rect.width, height: rect.height)
+    /// The lines are compared as they appear in the view rather than in the order given,
+    /// because a rotated page turns the order around.
+    ///
+    /// The result is measured from the view's top-left corner. AppKit measures from the
+    /// bottom-left unless a view says otherwise, and SwiftUI, which places the bar,
+    /// measures from the top-left.
+    private func anchor(of lines: [CGRect], on page: PDFPage, in view: PDFView) -> SelectionAnchor? {
+        let rects = lines
+            .map { view.convert($0, from: page) }
+            .filter { !$0.isEmpty }
+            .map { rect in
+                view.isFlipped
+                    ? rect
+                    : CGRect(x: rect.minX, y: view.bounds.height - rect.maxY, width: rect.width, height: rect.height)
+            }
+        guard let first = rects.min(by: { $0.minY < $1.minY }),
+              let last = rects.max(by: { $0.maxY < $1.maxY })
+        else { return nil }
+        return SelectionAnchor(firstLine: first, lastLine: last)
     }
 }
