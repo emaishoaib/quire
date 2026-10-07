@@ -19,13 +19,31 @@ enum HighlightColour: String, CaseIterable, Identifiable {
 
     var name: String { rawValue.capitalized }
 
-    var colour: NSColor {
+    /// The colour of this choice's dot in the highlight bar.
+    ///
+    /// The dots are full strength so they stand apart from one another at their small
+    /// size, and are deliberately stronger than the highlight each one makes.
+    var dot: NSColor {
         switch self {
         case .yellow: .systemYellow
         case .green: .systemGreen
         case .blue: .systemBlue
         case .pink: .systemPink
         case .purple: .systemPurple
+        }
+    }
+
+    /// The colour the text is highlighted in, a paler form of the dot's.
+    ///
+    /// A highlight sits behind whole lines of text, where the dot's full strength reads
+    /// as heavy and pulls the eye away from the words.
+    var colour: NSColor {
+        switch self {
+        case .yellow: NSColor(srgbRed: 1, green: 0.941, blue: 0.478, alpha: 1)
+        case .green: NSColor(srgbRed: 0.659, green: 0.902, blue: 0.631, alpha: 1)
+        case .blue: NSColor(srgbRed: 0.647, green: 0.824, blue: 1, alpha: 1)
+        case .pink: NSColor(srgbRed: 1, green: 0.69, blue: 0.784, alpha: 1)
+        case .purple: NSColor(srgbRed: 0.851, green: 0.722, blue: 0.961, alpha: 1)
         }
     }
 }
@@ -125,7 +143,7 @@ struct HighlightBar: View {
                     pick(colour)
                 } label: {
                     Circle()
-                        .fill(Color(nsColor: colour.colour))
+                        .fill(Color(nsColor: colour.dot))
                         .overlay(Circle().strokeBorder(.black.opacity(0.15)))
                         .frame(width: Self.dot, height: Self.dot)
                         .contentShape(.circle)
