@@ -21,7 +21,6 @@ struct ReadRail: View {
     let viewer: ViewerController
     let ocr: OCRRunner
     let document: QuireDocument
-    let rename: () -> Void
     let find: () -> Void
     @Binding var mode: Mode
     @Binding var showsThumbnails: Bool
@@ -67,8 +66,6 @@ struct ReadRail: View {
                 ocr.run(on: document)
             }
             .disabled(document.pageCount == 0 || ocr.isRunning)
-
-            button("Rename to match the other PDFs in this folder", systemImage: "pencil.line", action: rename)
 
             Spacer(minLength: 20)
 

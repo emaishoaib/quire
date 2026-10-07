@@ -32,11 +32,6 @@ struct ContentView: View {
     @State private var findRequests = 0
     @State private var mode: Mode = .read
     @State private var selection = Set<Int>()
-    @State private var namePattern: NamePattern?
-    @State private var showsRename = false
-    @State private var unreadableFolder: URL?
-    @State private var explainsFolderAccess = false
-    @State private var folderNotice: FolderNotice?
     @AppStorage("showsThumbnails") private var showsThumbnails = true
     @AppStorage("thumbnailWidth") private var thumbnailWidth = 120.0
     @AppStorage("highlightColour") private var highlightColour = HighlightColour.yellow
@@ -89,7 +84,7 @@ struct ContentView: View {
                         }
                     }
                     .overlay(alignment: .topTrailing) {
-                        panels
+                        findPanel
                     }
 
                     Divider()
@@ -98,7 +93,6 @@ struct ContentView: View {
                         viewer: viewer,
                         ocr: ocr,
                         document: document,
-                        rename: startRename,
                         find: openFind,
                         mode: $mode,
                         showsThumbnails: $showsThumbnails,
@@ -138,17 +132,6 @@ struct ContentView: View {
             Button("OK") {}
         } message: {
             Text(ocr.summary ?? "")
-        }
-        .alert("Quire Can't Read This Folder", isPresented: $explainsFolderAccess) {
-            Button("Open Privacy Settings", action: openFilesAndFolders)
-            Button("Cancel", role: .cancel) {}
-        } message: {
-            Text(folderAccessMessage)
-        }
-        .alert(folderNotice?.title ?? "", isPresented: showingFolderNotice) {
-            Button("OK") {}
-        } message: {
-            Text(folderNotice?.message ?? "")
         }
     }
 
@@ -223,19 +206,14 @@ struct ContentView: View {
         }
     }
 
-    /// The Find and rename panels, stacked in the top-right corner of the document.
+    /// The Find panel, in the top-right corner of the document while reading.
     ///
-    /// They share one corner so that with both open, the rename panel sits below Find
-    /// rather than on top of it. Find belongs to reading, while renaming works from
-    /// Pages too.
-    private var panels: some View {
-        VStack(alignment: .trailing, spacing: 12) {
+    /// The padding is on a container around the panel rather than on the panel, so the
+    /// panel grows out of its own corner as it appears, not out of the padding's.
+    private var findPanel: some View {
+        VStack {
             if mode == .read && showsFind {
                 FindBar(viewer: viewer, pdf: document.pdf, focusRequests: findRequests, isPresented: $showsFind)
-                    .transition(.scale(scale: 0.85, anchor: .topTrailing).combined(with: .opacity))
-            }
-            if showsRename, let namePattern {
-                RenamePanel(document: document, pattern: namePattern, isPresented: $showsRename)
                     .transition(.scale(scale: 0.85, anchor: .topTrailing).combined(with: .opacity))
             }
         }
@@ -247,66 +225,6 @@ struct ContentView: View {
             get: { ocr.summary != nil },
             set: { if !$0 { ocr.summary = nil } }
         )
-    }
-
-    /// What rename found when the folder had nothing for it.
-    private struct FolderNotice {
-        let title: String
-        let message: String
-    }
-
-    private var showingFolderNotice: Binding<Bool> {
-        Binding(
-            get: { folderNotice != nil },
-            set: { if !$0 { folderNotice = nil } }
-        )
-    }
-
-    /// Reads the folder for a naming pattern, and opens the rename panel if there is one.
-    ///
-    /// The folder is read on the click rather than when the window opens, because reading
-    /// a folder such as Documents or Downloads is what makes macOS ask whether Quire may.
-    /// Reading it at launch asked that question of everyone who opened a PDF, before
-    /// they had used anything that needs the answer.
-    private func startRename() {
-        do {
-            namePattern = try document.namePattern()
-        } catch {
-            explainUnreadableFolder()
-            return
-        }
-        guard namePattern != nil else {
-            folderNotice = FolderNotice(
-                title: "Rename to Match This Folder",
-                message: "The other PDFs in this folder don't share a naming pattern to rename to."
-            )
-            return
-        }
-        withAnimation(FindBar.animation) {
-            showsRename = true
-        }
-    }
-
-    private func explainUnreadableFolder() {
-        unreadableFolder = document.fileURL?.deletingLastPathComponent()
-        explainsFolderAccess = true
-    }
-
-    private var folderAccessMessage: String {
-        let name = unreadableFolder.map { FileManager.default.displayName(atPath: $0.path) } ?? "this folder"
-        return "macOS isn't letting Quire look inside \u{201C}\(name)\u{201D}, so it can't find the other PDFs "
-            + "there to rename to.\n\nAllow Quire under Files and Folders in Privacy & Security, "
-            + "then click the button again."
-    }
-
-    /// Opens the Files and Folders page of Privacy & Security in System Settings.
-    ///
-    /// The folder is read again on the next click, so access granted there takes effect
-    /// without a restart.
-    private func openFilesAndFolders() {
-        if let url = URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_FilesAndFolders") {
-            NSWorkspace.shared.open(url)
-        }
     }
 }
 
