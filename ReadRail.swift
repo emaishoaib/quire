@@ -26,7 +26,7 @@ struct ReadRail: View {
     @Binding var showsThumbnails: Bool
     @Binding var sidebarTab: SidebarTab
 
-    private let width = 62.0
+    static let width = 62.0
 
     var body: some View {
         VStack(spacing: 8) {
@@ -72,10 +72,13 @@ struct ReadRail: View {
                     viewer.isHighlighting ? "Stop Highlighting" : "Highlight: drag across text to highlight it",
                     systemImage: "highlighter"
                 ) {
-                    viewer.setHighlighting(!viewer.isHighlighting)
+                    withAnimation(HighlightPalette.animation) {
+                        viewer.setHighlighting(!viewer.isHighlighting)
+                    }
                 }
                 .foregroundStyle(viewer.isHighlighting ? AnyShapeStyle(.tint) : AnyShapeStyle(.primary))
                 .background(.tint.opacity(viewer.isHighlighting ? 0.18 : 0), in: .rect(cornerRadius: 7))
+                .anchorPreference(key: HighlightButtonKey.self, value: .bounds) { $0 }
                 .transition(.opacity)
             }
 
@@ -126,7 +129,7 @@ struct ReadRail: View {
         }
         .padding(.vertical, 14)
         .padding(.horizontal, 6)
-        .frame(width: width)
+        .frame(width: Self.width)
         .background(.bar)
     }
 

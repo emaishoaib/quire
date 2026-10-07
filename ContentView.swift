@@ -101,6 +101,9 @@ struct ContentView: View {
                 }
                 .animation(ThumbnailSidebar.animation, value: showsThumbnails)
                 .animation(ThumbnailSidebar.animation, value: sidebarTab)
+                .overlayPreferenceValue(HighlightButtonKey.self) { button in
+                    highlightPalette(beside: button)
+                }
             }
         }
         .frame(minWidth: 640, minHeight: 480)
@@ -194,6 +197,32 @@ struct ContentView: View {
                 )
                     .position(centre)
                     .transition(.scale(scale: 0.85, anchor: origin).combined(with: .opacity))
+            }
+        }
+    }
+
+    /// The colour palette, standing to the left of the rail while highlight mode is on.
+    ///
+    /// It is level with the rail's highlight button, and grows out of that button as it
+    /// appears. It is drawn here rather than in the rail because it reaches out over the
+    /// document, which the rail's own bounds do not cover. Where the window is too short
+    /// to centre it on the button, it is kept within the window.
+    private func highlightPalette(beside button: Anchor<CGRect>?) -> some View {
+        GeometryReader { proxy in
+            if viewer.isHighlighting, let button {
+                let size = HighlightPalette.size
+                let source = proxy[button]
+                let centre = CGPoint(
+                    x: proxy.size.width - ReadRail.width - 9 - size.width / 2,
+                    y: min(max(source.midY, size.height / 2 + 8), proxy.size.height - size.height / 2 - 8)
+                )
+                let origin = UnitPoint(
+                    x: source.midX / max(proxy.size.width, 1),
+                    y: source.midY / max(proxy.size.height, 1)
+                )
+                HighlightPalette(selected: $highlightColour)
+                    .position(centre)
+                    .transition(.scale(scale: 0.3, anchor: origin).combined(with: .opacity))
             }
         }
     }
