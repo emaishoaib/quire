@@ -42,6 +42,7 @@ struct SelectionAnchor {
 /// The row of colour dots that floats beside selected text.
 ///
 /// It has no Highlight button: clicking a dot is what highlights, in that dot's colour.
+/// The colour used last comes first, so highlighting in it again is the nearest click.
 struct HighlightBar: View {
     /// How the bar arrives and leaves.
     ///
@@ -94,9 +95,21 @@ struct HighlightBar: View {
 
     let pick: (HighlightColour) -> Void
 
+    @State private var colours: [HighlightColour]
+
+    /// Puts the colour used last at the front, with the rest after it in their usual order.
+    ///
+    /// The order is fixed when the bar appears rather than read as it is drawn. Picking
+    /// a colour changes which one was used last, and the dots would otherwise swap places
+    /// while the bar is fading out.
+    init(lastUsed: HighlightColour, pick: @escaping (HighlightColour) -> Void) {
+        _colours = State(initialValue: [lastUsed] + HighlightColour.allCases.filter { $0 != lastUsed })
+        self.pick = pick
+    }
+
     var body: some View {
         HStack(spacing: Self.spacing) {
-            ForEach(HighlightColour.allCases) { colour in
+            ForEach(colours) { colour in
                 Button {
                     pick(colour)
                 } label: {

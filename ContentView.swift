@@ -43,6 +43,7 @@ struct ContentView: View {
     @State private var folderNotice: FolderNotice?
     @AppStorage("showsThumbnails") private var showsThumbnails = true
     @AppStorage("thumbnailWidth") private var thumbnailWidth = 120.0
+    @AppStorage("highlightColour") private var highlightColour = HighlightColour.yellow
     @State private var sidebarTab: SidebarTab
 
     /// Opens on the table of contents when the PDF has one, and on thumbnails otherwise.
@@ -213,7 +214,8 @@ struct ContentView: View {
                     x: centre.x / max(proxy.size.width, 1),
                     y: centre.y / max(proxy.size.height, 1)
                 )
-                HighlightBar { colour in
+                HighlightBar(lastUsed: highlightColour) { colour in
+                    highlightColour = colour
                     viewer.highlightSelection(in: colour, of: document)
                 }
                     .position(centre)
