@@ -14,8 +14,8 @@ opens a tab listing recently opened files, which is also what you get when Quire
 launched with nothing to read.
 
 **Read.** Continuous scrolling, single or two-page layout, and zoom by pinch or from the
-rail down the right edge, which also holds the page number, text recognition, renaming,
-merging, find, the fit modes and the switch between reading and organising. A thumbnail
+rail down the right edge, which also holds the page number, text recognition, find, the
+fit modes and the switch between reading and organising. A thumbnail
 sidebar sized by its own slider, where pages can be dragged into a new order, hovering a
 page reveals rotate and delete, and hovering between pages reveals a plus that inserts a
 PDF or an image there. A button on the rail swaps the thumbnails for the PDF's table of contents, where
@@ -46,28 +46,6 @@ in the grid. An image becomes a page of its own. Every edit undoes with Cmd-Z.
 text layer over the scan. The page looks identical, but the text is now selectable and
 searchable, in Quire and in every other PDF reader. Pages that already have text are left
 alone. The whole run undoes as one action.
-
-**Rename.** The rail's pencil works out how the other PDFs in the folder are named, and
-suggests a name for this one in the same pattern. The date, the period and the amount are
-read out of the document, each chosen by the label printed just before it. The free text
-is taken from the names already in the folder, by which one's words the document contains.
-The suggestion lands in a field you can edit before renaming, and anything that could not
-be read is left as a placeholder to fill in. A scan needs its text recognised first. When
-the folder has no pattern, clicking the button says so.
-
-**Merge.** The rail's merge button gathers the PDFs in the same folder whose names are this
-file's name with something added, so `Lease.pdf` gathers `Lease 2.pdf`, `Lease-signed.pdf`
-and `Lease (1).pdf`, but not `Leasehold.pdf`. After you confirm the list, their pages are
-added to the end in Finder's order, the PDF is saved, and the gathered files go to the
-Trash. When there is nothing to gather, clicking the button says so.
-
-**Folder access.** Renaming and merging both read the folder the PDF is in, not only the
-PDF itself. Opening a PDF lets Quire read that one file, and macOS protects folders such
-as Documents, Desktop, Downloads and iCloud Drive separately. Quire only reads the folder
-when rename or merge is clicked, so that is when macOS asks, not when the PDF opens. When
-Quire is not allowed into the folder, the button explains this, with a button that opens
-Files and Folders in Privacy & Security. Once Quire is allowed in there, clicking again
-works, without a restart.
 
 ## Requirements
 
@@ -115,10 +93,6 @@ arrived from elsewhere. **Tell whoever you send it to: right-click Quire and cho
 then click Open in the dialog.** Double-clicking first gives a message with no way
 forward. After that one time, it launches normally on that machine.
 
-Renaming and merging on that machine also need Quire allowed into the folders the PDFs are
-in, under Files and Folders in Privacy & Security. The buttons explain this when it is
-missing.
-
 Building from source avoids that entirely, since locally built apps are not quarantined.
 
 Paying for an Apple Developer Program membership would remove that step, by allowing a
@@ -132,25 +106,16 @@ file. Quire uses `NSDocument` with `autosavesInPlace` false, so edits stay in me
 you save, and closing or quitting with unsaved work prompts. The views are still SwiftUI,
 hosted in an AppKit window.
 
-**The app is not sandboxed.** A sandboxed app can only touch the files the user picked, so
-Quire could open `Lease.pdf` but never see `Lease 2.pdf` beside it, let alone move it to the
-Trash. Merging needs the whole folder. Asking for folder access through an Open panel would
-keep the sandbox, but the app is signed ad-hoc and never goes near the App Store, so the
-sandbox was protecting little.
-
-**Merged files are trashed only after the save succeeds.** Trashing first would leave their
-pages existing only in memory until the save, and a failed save would lose them from disk.
+**The app is not sandboxed.** The sandbox was turned off for a feature that has since been
+removed, which merged the other PDFs in a file's folder into it. A sandboxed app can only
+touch the files the user picked, and that feature needed the whole folder. Nothing needs
+that now, and the sandbox has not been turned back on. The app is signed ad-hoc and never
+goes near the App Store, so the sandbox was protecting little.
 
 **An inserted image keeps its own size.** Its page is the size the file states for print,
 which is its pixels divided by its dots per inch, as in Preview. A photo can therefore land
 as a page much larger than the ones around it. A photo taken upright arrives upright,
 because the camera's note about which way is up becomes the page's rotation.
-
-**Renaming uses no language model.** An earlier version asked Apple's on-device model to
-read the document. `NameReader.swift` replaced it with plain code, so renaming works on any
-Mac, the same document always gets the same suggestion, and there is no question of where
-a document's text goes. The cost is a sender the folder has not seen before, which is left
-as a placeholder to type once. After that, the folder's names include it.
 
 **The app is started by hand in `AppDelegate.swift`.** `@main` on an AppKit delegate class
 expects a MainMenu nib to create the delegate, and this app has no nibs. Without the

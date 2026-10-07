@@ -67,6 +67,18 @@ struct ReadRail: View {
             }
             .disabled(document.pageCount == 0 || ocr.isRunning)
 
+            if mode == .read {
+                button(
+                    viewer.isHighlighting ? "Stop Highlighting" : "Highlight: drag across text to highlight it",
+                    systemImage: "highlighter"
+                ) {
+                    viewer.setHighlighting(!viewer.isHighlighting)
+                }
+                .foregroundStyle(viewer.isHighlighting ? AnyShapeStyle(.tint) : AnyShapeStyle(.primary))
+                .background(.tint.opacity(viewer.isHighlighting ? 0.18 : 0), in: .rect(cornerRadius: 7))
+                .transition(.opacity)
+            }
+
             Spacer(minLength: 20)
 
             if mode == .read {

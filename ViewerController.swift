@@ -31,6 +31,9 @@ final class ViewerController {
     private(set) var showsCoverPage = false
     private(set) var attachCount = 0
 
+    /// True while highlight mode is on, in which dragging across text highlights it.
+    private(set) var isHighlighting = false
+
     /// Where the highlight bar should sit, while it is showing.
     ///
     /// That is beside the selected text, or beside `selectedHighlight` when there is one.
@@ -464,11 +467,25 @@ extension ViewerController {
         hideHighlightBar()
     }
 
+    /// Turns highlight mode on or off.
+    ///
+    /// The highlight bar is put away on the way in, and stays away while the mode is on,
+    /// because the mode is the other way of doing what the bar does.
+    func setHighlighting(_ highlighting: Bool) {
+        isHighlighting = highlighting
+        if highlighting {
+            hideHighlightBar()
+        }
+    }
+
     /// Shows the highlight bar beside whatever the click or drag left selected.
     ///
     /// A click that selected nothing but landed on a highlight shows the bar for that
     /// highlight instead. `point` is where the mouse was released, in the view's coordinates.
+    ///
+    /// Nothing is shown in highlight mode.
     func mouseWentUp(at point: NSPoint) {
+        guard !isHighlighting else { return }
         followsSelection = true
         placeHighlightBar()
         guard selectionAnchor == nil,
