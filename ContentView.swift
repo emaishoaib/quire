@@ -34,12 +34,8 @@ struct ContentView: View {
     @State private var selection = Set<Int>()
     @State private var namePattern: NamePattern?
     @State private var showsRename = false
-    @State private var mergeCandidates: [URL] = []
     @State private var unreadableFolder: URL?
     @State private var explainsFolderAccess = false
-    @State private var confirmsMerge = false
-    @State private var mergeSummary: String?
-    @State private var isMerging = false
     @State private var folderNotice: FolderNotice?
     @AppStorage("showsThumbnails") private var showsThumbnails = true
     @AppStorage("thumbnailWidth") private var thumbnailWidth = 120.0
@@ -103,9 +99,7 @@ struct ContentView: View {
                         ocr: ocr,
                         document: document,
                         rename: startRename,
-                        merge: startMerge,
                         find: openFind,
-                        isMerging: isMerging,
                         mode: $mode,
                         showsThumbnails: $showsThumbnails,
                         sidebarTab: $sidebarTab
@@ -144,17 +138,6 @@ struct ContentView: View {
             Button("OK") {}
         } message: {
             Text(ocr.summary ?? "")
-        }
-        .alert("Merge Similarly Named PDFs", isPresented: $confirmsMerge) {
-            Button("Merge and Move to Trash", role: .destructive) { merge() }
-            Button("Cancel", role: .cancel) {}
-        } message: {
-            Text(mergeConfirmation)
-        }
-        .alert("Merge Similarly Named PDFs", isPresented: showingMergeSummary) {
-            Button("OK") {}
-        } message: {
-            Text(mergeSummary ?? "")
         }
         .alert("Quire Can't Read This Folder", isPresented: $explainsFolderAccess) {
             Button("Open Privacy Settings", action: openFilesAndFolders)
@@ -266,14 +249,7 @@ struct ContentView: View {
         )
     }
 
-    private var showingMergeSummary: Binding<Bool> {
-        Binding(
-            get: { mergeSummary != nil },
-            set: { if !$0 { mergeSummary = nil } }
-        )
-    }
-
-    /// What rename or merge found when the folder had nothing for it.
+    /// What rename found when the folder had nothing for it.
     private struct FolderNotice {
         let title: String
         let message: String
@@ -311,28 +287,6 @@ struct ContentView: View {
         }
     }
 
-    /// Reads the folder for similarly named PDFs, and asks to merge them if there are any.
-    ///
-    /// The folder is read on the click for the same reason as in `startRename`.
-    private func startMerge() {
-        do {
-            mergeCandidates = try document.similarlyNamedFiles()
-        } catch {
-            explainUnreadableFolder()
-            return
-        }
-        guard !mergeCandidates.isEmpty else {
-            let name = document.fileURL?.deletingPathExtension().lastPathComponent ?? "this PDF"
-            folderNotice = FolderNotice(
-                title: "Merge Similarly Named PDFs",
-                message: "There are no PDFs in this folder named \u{201C}\(name)\u{201D} with something added, "
-                    + "such as \u{201C}\(name) 2\u{201D}."
-            )
-            return
-        }
-        confirmsMerge = true
-    }
-
     private func explainUnreadableFolder() {
         unreadableFolder = document.fileURL?.deletingLastPathComponent()
         explainsFolderAccess = true
@@ -341,7 +295,7 @@ struct ContentView: View {
     private var folderAccessMessage: String {
         let name = unreadableFolder.map { FileManager.default.displayName(atPath: $0.path) } ?? "this folder"
         return "macOS isn't letting Quire look inside \u{201C}\(name)\u{201D}, so it can't find the other PDFs "
-            + "there to rename to or merge.\n\nAllow Quire under Files and Folders in Privacy & Security, "
+            + "there to rename to.\n\nAllow Quire under Files and Folders in Privacy & Security, "
             + "then click the button again."
     }
 
@@ -352,42 +306,6 @@ struct ContentView: View {
     private func openFilesAndFolders() {
         if let url = URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_FilesAndFolders") {
             NSWorkspace.shared.open(url)
-        }
-    }
-
-    private var mergeConfirmation: String {
-        let names = mergeCandidates.map(\.lastPathComponent).joined(separator: "\n")
-        return "The pages of these files will be added to the end of this PDF:\n\n\(names)\n\n"
-            + "This PDF will then be saved, and the files moved to the Trash."
-    }
-
-    /// Merges the files listed in the confirmation, and reports how it went.
-    ///
-    /// The button is disabled until it finishes, because the files stay in the folder
-    /// until the save succeeds, and a second click would offer to merge them again.
-    private func merge() {
-        let files = mergeCandidates
-        let pagesBefore = document.pageCount
-        mergeCandidates = []
-        isMerging = true
-
-        Task {
-            do {
-                let untrashed = try await document.mergeAndTrash(files)
-                let added = document.pageCount - pagesBefore
-                var message = "Added \(added) page\(added == 1 ? "" : "s") from \(files.count) "
-                    + "file\(files.count == 1 ? "" : "s") and saved this PDF."
-                if untrashed.isEmpty {
-                    message += " The files were moved to the Trash."
-                } else {
-                    let names = untrashed.map(\.lastPathComponent).joined(separator: "\n")
-                    message += " These could not be moved to the Trash:\n\n\(names)"
-                }
-                mergeSummary = message
-            } catch {
-                mergeSummary = "The files were left where they are. \(error.localizedDescription)"
-            }
-            isMerging = false
         }
     }
 }

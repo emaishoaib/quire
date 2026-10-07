@@ -22,9 +22,7 @@ struct ReadRail: View {
     let ocr: OCRRunner
     let document: QuireDocument
     let rename: () -> Void
-    let merge: () -> Void
     let find: () -> Void
-    let isMerging: Bool
     @Binding var mode: Mode
     @Binding var showsThumbnails: Bool
     @Binding var sidebarTab: SidebarTab
@@ -71,9 +69,6 @@ struct ReadRail: View {
             .disabled(document.pageCount == 0 || ocr.isRunning)
 
             button("Rename to match the other PDFs in this folder", systemImage: "pencil.line", action: rename)
-
-            button("Merge similarly named PDFs into this one", systemImage: "arrow.triangle.merge", action: merge)
-                .disabled(isMerging)
 
             Spacer(minLength: 20)
 

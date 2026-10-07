@@ -422,33 +422,6 @@ extension QuireDocument {
 
 extension QuireDocument {
 
-    /// What may follow this file's name in the name of a file that belongs with it.
-    ///
-    /// Requiring one of these keeps `Lease.pdf` from claiming `Leasehold.pdf`, whose name
-    /// only happens to start the same way.
-    private static let nameSeparators: Set<Character> = [" ", "-", "_", ".", "("]
-
-    /// The PDFs in this file's folder whose names are its name with something added.
-    ///
-    /// For `Lease.pdf` that is `Lease 2.pdf`, `Lease-signed.pdf`, `Lease (1).pdf` and so
-    /// on, sorted the way Finder sorts them, so `Lease 2` comes before `Lease 10`. Case is
-    /// ignored, as it is by the Mac's file system. A document that has never been saved
-    /// has no folder, and finds nothing. Throws when the folder cannot be read.
-    func similarlyNamedFiles() throws -> [URL] {
-        guard let fileURL else { return [] }
-        let base = fileURL.deletingPathExtension().lastPathComponent
-
-        return try pdfsInFolder()
-            .filter { url in
-                let name = url.deletingPathExtension().lastPathComponent
-                guard let match = name.range(of: base, options: [.anchored, .caseInsensitive]),
-                      match.upperBound < name.endIndex
-                else { return false }
-                return Self.nameSeparators.contains(name[match.upperBound])
-            }
-            .sorted { $0.lastPathComponent.localizedStandardCompare($1.lastPathComponent) == .orderedAscending }
-    }
-
     /// The naming pattern the other PDFs in this file's folder share, if they share one.
     /// Throws when the folder cannot be read.
     func namePattern() throws -> NamePattern? {
@@ -472,32 +445,6 @@ extension QuireDocument {
             options: .skipsHiddenFiles
         )
         return contents.filter { $0.pathExtension.lowercased() == "pdf" }
-    }
-
-    /// Adds every page of the PDFs at `files` to the end, saves, and moves them to the Trash.
-    ///
-    /// The pages arrive as one edit, in the order given, and nothing changes if any of the
-    /// files cannot be read. The files are only trashed once the save has succeeded, so a
-    /// failed save never leaves their pages existing nowhere on disk.
-    ///
-    /// Returns the files that could not be moved to the Trash.
-    func mergeAndTrash(_ files: [URL]) async throws -> [URL] {
-        guard let fileURL, let fileType else {
-            throw CocoaError(.fileNoSuchFile)
-        }
-        let merged = try files.flatMap { try Self.copiedPages(of: $0) }
-        applyPages(pageStates + merged, actionName: "Merge Similarly Named Files")
-        try await save(to: fileURL, ofType: fileType, for: .saveOperation)
-
-        var untrashed: [URL] = []
-        for file in files {
-            do {
-                try FileManager.default.trashItem(at: file, resultingItemURL: nil)
-            } catch {
-                untrashed.append(file)
-            }
-        }
-        return untrashed
     }
 
     /// Renames this document's file within its folder, keeping it a PDF.
