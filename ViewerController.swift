@@ -58,6 +58,9 @@ final class ViewerController {
     @ObservationIgnored private var pulse: Task<Void, Never>?
     @ObservationIgnored private var snapshot: Snapshot?
 
+    /// Where the PDF was scrolled to when it was last closed, until the view has gone there.
+    @ObservationIgnored private var openingPosition: ReadingPosition?
+
     /// True from a document opening until the user first changes the zoom.
     ///
     /// The window is resized several times while it opens, first at its minimum size, so
@@ -85,6 +88,10 @@ final class ViewerController {
         let scale: CGFloat
         let autoScales: Bool
         let destination: PDFDestination?
+    }
+
+    init(openingPosition: ReadingPosition? = nil) {
+        self.openingPosition = openingPosition
     }
 
     /// The live view, for the thumbnail sidebar to hand itself to.
@@ -237,8 +244,9 @@ final class ViewerController {
 
     /// Sets the zoom and scroll position, once the view has a size to fit against.
     ///
-    /// A fresh document is fitted to the window's height. A view rebuilt after visiting
-    /// Pages goes back to where the old one was, unless a page was picked there.
+    /// A fresh document is fitted to the window's height, and scrolled to where it was
+    /// last closed if it has been open before. A view rebuilt after visiting Pages goes
+    /// back to where the old one was, unless a page was picked there.
     func viewDidFirstLayout() {
         guard let view else { return }
         if let snapshot {
@@ -252,8 +260,10 @@ final class ViewerController {
                 view.go(to: destination)
             }
         } else {
+            let opening = view.document.flatMap { openingPosition?.destination(in: $0) }
+            openingPosition = nil
             keepsHeightFitted = true
-            applyHeightFit(keeping: view.currentDestination)
+            applyHeightFit(keeping: opening ?? view.currentDestination)
         }
         goToPendingPage()
     }

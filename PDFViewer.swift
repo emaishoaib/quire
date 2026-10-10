@@ -11,7 +11,8 @@ import SwiftUI
 /// Shows a PDF using PDFKit's own view, which brings scrolling, zooming,
 /// page breaks and text selection with it.
 ///
-/// A document opens with its first page fitted to the window's height.
+/// A document opens with its first page fitted to the window's height, or where it was
+/// last closed if it has been open before.
 struct PDFViewer: NSViewRepresentable {
     let pdf: PDFDocument
     let revision: Int

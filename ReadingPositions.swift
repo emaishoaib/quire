@@ -15,6 +15,9 @@ struct ReadingPosition {
     let page: Int
     let x: Double
     let y: Double
+}
+
+extension ReadingPosition {
 
     /// Reads the position out of a place PDFKit reports the view as showing.
     ///
@@ -22,9 +25,16 @@ struct ReadingPosition {
     /// for a page that has since been deleted.
     init?(_ destination: PDFDestination) {
         guard let page = destination.page, let document = page.document else { return nil }
-        self.page = document.index(for: page)
-        x = destination.point.x
-        y = destination.point.y
+        self.init(page: document.index(for: page), x: destination.point.x, y: destination.point.y)
+    }
+
+    /// The same spot as a place PDFKit can scroll to.
+    ///
+    /// There is none when the PDF no longer has that many pages, which is the case for
+    /// a file that has been replaced by a shorter one since.
+    func destination(in document: PDFDocument) -> PDFDestination? {
+        guard let page = document.page(at: page) else { return nil }
+        return PDFDestination(page: page, at: CGPoint(x: x, y: y))
     }
 }
 
@@ -43,6 +53,14 @@ enum ReadingPositions {
             "y": position.y,
         ]
         UserDefaults.standard.set(positions, forKey: key)
+    }
+
+    static func position(for url: URL) -> ReadingPosition? {
+        let positions = UserDefaults.standard.dictionary(forKey: key)
+        guard let saved = positions?[name(of: url)] as? [String: Double],
+              let page = saved["page"], let x = saved["x"], let y = saved["y"]
+        else { return nil }
+        return ReadingPosition(page: Int(page), x: x, y: y)
     }
 
     /// The path a PDF's position is filed under, the same whichever link it was opened through.

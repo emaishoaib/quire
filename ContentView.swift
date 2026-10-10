@@ -26,7 +26,7 @@ enum Mode: String, CaseIterable, Identifiable {
 struct ContentView: View {
     @Bindable var document: QuireDocument
 
-    @State private var viewer = ViewerController()
+    @State private var viewer: ViewerController
     @State private var ocr = OCRRunner()
     @State private var showsFind = false
     @State private var findRequests = 0
@@ -42,8 +42,14 @@ struct ContentView: View {
     /// The tab is chosen here rather than when the view appears, so the window opens
     /// on it instead of animating over to it. It belongs to this window rather than
     /// being a setting, because each PDF gets its own starting tab.
+    ///
+    /// The viewer is made here too, so it knows where the PDF was last closed before
+    /// the view first lays out, which is when it scrolls there.
     init(document: QuireDocument) {
         _document = Bindable(document)
+        _viewer = State(initialValue: ViewerController(
+            openingPosition: document.fileURL.flatMap(ReadingPositions.position)
+        ))
         _sidebarTab = State(initialValue: SidebarTab.opening(document.pdf))
     }
 
