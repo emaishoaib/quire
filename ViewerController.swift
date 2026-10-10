@@ -90,6 +90,15 @@ final class ViewerController {
     /// The live view, for the thumbnail sidebar to hand itself to.
     var attachedView: PDFView? { view }
 
+    /// Where the PDF is scrolled to, for remembering once it is closed.
+    ///
+    /// A view torn down for Pages leaves its position in the snapshot, and the view that
+    /// replaces it has not scrolled there until its first layout, so the snapshot is
+    /// believed over the view for as long as there is one.
+    var position: ReadingPosition? {
+        (snapshot?.destination ?? view?.currentDestination).flatMap(ReadingPosition.init)
+    }
+
     /// Takes hold of a newly created view and restores what the old one was showing.
     ///
     /// Switching between Read and Pages destroys the view. The page layout and search

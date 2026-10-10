@@ -122,6 +122,9 @@ struct ContentView: View {
             .keyboardShortcut("f", modifiers: .command)
             .opacity(0)
         }
+        .onAppear {
+            document.viewer = viewer
+        }
         .onChange(of: viewer.matches.isEmpty) { _, isEmpty in
             if !isEmpty {
                 withAnimation(FindBar.animation) {

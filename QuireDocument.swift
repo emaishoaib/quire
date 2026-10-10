@@ -33,6 +33,11 @@ final class QuireDocument: NSDocument {
     /// keeps its identity across a reorder, which is what lets a move animate as a move.
     private(set) var pages: [PDFPage] = []
 
+    /// The controller of the view showing this PDF, which knows where it is scrolled to.
+    ///
+    /// Weak because the controller belongs to the tab's contents, and goes with them.
+    @ObservationIgnored weak var viewer: ViewerController?
+
     nonisolated override class var autosavesInPlace: Bool { false }
 
     /// Opens this document as a tab of Quire's window, rather than in a window of its own.
@@ -49,9 +54,20 @@ final class QuireDocument: NSDocument {
     ///
     /// The tab goes first, which hands the window to another tab. AppKit closes the
     /// windows of a closing document, and would otherwise close the one every tab shares.
+    ///
+    /// The position is saved before either, while the tab still has a view to ask.
     override func close() {
+        savePosition()
         Workspace.shared.remove(self)
         super.close()
+    }
+
+    /// Remembers where this PDF is scrolled to, for the next time it is opened.
+    ///
+    /// A PDF that has never been saved has no file to remember it against.
+    func savePosition() {
+        guard let fileURL, let position = viewer?.position else { return }
+        ReadingPositions.save(position, for: fileURL)
     }
 
     /// Asks about unsaved changes with this document's tab showing.

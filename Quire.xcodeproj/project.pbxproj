@@ -11,6 +11,7 @@
 		2D693FCE30633E2F0016D532 /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2D693FD030633E2F0016D532 /* AppDelegate.swift */; };
 		2D693FCF30633E2F0016D532 /* MainMenu.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2D693FD130633E2F0016D532 /* MainMenu.swift */; };
 		2D693FB830633E2F0016D532 /* QuireDocument.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2D693FB530633E2F0016D532 /* QuireDocument.swift */; };
+		2D694F0D30633E2F0016D532 /* ReadingPositions.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2D694F0C30633E2F0016D532 /* ReadingPositions.swift */; };
 		2D693FC130633E2F0016D532 /* PDFViewer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2D693FC030633E2F0016D532 /* PDFViewer.swift */; };
 		2D693FC330633E2F0016D532 /* ViewerController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2D693FC230633E2F0016D532 /* ViewerController.swift */; };
 		2D693FC530633E2F0016D532 /* PageGrid.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2D693FC430633E2F0016D532 /* PageGrid.swift */; };
@@ -54,6 +55,7 @@
 		2D693FD030633E2F0016D532 /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
 		2D693FD130633E2F0016D532 /* MainMenu.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MainMenu.swift; sourceTree = "<group>"; };
 		2D693FB530633E2F0016D532 /* QuireDocument.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = QuireDocument.swift; sourceTree = "<group>"; };
+		2D694F0C30633E2F0016D532 /* ReadingPositions.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReadingPositions.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -91,6 +93,7 @@
 				2D693FD830633E2F0016D532 /* PageIndicator.swift */,
 				2D693FD130633E2F0016D532 /* MainMenu.swift */,
 				2D693FB530633E2F0016D532 /* QuireDocument.swift */,
+				2D694F0C30633E2F0016D532 /* ReadingPositions.swift */,
 			);
 			sourceTree = "<group>";
 		};
@@ -187,6 +190,7 @@
 				2D693FD930633E2F0016D532 /* PageIndicator.swift in Sources */,
 				2D693FCF30633E2F0016D532 /* MainMenu.swift in Sources */,
 				2D693FB830633E2F0016D532 /* QuireDocument.swift in Sources */,
+				2D694F0D30633E2F0016D532 /* ReadingPositions.swift in Sources */,
 			);
 		};
 /* End PBXSourcesBuildPhase section */
