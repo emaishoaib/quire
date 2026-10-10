@@ -37,6 +37,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     func applicationDidFinishLaunching(_ notification: Notification) {
         NSApp.mainMenu = MainMenu.make()
         OCRRunner.warmUp()
+        ReadingPositions.removeOldList()
 
         if NSDocumentController.shared.documents.isEmpty {
             showStart(nil)
@@ -66,8 +67,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     /// Remembers where every open PDF is scrolled to.
     ///
-    /// AppKit does close each document while quitting, but as the last thing it does,
-    /// and a position saved that late does not reach the preferences file in time.
+    /// AppKit does close each document while quitting, but only as the last thing it
+    /// does on its way out. The positions are saved here first, rather than rely on that.
     func applicationWillTerminate(_ notification: Notification) {
         for case let document as QuireDocument in NSDocumentController.shared.documents {
             document.savePosition()

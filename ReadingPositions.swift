@@ -14,7 +14,7 @@ import PDFKit
 ///
 /// The zoom is only there when the user chose one. A PDF left at the fit it opened
 /// with has none, and is fitted afresh to whatever size the window is next time.
-struct ReadingPosition {
+struct ReadingPosition: Codable {
     let page: Int
     let x: Double
     let y: Double
@@ -47,35 +47,43 @@ extension ReadingPosition {
     }
 }
 
-/// Where each PDF was last scrolled to, kept in the app's preferences.
+/// Where each PDF was last scrolled to, kept on the PDF's own file.
 ///
-/// Positions are filed under the PDF's path, so a file that is moved or renamed is
-/// treated as one never opened before. Nothing is written to the PDF itself.
+/// The position is an extended attribute, a small labelled note macOS keeps beside a
+/// file's contents rather than inside them. It therefore follows the file when it is
+/// moved or renamed, and a different PDF put at the same path has none. The contents
+/// of the PDF are never written to, so other readers see no change.
+///
+/// A PDF that cannot be written to keeps no position, and opens on its first page.
 enum ReadingPositions {
-    private static let key = "readingPositions"
+    private static let attribute = "com.mashoaib.quire.position"
+
+    /// Where positions were kept before, as a list in the app's preferences.
+    private static let oldKey = "readingPositions"
 
     static func save(_ position: ReadingPosition, for url: URL) {
-        var positions = UserDefaults.standard.dictionary(forKey: key) ?? [:]
-        var saved = [
-            "page": Double(position.page),
-            "x": position.x,
-            "y": position.y,
-        ]
-        saved["scale"] = position.scale
-        positions[name(of: url)] = saved
-        UserDefaults.standard.set(positions, forKey: key)
+        guard let data = try? JSONEncoder().encode(position) else { return }
+        url.withUnsafeFileSystemRepresentation { path in
+            _ = data.withUnsafeBytes { setxattr(path, attribute, $0.baseAddress, $0.count, 0, 0) }
+        }
     }
 
     static func position(for url: URL) -> ReadingPosition? {
-        let positions = UserDefaults.standard.dictionary(forKey: key)
-        guard let saved = positions?[name(of: url)] as? [String: Double],
-              let page = saved["page"], let x = saved["x"], let y = saved["y"]
-        else { return nil }
-        return ReadingPosition(page: Int(page), x: x, y: y, scale: saved["scale"])
+        url.withUnsafeFileSystemRepresentation { path in
+            let size = getxattr(path, attribute, nil, 0, 0, 0)
+            guard size > 0 else { return nil }
+            var data = Data(count: size)
+            let read = data.withUnsafeMutableBytes { getxattr(path, attribute, $0.baseAddress, size, 0, 0) }
+            guard read == size else { return nil }
+            return try? JSONDecoder().decode(ReadingPosition.self, from: data)
+        }
     }
 
-    /// The path a PDF's position is filed under, the same whichever link it was opened through.
-    private static func name(of url: URL) -> String {
-        url.resolvingSymlinksInPath().path
+    /// Deletes the list of positions that used to be kept in the app's preferences.
+    ///
+    /// The positions in it are not carried over, so a PDF last closed under the old
+    /// scheme opens on its first page once.
+    static func removeOldList() {
+        UserDefaults.standard.removeObject(forKey: oldKey)
     }
 }
