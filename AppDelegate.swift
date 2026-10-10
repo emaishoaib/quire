@@ -63,4 +63,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     func applicationShouldTerminateAfterLastWindowClosed(_ sender: NSApplication) -> Bool {
         true
     }
+
+    /// Remembers where every open PDF is scrolled to.
+    ///
+    /// AppKit does close each document while quitting, but as the last thing it does,
+    /// and a position saved that late does not reach the preferences file in time.
+    func applicationWillTerminate(_ notification: Notification) {
+        for case let document as QuireDocument in NSDocumentController.shared.documents {
+            document.savePosition()
+        }
+    }
 }
