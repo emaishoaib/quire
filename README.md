@@ -180,14 +180,17 @@ leaving that out is why every window used to open at its coded size.
 **A start tab closes when a document opens in that window.** The start screen exists to
 open something, so it is replaced rather than joined, however the file was opened.
 
-**Where a PDF was closed is kept in the app's preferences, not in the PDF.**
-`ReadingPositions.swift` files each position under the PDF's path, so the file itself is
-never written to. A PDF that is moved or renamed therefore opens on its first page, as one
-never opened before.
+**Where a PDF was closed is kept on the PDF's file, beside its contents.**
+`ReadingPositions.swift` writes each position as an extended attribute, which is a small
+labelled note macOS keeps with a file rather than inside it. The note follows the file
+when it is moved or renamed, and a different PDF put at the same path has none. The
+contents are never written to, so other readers see no change. A list in the app's
+preferences, filed under each PDF's path, was tried first. It lost the position on a
+rename, and would have handed it to whatever file took over the path.
 
 **The position is saved on quitting as well as on closing a tab.** AppKit does close each
-document while quitting, but as the last thing it does, and a position saved that late did
-not reach the preferences file when tried. `applicationWillTerminate` saves them first.
+document while quitting, but only as the last thing it does on its way out.
+`applicationWillTerminate` saves the positions first, rather than rely on that.
 
 **The zoom is remembered only once you have changed it.** A PDF left at the fit it opened
 with is fitted to the window's height again next time, at whatever size the window is
