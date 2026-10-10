@@ -67,6 +67,12 @@ final class ViewerController {
     /// the opening fit to height is redone on each resize until the user takes over.
     @ObservationIgnored private var keepsHeightFitted = false
 
+    /// True from a document opening at its remembered zoom until the user first changes it.
+    ///
+    /// Each resize the window makes while it opens moves the scroll position, so the
+    /// remembered spot is put back after every one until the user takes over.
+    @ObservationIgnored private var keepsOpeningSpot = false
+
     /// The scale last set from code, to tell a pinch-zoom apart from a refit.
     @ObservationIgnored private var appliedScale: CGFloat = 1
 
@@ -97,13 +103,29 @@ final class ViewerController {
     /// The live view, for the thumbnail sidebar to hand itself to.
     var attachedView: PDFView? { view }
 
-    /// Where the PDF is scrolled to, for remembering once it is closed.
+    /// Where the PDF is scrolled to and how far it is zoomed, for remembering once it is closed.
     ///
-    /// A view torn down for Pages leaves its position in the snapshot, and the view that
-    /// replaces it has not scrolled there until its first layout, so the snapshot is
-    /// believed over the view for as long as there is one.
+    /// A view torn down for Pages leaves both in the snapshot, and the view that replaces
+    /// it has not taken them up until its first layout, so the snapshot is believed over
+    /// the view for as long as there is one.
+    ///
+    /// The zoom is left out while the PDF is still at the fit it opened with.
+    ///
+    /// A tab that has never been shown has no view that has laid out, so the position
+    /// it was opened with is handed back unchanged rather than lost to the first page.
     var position: ReadingPosition? {
-        (snapshot?.destination ?? view?.currentDestination).flatMap(ReadingPosition.init)
+        if let openingPosition {
+            return openingPosition
+        }
+        guard let destination = snapshot?.destination ?? view?.currentDestination else { return nil }
+        let scale = keepsHeightFitted ? nil : snapshot?.scale ?? view?.scaleFactor
+        return ReadingPosition(destination, scale: scale.map(Double.init))
+    }
+
+    /// Ends the opening fit or hold, because the user has chosen a zoom of their own.
+    private func zoomWasChosen() {
+        keepsHeightFitted = false
+        keepsOpeningSpot = false
     }
 
     /// Takes hold of a newly created view and restores what the old one was showing.
@@ -176,8 +198,8 @@ final class ViewerController {
 
     private func syncFromView() {
         guard let view else { return }
-        if keepsHeightFitted && !isApplyingScale && view.scaleFactor != appliedScale {
-            keepsHeightFitted = false
+        if !isApplyingScale && view.scaleFactor != appliedScale {
+            zoomWasChosen()
         }
         if let page = view.currentPage, let document = view.document {
             currentPage = document.index(for: page)
@@ -215,7 +237,7 @@ final class ViewerController {
     }
 
     func setScale(_ factor: Double) {
-        keepsHeightFitted = false
+        zoomWasChosen()
         applyScale(factor)
     }
 
@@ -231,7 +253,7 @@ final class ViewerController {
 
     /// Fits the whole page in the window, and keeps doing so as the window resizes.
     func fitPage() {
-        keepsHeightFitted = false
+        zoomWasChosen()
         view?.autoScales = true
         syncFromView()
     }
@@ -244,9 +266,10 @@ final class ViewerController {
 
     /// Sets the zoom and scroll position, once the view has a size to fit against.
     ///
-    /// A fresh document is fitted to the window's height, and scrolled to where it was
-    /// last closed if it has been open before. A view rebuilt after visiting Pages goes
-    /// back to where the old one was, unless a page was picked there.
+    /// A fresh document is fitted to the window's height. One that has been open before
+    /// is scrolled to where it was last closed, at the zoom it had if the user chose one.
+    /// A view rebuilt after visiting Pages goes back to where the old one was, unless a
+    /// page was picked there.
     func viewDidFirstLayout() {
         guard let view else { return }
         if let snapshot {
@@ -261,25 +284,36 @@ final class ViewerController {
             }
         } else {
             let opening = view.document.flatMap { openingPosition?.destination(in: $0) }
+            let openingScale = openingPosition?.scale
             openingPosition = nil
-            keepsHeightFitted = true
-            applyHeightFit(keeping: opening ?? view.currentDestination)
+            if let opening, let openingScale {
+                setScale(openingScale)
+                keepsOpeningSpot = true
+                view.go(to: opening)
+            } else {
+                keepsHeightFitted = true
+                applyHeightFit(keeping: opening ?? view.currentDestination)
+            }
         }
         goToPendingPage()
     }
 
-    /// Redoes the opening fit to height while the window is still settling.
+    /// Redoes the opening fit to height while the window is still settling, or puts a
+    /// PDF opened at its remembered zoom back on its remembered spot.
     ///
     /// The highlight bar goes too, because the text it sat beside has moved.
     func viewDidResize(keeping top: PDFDestination?) {
         hideHighlightBar()
-        guard keepsHeightFitted else { return }
-        applyHeightFit(keeping: top)
+        if keepsHeightFitted {
+            applyHeightFit(keeping: top)
+        } else if keepsOpeningSpot, let top {
+            view?.go(to: top)
+        }
     }
 
     /// Fits the page's height to the window, the counterpart to `fitWidth`.
     func fitHeight() {
-        keepsHeightFitted = false
+        zoomWasChosen()
         applyHeightFit(keeping: nil)
     }
 
@@ -311,13 +345,13 @@ final class ViewerController {
     }
 
     func zoomIn() {
-        keepsHeightFitted = false
+        zoomWasChosen()
         view?.zoomIn(nil)
         syncFromView()
     }
 
     func zoomOut() {
-        keepsHeightFitted = false
+        zoomWasChosen()
         view?.zoomOut(nil)
         syncFromView()
     }

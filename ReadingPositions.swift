@@ -11,10 +11,14 @@ import PDFKit
 ///
 /// The point is in the page's own coordinates, which is how PDFKit describes a place to
 /// scroll to, so it means the same spot at any zoom and in any size of window.
+///
+/// The zoom is only there when the user chose one. A PDF left at the fit it opened
+/// with has none, and is fitted afresh to whatever size the window is next time.
 struct ReadingPosition {
     let page: Int
     let x: Double
     let y: Double
+    let scale: Double?
 }
 
 extension ReadingPosition {
@@ -23,9 +27,14 @@ extension ReadingPosition {
     ///
     /// There is none when the page is no longer part of a document, which is the case
     /// for a page that has since been deleted.
-    init?(_ destination: PDFDestination) {
+    init?(_ destination: PDFDestination, scale: Double?) {
         guard let page = destination.page, let document = page.document else { return nil }
-        self.init(page: document.index(for: page), x: destination.point.x, y: destination.point.y)
+        self.init(
+            page: document.index(for: page),
+            x: destination.point.x,
+            y: destination.point.y,
+            scale: scale
+        )
     }
 
     /// The same spot as a place PDFKit can scroll to.
@@ -47,11 +56,13 @@ enum ReadingPositions {
 
     static func save(_ position: ReadingPosition, for url: URL) {
         var positions = UserDefaults.standard.dictionary(forKey: key) ?? [:]
-        positions[name(of: url)] = [
+        var saved = [
             "page": Double(position.page),
             "x": position.x,
             "y": position.y,
         ]
+        saved["scale"] = position.scale
+        positions[name(of: url)] = saved
         UserDefaults.standard.set(positions, forKey: key)
     }
 
@@ -60,7 +71,7 @@ enum ReadingPositions {
         guard let saved = positions?[name(of: url)] as? [String: Double],
               let page = saved["page"], let x = saved["x"], let y = saved["y"]
         else { return nil }
-        return ReadingPosition(page: Int(page), x: x, y: y)
+        return ReadingPosition(page: Int(page), x: x, y: y, scale: saved["scale"])
     }
 
     /// The path a PDF's position is filed under, the same whichever link it was opened through.
