@@ -11,7 +11,8 @@ the rest of the app exists so you do not have to leave it to do the ordinary thi
 
 **Open.** Every PDF opens as a tab of one window, and the plus at the end of the tab bar
 opens a tab listing recently opened files, which is also what you get when Quire is
-launched with nothing to read.
+launched with nothing to read. A PDF that has been open before goes back to the spot it
+was closed on, and to the zoom it had if you had changed it.
 
 **Read.** Continuous scrolling, single or two-page layout, and zoom by pinch or from the
 rail down the right edge, which also holds the page number, text recognition, highlight
@@ -178,6 +179,24 @@ leaving that out is why every window used to open at its coded size.
 
 **A start tab closes when a document opens in that window.** The start screen exists to
 open something, so it is replaced rather than joined, however the file was opened.
+
+**Where a PDF was closed is kept in the app's preferences, not in the PDF.**
+`ReadingPositions.swift` files each position under the PDF's path, so the file itself is
+never written to. A PDF that is moved or renamed therefore opens on its first page, as one
+never opened before.
+
+**The position is saved on quitting as well as on closing a tab.** AppKit does close each
+document while quitting, but as the last thing it does, and a position saved that late did
+not reach the preferences file when tried. `applicationWillTerminate` saves them first.
+
+**The zoom is remembered only once you have changed it.** A PDF left at the fit it opened
+with is fitted to the window's height again next time, at whatever size the window is
+then. Restoring a number instead would leave it wrong for a window of another size.
+
+**A remembered spot is put back after each resize while the window opens.** The window
+changes size several times on its way to the screen, and each change moves the scroll
+position. `ViewerController` holds the spot until you first change the zoom, the same way
+it holds the opening fit to height.
 
 **Settings that drive animation use `.animation(_:value:)`, not `withAnimation`.** The
 sidebar toggle and the thumbnail size are `@AppStorage`, so the new value comes back from
