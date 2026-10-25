@@ -15,11 +15,15 @@ import SwiftUI
 /// the delegate is never made and the menu bar never appears. The app is therefore
 /// started by hand, with the delegate held here because `NSApplication` keeps only a
 /// weak reference to it.
+///
+/// The document controller is made first. AppKit keeps the first one made as the
+/// shared one, so it has to exist before anything asks for `NSDocumentController.shared`.
 @main
 enum QuireMain {
     static let delegate = AppDelegate()
 
     static func main() {
+        _ = QuireDocumentController()
         let app = NSApplication.shared
         app.delegate = delegate
         app.setActivationPolicy(.regular)
@@ -34,12 +38,17 @@ enum QuireMain {
 /// is safe because an unsaved document is asked about before its window closes.
 final class AppDelegate: NSObject, NSApplicationDelegate {
 
+    /// Builds the menu bar, and shows the start screen unless Quire opened to read a PDF.
+    ///
+    /// The tabs are checked rather than the open documents. A PDF opened from Finder is
+    /// often still being read at this point, so it is not yet a document, but it already
+    /// has a tab standing in for it.
     func applicationDidFinishLaunching(_ notification: Notification) {
         NSApp.mainMenu = MainMenu.make()
         OCRRunner.warmUp()
         ReadingPositions.removeOldList()
 
-        if NSDocumentController.shared.documents.isEmpty {
+        if Workspace.shared.tabs.isEmpty {
             showStart(nil)
         }
     }
@@ -72,6 +81,34 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     func applicationWillTerminate(_ notification: Notification) {
         for case let document as QuireDocument in NSDocumentController.shared.documents {
             document.savePosition()
+        }
+    }
+}
+
+/// Opens every PDF, wherever the request to open it comes from.
+///
+/// Finder, File → Open Recent, the Open panel and the start screen all open files
+/// through `openDocument(withContentsOf:display:completionHandler:)`, so this is the one
+/// place that sees every PDF on its way in. A tab stands in for the PDF from that moment,
+/// so it is clear the file arrived even while it takes a while to read.
+///
+/// A PDF that is already open needs no stand-in, because its tab is simply brought to
+/// the front. A PDF that fails to open loses its stand-in before the error is shown.
+final class QuireDocumentController: NSDocumentController {
+    override func openDocument(
+        withContentsOf url: URL,
+        display displayDocument: Bool,
+        completionHandler: @escaping (NSDocument?, Bool, (any Error)?) -> Void
+    ) {
+        let needsPlaceholder = displayDocument && document(for: url) == nil
+        if needsPlaceholder {
+            Workspace.shared.openPlaceholder(for: url)
+        }
+        super.openDocument(withContentsOf: url, display: displayDocument) { document, wasOpen, error in
+            if needsPlaceholder && document == nil {
+                Workspace.shared.removePlaceholder(for: url)
+            }
+            completionHandler(document, wasOpen, error)
         }
     }
 }

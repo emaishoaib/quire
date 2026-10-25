@@ -147,3 +147,36 @@ struct StartView: View {
         NSDocumentController.shared.openDocument(withContentsOf: url, display: true) { _, _, _ in }
     }
 }
+
+/// The screen a tab shows while its PDF is still being read.
+///
+/// A large PDF takes a moment to read. Without this, the window would carry on showing
+/// whatever was there before, as if the file had never arrived.
+struct OpeningView: View {
+    let url: URL
+
+    var body: some View {
+        VStack(spacing: 12) {
+            Image(nsImage: NSWorkspace.shared.icon(forFile: url.path))
+                .resizable()
+                .frame(width: 64, height: 64)
+
+            Text(FileManager.default.displayName(atPath: url.path))
+                .font(.system(size: 13, weight: .medium))
+                .lineLimit(1)
+                .truncationMode(.middle)
+
+            HStack(spacing: 6) {
+                ProgressView()
+                    .controlSize(.small)
+
+                Text("Opening…")
+                    .font(.system(size: 12))
+                    .foregroundStyle(.secondary)
+            }
+        }
+        .padding(24)
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .background(Color(nsColor: .windowBackgroundColor))
+    }
+}

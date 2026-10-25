@@ -8,7 +8,11 @@
 import AppKit
 import SwiftUI
 
-/// One tab: an open PDF, or the start screen when `document` is nil.
+/// One tab: an open PDF, a PDF still being read, or the start screen.
+///
+/// A tab with a `document` shows that PDF. A tab with an `opening` file stands in for a
+/// PDF that is still being read, and makes way for it once it is. A tab with neither is
+/// the start screen.
 ///
 /// The tab owns the view controller that draws it, and keeps it for as long as the tab
 /// exists. Switching away only takes the view out of the window, so the page being read,
@@ -17,6 +21,7 @@ import SwiftUI
 final class WorkspaceTab: Identifiable {
     let id = UUID()
     let document: QuireDocument?
+    let opening: URL?
     var title: String
 
     /// True while the PDF has changes that are not saved, which the tab marks with a dot.
@@ -24,10 +29,11 @@ final class WorkspaceTab: Identifiable {
 
     @ObservationIgnored let content: NSViewController
 
-    var isStart: Bool { document == nil }
+    var isStart: Bool { document == nil && opening == nil }
 
-    init(document: QuireDocument?, title: String, content: NSViewController) {
+    init(document: QuireDocument?, opening: URL? = nil, title: String, content: NSViewController) {
         self.document = document
+        self.opening = opening
         self.title = title
         self.content = content
     }
@@ -40,7 +46,8 @@ final class WorkspaceTab: Identifiable {
 /// and this decides what that window shows.
 ///
 /// A new tab always goes last. Opening a PDF also drops any start tab: the start screen
-/// exists to open something, so once something is open it has done its job.
+/// exists to open something, so once something is open it has done its job. A PDF that
+/// had a tab standing in for it while it was read takes that tab's place instead.
 @Observable
 final class Workspace {
     static let shared = Workspace()
@@ -101,8 +108,43 @@ final class Workspace {
 
         let tab = WorkspaceTab(document: document, title: document.displayName, content: hosting)
         tabs.removeAll { $0.isStart }
+        if let index = placeholderIndex(for: document.fileURL) {
+            tabs[index] = tab
+        } else {
+            tabs.append(tab)
+        }
+        select(tab)
+    }
+
+    /// Adds a tab standing in for a PDF that is still being read, and shows it.
+    func openPlaceholder(for url: URL) {
+        let hosting = NSHostingController(rootView: OpeningView(url: url))
+        hosting.sizingOptions = []
+
+        let title = FileManager.default.displayName(atPath: url.path)
+        let tab = WorkspaceTab(document: nil, opening: url, title: title, content: hosting)
+        tabs.removeAll { $0.isStart }
         tabs.append(tab)
         select(tab)
+        showWindow()
+    }
+
+    /// Drops the tab standing in for a PDF that could not be opened.
+    ///
+    /// When it is the only tab, the start screen takes its place. Closing the window
+    /// instead would quit the app, with the reason the PDF did not open still to show.
+    func removePlaceholder(for url: URL) {
+        guard let index = placeholderIndex(for: url) else { return }
+        let tab = tabs[index]
+        if tabs.count == 1 {
+            openStart()
+        }
+        remove(tab)
+    }
+
+    private func placeholderIndex(for url: URL?) -> Int? {
+        guard let url else { return nil }
+        return tabs.firstIndex { $0.opening?.standardizedFileURL == url.standardizedFileURL }
     }
 
     /// Adds a tab showing the list of recent PDFs, and shows it.
@@ -308,7 +350,7 @@ final class WorkspaceWindowController: NSWindowController, NSMenuItemValidation,
             current?.removeWindowController(self)
             tab.document?.addWindowController(self)
         }
-        if tab.isStart {
+        if tab.document == nil {
             document = nil
             window?.title = tab.title
         }
