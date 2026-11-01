@@ -4,7 +4,7 @@ import SwiftUI
 struct QuireApp: App {
     var body: some Scene {
         WindowGroup {
-            ContentUnavailableView("Quire", systemImage: "doc")
+            HomeView()
         }
     }
 }
