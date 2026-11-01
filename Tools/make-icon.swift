@@ -205,7 +205,7 @@ let icon = iconContext.makeImage()!
 let entries: [(points: Int, scale: Int)] = [
     (16, 1), (16, 2), (32, 1), (32, 2), (128, 1), (128, 2), (256, 1), (256, 2), (512, 1), (512, 2)
 ]
-let folder = "Assets.xcassets/AppIcon.appiconset"
+let folder = "macOS/Assets.xcassets/AppIcon.appiconset"
 var images: [String] = []
 
 for entry in entries {
@@ -234,7 +234,7 @@ let documentContext = context(size: Int(master))
 drawDocumentIcon(in: documentContext)
 let documentIcon = documentContext.makeImage()!
 
-let iconset = "DocumentIcon.iconset"
+let iconset = "macOS/DocumentIcon.iconset"
 try? FileManager.default.createDirectory(atPath: iconset, withIntermediateDirectories: true)
 
 for entry in entries {

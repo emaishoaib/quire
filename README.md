@@ -61,14 +61,18 @@ macOS 27 and Xcode 26. No third-party dependencies: PDFKit and Vision ship with 
 
 ## Building
 
+The Xcode project is generated from `project.yml` using `xcodegen` and is not committed.
+Generate it first, and again whenever a file is added or removed:
+
 ```bash
+xcodegen generate
 open Quire.xcodeproj
 ```
 
 Then press Run. From the command line:
 
 ```bash
-xcodebuild -project Quire.xcodeproj -scheme Quire -configuration Debug \
+xcodebuild -project Quire.xcodeproj -scheme Quire-macOS -configuration Debug \
   -derivedDataPath build build
 open build/Build/Products/Debug/Quire.app
 ```
