@@ -3,6 +3,7 @@ name: Quire
 options:
   bundleIdPrefix: com.mashoaib
   deploymentTarget:
+    iOS: "26.0"
     macOS: "27.0"
   createIntermediateGroups: true
 
@@ -30,6 +31,30 @@ packages:
     from: 2.10.1
 
 targets:
+  Quire-iOS:
+    type: application
+    platform: iOS
+    sources:
+      - iOS
+      - Shared
+      - Icon/AppIcon.icon
+    info:
+      path: iOS/Info.plist
+      properties:
+        ITSAppUsesNonExemptEncryption: false
+    settings:
+      base:
+        PRODUCT_NAME: Quire
+        PRODUCT_BUNDLE_IDENTIFIER: com.mashoaib.quire
+        ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
+        ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME: AccentColor
+        GENERATE_INFOPLIST_FILE: YES
+        INFOPLIST_KEY_CFBundleDisplayName: Quire
+        INFOPLIST_KEY_UILaunchScreen_Generation: YES
+        INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone: UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight
+        INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad: UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight
+        TARGETED_DEVICE_FAMILY: "1,2"
+
   Quire-macOS:
     type: application
     platform: macOS
