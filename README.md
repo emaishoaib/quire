@@ -148,9 +148,11 @@ boundaries from gaps and produces "12in".
 to a minute while macOS loads the model. `OCRRunner.warmUp()` pays that cost in the
 background at launch, and the progress sheet says so if you get there first.
 
-**The icon is generated.** `Tools/make-icon.swift` draws both the app icon and the PDF
-document icon, and writes every size into the asset catalogue. Edit the script, run
-`swift Tools/make-icon.swift`, and rebuild.
+**The icon is a Q made of lines of text.** The bottom three lines run past the circle and
+turn the highlighter's yellow, which makes the Q's tail. The app icon is the Icon Composer
+file `Icon/AppIcon.icon`, built from flat layers. The PDF document icon shows the same Q on
+a page. `Tools/make-document-icon.swift` draws it into `macOS/DocumentIcon.icns`, so edit
+the script, run `swift Tools/make-document-icon.swift`, and rebuild.
 
 **The thumbnail sidebar is hand-written SwiftUI, not `PDFThumbnailView`.** PDFKit's view
 highlights the current page and follows the scroll position for nothing, and both are
