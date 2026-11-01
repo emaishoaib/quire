@@ -24,15 +24,25 @@ settings:
     STRING_CATALOG_GENERATE_SYMBOLS: YES
     ENABLE_USER_SCRIPT_SANDBOXING: YES
 
+packages:
+  Sparkle:
+    url: https://github.com/sparkle-project/Sparkle
+    from: 2.10.1
+
 targets:
   Quire-macOS:
     type: application
     platform: macOS
     sources:
       - macOS
+    dependencies:
+      - package: Sparkle
     info:
       path: macOS/Info.plist
       properties:
+        SUFeedURL: https://$(QUIRE_UPDATES_HOST)/quire/appcast.xml
+        SUPublicEDKey: $(QUIRE_SPARKLE_PUBLIC_KEY)
+        SUEnableAutomaticChecks: true
         CFBundleDocumentTypes:
           - CFBundleTypeIconFile: DocumentIcon
             CFBundleTypeName: PDF Document

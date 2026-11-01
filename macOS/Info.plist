@@ -37,5 +37,11 @@
 	<string>1.0</string>
 	<key>CFBundleVersion</key>
 	<string>1</string>
+	<key>SUEnableAutomaticChecks</key>
+	<true/>
+	<key>SUFeedURL</key>
+	<string>https://$(QUIRE_UPDATES_HOST)/quire/appcast.xml</string>
+	<key>SUPublicEDKey</key>
+	<string>$(QUIRE_SPARKLE_PUBLIC_KEY)</string>
 </dict>
 </plist>

@@ -57,13 +57,15 @@ alone. The whole run undoes as one action.
 
 ## Requirements
 
-macOS 27 and Xcode 26. No third-party dependencies: PDFKit and Vision ship with macOS.
+macOS 27 and Xcode 27. The only third-party dependency is Sparkle, which installs updates.
+PDFKit and Vision ship with macOS.
 
 ## Building
 
 The Xcode project is generated from `project.yml` using `xcodegen` and is not committed.
-Release builds read the Apple development team from `Config/Release.xcconfig`, which is not
-committed either. Copy `Config/Release.xcconfig.example` and fill it in.
+Release builds read the Apple development team, the updates host and the Sparkle public key
+from `Config/Release.xcconfig`, which is not committed either. Copy
+`Config/Release.xcconfig.example` and fill it in.
 
 Generate the project first, and again whenever a file is added or removed:
 

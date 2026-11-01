@@ -14,6 +14,7 @@ enum MainMenu {
     private static func appMenu() -> NSMenu {
         let menu = NSMenu(title: "Quire")
         menu.addItem(withTitle: "About Quire", action: #selector(NSApplication.orderFrontStandardAboutPanel(_:)), keyEquivalent: "")
+        menu.addItem(AppUpdater.shared.makeMenuItem())
         menu.addItem(.separator())
         menu.addItem(withTitle: "Hide Quire", action: #selector(NSApplication.hide(_:)), keyEquivalent: "h")
 

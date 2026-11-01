@@ -17,6 +17,7 @@ enum QuireMain {
 final class AppDelegate: NSObject, NSApplicationDelegate {
     func applicationDidFinishLaunching(_ notification: Notification) {
         NSApp.mainMenu = MainMenu.make()
+        AppUpdater.shared.start()
         OCRRunner.warmUp()
         ReadingPositions.removeOldList()
 
