@@ -66,7 +66,7 @@ struct HighlightBar: View {
                     pick(colour)
                 } label: {
                     Circle()
-                        .fill(Color(nsColor: colour.dot))
+                        .fill(colour.dot)
                         .overlay(Circle().strokeBorder(.black.opacity(0.15)))
                         .frame(width: Self.dot, height: Self.dot)
                         .contentShape(.circle)

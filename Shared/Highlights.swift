@@ -1,4 +1,8 @@
+#if os(macOS)
 import AppKit
+#else
+import UIKit
+#endif
 import PDFKit
 
 struct Highlight {
@@ -9,7 +13,13 @@ struct Highlight {
 
     var lines: [CGRect] {
         let origin = annotation.bounds.origin
-        let corners = (annotation.quadrilateralPoints ?? []).map(\.pointValue)
+        let corners = (annotation.quadrilateralPoints ?? []).map { value in
+            #if os(macOS)
+            value.pointValue
+            #else
+            value.cgPointValue
+            #endif
+        }
         let lines = stride(from: 0, to: corners.count - 3, by: 4).map { start in
             let line = corners[start..<start + 4]
             let xs = line.map(\.x)
@@ -46,11 +56,17 @@ extension PDFModel {
             annotation.color = colour.colour
             annotation.quadrilateralPoints = lines.flatMap { line in
                 [
-                    NSPoint(x: line.minX - bounds.minX, y: line.maxY - bounds.minY),
-                    NSPoint(x: line.maxX - bounds.minX, y: line.maxY - bounds.minY),
-                    NSPoint(x: line.minX - bounds.minX, y: line.minY - bounds.minY),
-                    NSPoint(x: line.maxX - bounds.minX, y: line.minY - bounds.minY)
-                ].map { NSValue(point: $0) }
+                    CGPoint(x: line.minX - bounds.minX, y: line.maxY - bounds.minY),
+                    CGPoint(x: line.maxX - bounds.minX, y: line.maxY - bounds.minY),
+                    CGPoint(x: line.minX - bounds.minX, y: line.minY - bounds.minY),
+                    CGPoint(x: line.maxX - bounds.minX, y: line.minY - bounds.minY)
+                ].map { point in
+                    #if os(macOS)
+                    NSValue(point: point)
+                    #else
+                    NSValue(cgPoint: point)
+                    #endif
+                }
             }
             return Highlight(annotation: annotation, page: page)
         }
@@ -73,7 +89,7 @@ extension PDFModel {
             .last { $0.lines.contains { $0.contains(point) } }
     }
 
-    private func setColour(_ colour: NSColor, of highlight: Highlight) {
+    private func setColour(_ colour: PlatformColor, of highlight: Highlight) {
         let oldColour = highlight.annotation.color
         highlight.page.removeAnnotation(highlight.annotation)
         highlight.annotation.color = colour

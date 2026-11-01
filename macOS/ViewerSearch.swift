@@ -105,7 +105,7 @@ extension ViewerController {
 
         pulse?.cancel()
         pulse = Task { [weak self] in
-            for colour in [NSColor.systemOrange, .systemOrange.withAlphaComponent(0.75), .systemPink] {
+            for colour in [PlatformColor.systemOrange, .systemOrange.withAlphaComponent(0.75), .systemPink] {
                 guard !Task.isCancelled else { return }
                 self?.paint(match, colour)
                 try? await Task.sleep(for: .milliseconds(110))
@@ -115,7 +115,7 @@ extension ViewerController {
         }
     }
 
-    private func paint(_ match: PDFSelection, _ colour: NSColor) {
+    private func paint(_ match: PDFSelection, _ colour: PlatformColor) {
         for other in matches where other !== match {
             other.color = .systemYellow
         }

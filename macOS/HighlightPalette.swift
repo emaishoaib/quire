@@ -24,7 +24,7 @@ struct HighlightPalette: View {
                     selected = colour
                 } label: {
                     Circle()
-                        .fill(Color(nsColor: colour.dot))
+                        .fill(colour.dot)
                         .overlay(Circle().strokeBorder(.black.opacity(0.15)))
                         .frame(width: Self.dot, height: Self.dot)
                         .overlay {

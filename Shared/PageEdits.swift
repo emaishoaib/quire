@@ -1,4 +1,9 @@
+#if os(macOS)
 import AppKit
+#else
+import UIKit
+#endif
+import ImageIO
 import PDFKit
 import SwiftUI
 import UniformTypeIdentifiers
@@ -109,12 +114,17 @@ extension PDFModel {
         default: 0
         }
 
-        let size = NSSize(
+        let size = CGSize(
             width: CGFloat(pixels.width) * 72 / dotsPerInch(properties, kCGImagePropertyDPIWidth),
             height: CGFloat(pixels.height) * 72 / dotsPerInch(properties, kCGImagePropertyDPIHeight)
         )
 
-        guard let page = PDFPage(image: NSImage(cgImage: pixels, size: size)) else {
+        #if os(macOS)
+        let image = NSImage(cgImage: pixels, size: size)
+        #else
+        let image = UIImage(cgImage: pixels, scale: CGFloat(pixels.width) / size.width, orientation: .up)
+        #endif
+        guard let page = PDFPage(image: image) else {
             throw CocoaError(.fileReadCorruptFile)
         }
         return PageState(page: page, rotation: rotation)
