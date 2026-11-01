@@ -5,3 +5,4 @@ xcuserdata/
 *.xcuserstate
 Quire.xcodeproj/
 Config/Release.xcconfig
+releases/
