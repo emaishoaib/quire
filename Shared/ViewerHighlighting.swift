@@ -2,10 +2,6 @@ import PDFKit
 import SwiftUI
 
 extension ViewerController {
-    func mouseWentDown() {
-        hideHighlightBar()
-    }
-
     func setHighlighting(_ highlighting: Bool) {
         isHighlighting = highlighting
         if highlighting {
@@ -13,7 +9,7 @@ extension ViewerController {
         }
     }
 
-    func mouseWentUp(at point: NSPoint) {
+    func pressEnded(at point: CGPoint) {
         guard !isHighlighting else {
             if view?.currentSelection != nil {
                 highlightRequests += 1
@@ -33,11 +29,11 @@ extension ViewerController {
         }
     }
 
-    func highlightToRemove(at point: NSPoint) -> Highlight? {
+    func highlightToRemove(at point: CGPoint) -> Highlight? {
         isHighlighting ? highlight(at: point) : nil
     }
 
-    private func highlight(at point: NSPoint) -> Highlight? {
+    private func highlight(at point: CGPoint) -> Highlight? {
         guard let view, let page = view.page(for: point, nearest: false) else { return nil }
         return PDFModel.highlight(at: view.convert(point, to: page), on: page)
     }
@@ -77,11 +73,6 @@ extension ViewerController {
         placeHighlightBar()
     }
 
-    func viewDidScroll(_ scrolled: NSClipView?) {
-        guard let view, let scrolled, scrolled.isDescendant(of: view) else { return }
-        hideHighlightBar()
-    }
-
     private func placeHighlightBar() {
         let anchor = currentSelectionAnchor
         guard anchor != nil || (selectionAnchor != nil && selectedHighlight == nil) else { return }
@@ -109,9 +100,13 @@ extension ViewerController {
             .map { view.convert($0, from: page) }
             .filter { !$0.isEmpty }
             .map { rect in
+                #if os(macOS)
                 view.isFlipped
                     ? rect
                     : CGRect(x: rect.minX, y: view.bounds.height - rect.maxY, width: rect.width, height: rect.height)
+                #else
+                rect
+                #endif
             }
         guard let first = rects.min(by: { $0.minY < $1.minY }),
               let last = rects.max(by: { $0.maxY < $1.maxY })

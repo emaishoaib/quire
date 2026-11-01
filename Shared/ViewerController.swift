@@ -115,14 +115,6 @@ final class ViewerController {
                 }
             }
         )
-        observers.append(
-            NotificationCenter.default.addObserver(forName: NSView.boundsDidChangeNotification, object: nil, queue: .main) { [weak self] note in
-                let scrolled = note.object as? NSClipView
-                MainActor.assumeIsolated {
-                    self?.viewDidScroll(scrolled)
-                }
-            }
-        )
         syncFromView()
     }
 
