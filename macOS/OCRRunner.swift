@@ -50,10 +50,10 @@ final class OCRRunner {
         _ = try? await OCREngine.recognizeWords(in: image, rotation: 0)
     }
 
-    func run(on document: QuireDocument) {
+    func run(on model: PDFModel) {
         guard !isRunning else { return }
 
-        let original = document.pageStates
+        let original = model.pageStates
         let total = original.count
         guard total > 0 else { return }
 
@@ -83,7 +83,7 @@ final class OCRRunner {
             }
 
             isRunning = false
-            finish(replacements: replacements, skipped: skipped, of: original, on: document)
+            finish(replacements: replacements, skipped: skipped, of: original, on: model)
         }
     }
 
@@ -95,7 +95,7 @@ final class OCRRunner {
         replacements: [Int: PDFPage],
         skipped: Int,
         of original: [PageState],
-        on document: QuireDocument
+        on model: PDFModel
     ) {
         if Task.isCancelled {
             summary = "Text recognition was cancelled, so no pages were changed."
@@ -111,7 +111,7 @@ final class OCRRunner {
         let newState = original.enumerated().map { index, item in
             replacements[index].map { PageState(page: $0, rotation: item.rotation) } ?? item
         }
-        document.applyPages(newState, actionName: "Recognize Text")
+        model.applyPages(newState, actionName: "Recognize Text")
 
         let count = replacements.count
         var message = "Made \(count) page\(count == 1 ? "" : "s") searchable."

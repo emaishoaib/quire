@@ -39,7 +39,7 @@ extension ViewerController {
 
     private func highlight(at point: NSPoint) -> Highlight? {
         guard let view, let page = view.page(for: point, nearest: false) else { return nil }
-        return QuireDocument.highlight(at: view.convert(point, to: page), on: page)
+        return PDFModel.highlight(at: view.convert(point, to: page), on: page)
     }
 
     func hideHighlightBar() {
@@ -51,23 +51,23 @@ extension ViewerController {
         }
     }
 
-    func highlight(in colour: HighlightColour, of document: QuireDocument) {
+    func highlight(in colour: HighlightColour, of model: PDFModel) {
         if let highlight = selectedHighlight {
             if highlight.isOnPage {
-                document.recolourHighlight(highlight, to: colour)
+                model.recolourHighlight(highlight, to: colour)
             }
             hideHighlightBar()
             return
         }
         guard let view, let selection = view.currentSelection else { return }
-        document.highlight(selection, in: colour)
+        model.highlight(selection, in: colour)
         hideHighlightBar()
         view.clearSelection()
     }
 
-    func removeSelectedHighlight(from document: QuireDocument) {
+    func removeSelectedHighlight(from model: PDFModel) {
         if let highlight = selectedHighlight, highlight.isOnPage {
-            document.removeHighlight(highlight)
+            model.removeHighlight(highlight)
         }
         hideHighlightBar()
     }

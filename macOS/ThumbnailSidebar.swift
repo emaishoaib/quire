@@ -9,7 +9,7 @@ struct ThumbnailSidebar: View {
 
     static let sizeAnimation = Animation.easeOut(duration: 0.12)
 
-    @Bindable var document: QuireDocument
+    @Bindable var model: PDFModel
     let viewer: ViewerController
     let thumbnailWidth: Double
 
@@ -24,20 +24,20 @@ struct ThumbnailSidebar: View {
         ScrollViewReader { scroller in
             ScrollView {
                 LazyVStack(spacing: 14) {
-                    ForEach(Array(document.pages.enumerated()), id: \.element) { index, page in
+                    ForEach(Array(model.pages.enumerated()), id: \.element) { index, page in
                         cell(index: index, page: page)
                     }
                 }
                 .padding(.vertical, 14)
             }
             .onAppear {
-                guard document.pages.indices.contains(viewer.currentPage) else { return }
-                scroller.scrollTo(document.pages[viewer.currentPage], anchor: .center)
+                guard model.pages.indices.contains(viewer.currentPage) else { return }
+                scroller.scrollTo(model.pages[viewer.currentPage], anchor: .center)
             }
             .onChange(of: viewer.currentPage) { _, index in
-                guard document.pages.indices.contains(index) else { return }
+                guard model.pages.indices.contains(index) else { return }
                 withAnimation(.easeOut(duration: 0.2)) {
-                    scroller.scrollTo(document.pages[index], anchor: .center)
+                    scroller.scrollTo(model.pages[index], anchor: .center)
                 }
             }
         }
@@ -118,16 +118,16 @@ struct ThumbnailSidebar: View {
     private func pageControls(index: Int) -> some View {
         HStack(spacing: 2) {
             controlButton("Rotate Left", systemImage: "rotate.left") {
-                document.rotatePages(IndexSet(integer: index), by: -90)
+                model.rotatePages(IndexSet(integer: index), by: -90)
             }
             controlButton("Rotate Right", systemImage: "rotate.right") {
-                document.rotatePages(IndexSet(integer: index), by: 90)
+                model.rotatePages(IndexSet(integer: index), by: 90)
             }
             controlButton("Delete Page", systemImage: "trash") {
-                document.deletePages(IndexSet(integer: index))
+                model.deletePages(IndexSet(integer: index))
                 hovered = nil
             }
-            .disabled(document.pageCount == 1)
+            .disabled(model.pageCount == 1)
         }
         .padding(.horizontal, 6)
         .padding(.vertical, 4)
@@ -195,17 +195,17 @@ struct ThumbnailSidebar: View {
     private func move(from source: Int, to target: Int) {
         guard source != target else { return }
         let destination = target > source ? target + 1 : target
-        document.movePages(IndexSet(integer: source), to: destination)
+        model.movePages(IndexSet(integer: source), to: destination)
     }
 
     private func insert(files urls: [URL], at index: Int) -> Bool {
-        let files = urls.filter { $0.pathExtension.lowercased() == "pdf" || QuireDocument.isImage($0) }
+        let files = urls.filter { $0.pathExtension.lowercased() == "pdf" || PDFModel.isImage($0) }
         guard !files.isEmpty else { return false }
 
         var insertAt = index
         do {
             for url in files {
-                insertAt += try document.insertPages(from: url, at: insertAt)
+                insertAt += try model.insertPages(from: url, at: insertAt)
             }
         } catch {
             errorMessage = "One of the files could not be read. It may be damaged or password protected."

@@ -3,7 +3,7 @@ import SwiftUI
 struct ReadRail: View {
     let viewer: ViewerController
     let ocr: OCRRunner
-    let document: QuireDocument
+    let model: PDFModel
     let find: () -> Void
     @Binding var mode: Mode
     @Binding var showsThumbnails: Bool
@@ -46,9 +46,9 @@ struct ReadRail: View {
             separator
 
             button("Recognize text: make scanned pages searchable", systemImage: "text.viewfinder") {
-                ocr.run(on: document)
+                ocr.run(on: model)
             }
-            .disabled(document.pageCount == 0 || ocr.isRunning)
+            .disabled(model.pageCount == 0 || ocr.isRunning)
 
             if mode == .read {
                 button(
@@ -69,7 +69,7 @@ struct ReadRail: View {
 
             if mode == .read {
                 Group {
-                    PageIndicator(viewer: viewer, pageCount: document.pageCount)
+                    PageIndicator(viewer: viewer, pageCount: model.pageCount)
 
             separator
 

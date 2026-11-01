@@ -8,7 +8,7 @@ struct PageState {
     let rotation: Int
 }
 
-extension QuireDocument {
+extension PDFModel {
     static let editAnimation = Animation.spring(duration: 0.3, bounce: 0.15)
 
     var pageCount: Int { pages.count }
@@ -34,9 +34,9 @@ extension QuireDocument {
             revision += 1
         }
 
-        undoManager?.registerUndo(withTarget: self) { document in
+        undoManager?.registerUndo(withTarget: self) { model in
             MainActor.assumeIsolated {
-                document.applyPages(oldState, actionName: actionName)
+                model.applyPages(oldState, actionName: actionName)
             }
         }
         undoManager?.setActionName(actionName)

@@ -20,7 +20,7 @@ enum SidebarTab: String, CaseIterable, Identifiable {
 }
 
 struct ContentsSidebar: View {
-    let document: QuireDocument
+    let model: PDFModel
     let viewer: ViewerController
 
     @State private var items: [OutlineItem] = []
@@ -50,15 +50,15 @@ struct ContentsSidebar: View {
                 }
             }
         }
-        .onChange(of: document.pdf, initial: true) {
-            items = OutlineItem.roots(of: document.pdf)
+        .onChange(of: model.pdf, initial: true) {
+            items = OutlineItem.roots(of: model.pdf)
             entries = OutlineItem.flattened(items)
         }
     }
 
     private var current: OutlineItem.Entry? {
         let pageIndex = Dictionary(
-            uniqueKeysWithValues: document.pages.enumerated().map { (ObjectIdentifier($0.element), $0.offset) }
+            uniqueKeysWithValues: model.pages.enumerated().map { (ObjectIdentifier($0.element), $0.offset) }
         )
         return entries.last { entry in
             guard let page = entry.item.destination?.page,

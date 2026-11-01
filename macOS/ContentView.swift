@@ -11,7 +11,7 @@ enum Mode: String, CaseIterable, Identifiable {
 }
 
 struct ContentView: View {
-    @Bindable var document: QuireDocument
+    let document: QuireDocument
 
     @State private var viewer: ViewerController
     @State private var ocr = OCRRunner()
@@ -24,17 +24,19 @@ struct ContentView: View {
     @AppStorage("highlightColour") private var highlightColour = HighlightColour.yellow
     @State private var sidebarTab: SidebarTab
 
+    private var model: PDFModel { document.model }
+
     init(document: QuireDocument) {
-        _document = Bindable(document)
+        self.document = document
         _viewer = State(initialValue: ViewerController(
             openingPosition: document.fileURL.flatMap(ReadingPositions.position)
         ))
-        _sidebarTab = State(initialValue: SidebarTab.opening(document.pdf))
+        _sidebarTab = State(initialValue: SidebarTab.opening(document.model.pdf))
     }
 
     var body: some View {
         Group {
-            if document.pdf.pageCount == 0 {
+            if model.pdf.pageCount == 0 {
                 ContentUnavailableView("No Pages", systemImage: "doc")
             } else {
                 HStack(spacing: 0) {
@@ -50,10 +52,10 @@ struct ContentView: View {
                         switch mode {
                         case .read:
                             PDFViewer(
-                                pdf: document.pdf,
-                                revision: document.revision,
+                                pdf: model.pdf,
+                                revision: model.revision,
                                 controller: viewer,
-                                removeHighlight: document.removeHighlight
+                                removeHighlight: model.removeHighlight
                             )
                                 .overlay(alignment: .trailing) {
                                     ZoomHUD(viewer: viewer)
@@ -64,7 +66,7 @@ struct ContentView: View {
                                 }
                                 .transition(.opacity.combined(with: .scale(scale: 1.02)))
                         case .pages:
-                            PageGrid(document: document, selection: $selection, currentPage: viewer.currentPage) { index in
+                            PageGrid(model: model, selection: $selection, currentPage: viewer.currentPage) { index in
                                 withAnimation(Mode.animation) {
                                     mode = .read
                                 }
@@ -82,7 +84,7 @@ struct ContentView: View {
                     ReadRail(
                         viewer: viewer,
                         ocr: ocr,
-                        document: document,
+                        model: model,
                         find: openFind,
                         mode: $mode,
                         showsThumbnails: $showsThumbnails,
@@ -118,11 +120,11 @@ struct ContentView: View {
             }
         }
         .onChange(of: viewer.highlightRequests) {
-            viewer.highlight(in: highlightColour, of: document)
+            viewer.highlight(in: highlightColour, of: model)
         }
-        .onChange(of: document.revision) {
+        .onChange(of: model.revision) {
             viewer.clearSearch()
-            selection = selection.filter { $0 < document.pageCount }
+            selection = selection.filter { $0 < model.pageCount }
         }
         .sheet(isPresented: $ocr.isRunning) {
             OCRProgressView(ocr: ocr)
@@ -140,12 +142,12 @@ struct ContentView: View {
                 switch sidebarTab {
                 case .thumbnails:
                     ThumbnailSidebar(
-                        document: document,
+                        model: model,
                         viewer: viewer,
                         thumbnailWidth: thumbnailWidth
                     )
                 case .contents:
-                    ContentsSidebar(document: document, viewer: viewer)
+                    ContentsSidebar(model: model, viewer: viewer)
                 }
             }
             .frame(maxHeight: .infinity)
@@ -172,9 +174,9 @@ struct ContentView: View {
                     lastUsed: highlightColour,
                     pick: { colour in
                         highlightColour = colour
-                        viewer.highlight(in: colour, of: document)
+                        viewer.highlight(in: colour, of: model)
                     },
-                    remove: hasRemove ? { viewer.removeSelectedHighlight(from: document) } : nil
+                    remove: hasRemove ? { viewer.removeSelectedHighlight(from: model) } : nil
                 )
                     .position(centre)
                     .transition(.scale(scale: 0.85, anchor: origin).combined(with: .opacity))
@@ -212,7 +214,7 @@ struct ContentView: View {
     private var findPanel: some View {
         VStack {
             if mode == .read && showsFind {
-                FindBar(viewer: viewer, pdf: document.pdf, focusRequests: findRequests, isPresented: $showsFind)
+                FindBar(viewer: viewer, pdf: model.pdf, focusRequests: findRequests, isPresented: $showsFind)
                     .transition(.scale(scale: 0.85, anchor: .topTrailing).combined(with: .opacity))
             }
         }

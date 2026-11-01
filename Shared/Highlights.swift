@@ -25,7 +25,7 @@ struct Highlight {
     }
 }
 
-extension QuireDocument {
+extension PDFModel {
     func highlight(_ selection: PDFSelection, in colour: HighlightColour) {
         var linesByPage: [(page: PDFPage, lines: [CGRect])] = []
         for line in selection.selectionsByLine() {
@@ -79,9 +79,9 @@ extension QuireDocument {
         highlight.annotation.color = colour
         highlight.page.addAnnotation(highlight.annotation)
 
-        undoManager?.registerUndo(withTarget: self) { document in
+        undoManager?.registerUndo(withTarget: self) { model in
             MainActor.assumeIsolated {
-                document.setColour(oldColour, of: highlight)
+                model.setColour(oldColour, of: highlight)
             }
         }
         undoManager?.setActionName("Change Highlight Colour")
@@ -96,9 +96,9 @@ extension QuireDocument {
             }
         }
 
-        undoManager?.registerUndo(withTarget: self) { document in
+        undoManager?.registerUndo(withTarget: self) { model in
             MainActor.assumeIsolated {
-                document.setHighlights(highlights, shown: !shown, actionName: actionName)
+                model.setHighlights(highlights, shown: !shown, actionName: actionName)
             }
         }
         undoManager?.setActionName(actionName)

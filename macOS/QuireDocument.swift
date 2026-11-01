@@ -1,19 +1,17 @@
 import AppKit
-import PDFKit
-import SwiftUI
 import UniformTypeIdentifiers
 
-@MainActor
-@Observable
 final class QuireDocument: NSDocument {
-    var pdf = PDFDocument()
-    var revision = 0
+    let model = PDFModel()
 
-    var pages: [PDFPage] = []
-
-    @ObservationIgnored weak var viewer: ViewerController?
+    weak var viewer: ViewerController?
 
     nonisolated override class var autosavesInPlace: Bool { false }
+
+    override init() {
+        super.init()
+        model.undoManager = undoManager
+    }
 
     override func makeWindowControllers() {
         Workspace.shared.open(self)
@@ -69,23 +67,12 @@ final class QuireDocument: NSDocument {
     }
 
     override func data(ofType typeName: String) throws -> Data {
-        guard let data = pdf.dataRepresentation() else {
-            throw CocoaError(.fileWriteUnknown)
-        }
-        return data
+        try model.data()
     }
 
     nonisolated override func read(from data: Data, ofType typeName: String) throws {
-        guard let parsed = PDFDocument(data: data) else {
-            throw CocoaError(.fileReadCorruptFile)
-        }
-        if parsed.isLocked {
-            throw CocoaError(.fileReadNoPermission)
-        }
-        MainActor.assumeIsolated {
-            pdf = parsed
-            pages = (0..<parsed.pageCount).compactMap { parsed.page(at: $0) }
-            revision += 1
+        try MainActor.assumeIsolated {
+            try model.load(data)
         }
     }
 }

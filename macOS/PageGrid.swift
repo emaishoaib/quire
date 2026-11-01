@@ -3,7 +3,7 @@ import SwiftUI
 import UniformTypeIdentifiers
 
 struct PageGrid: View {
-    @Bindable var document: QuireDocument
+    @Bindable var model: PDFModel
     @Binding var selection: Set<Int>
     let currentPage: Int
     var onOpenPage: (Int) -> Void
@@ -26,17 +26,17 @@ struct PageGrid: View {
         ScrollView {
             ScrollViewReader { scroller in
                 LazyVGrid(columns: columns, spacing: 28) {
-                    ForEach(Array(document.pages.enumerated()), id: \.element) { index, page in
+                    ForEach(Array(model.pages.enumerated()), id: \.element) { index, page in
                         cell(index: index, page: page)
                     }
                 }
                 .padding(32)
                 .frame(maxWidth: .infinity, alignment: .top)
                 .onAppear {
-                    guard document.pages.indices.contains(currentPage) else { return }
+                    guard model.pages.indices.contains(currentPage) else { return }
                     selection = [currentPage]
                     anchor = currentPage
-                    scroller.scrollTo(document.pages[currentPage], anchor: .center)
+                    scroller.scrollTo(model.pages[currentPage], anchor: .center)
                 }
             }
         }
@@ -57,7 +57,7 @@ struct PageGrid: View {
             }
         }
         .dropDestination(for: URL.self) { urls, _ in
-            insert(files: urls, at: document.pageCount)
+            insert(files: urls, at: model.pageCount)
         } isTargeted: { targeted in
             isFileDropTargeted = targeted
         }
@@ -76,7 +76,7 @@ struct PageGrid: View {
             delete(IndexSet(selection))
         }
         .onCommand(#selector(NSResponder.selectAll(_:))) {
-            selection = Set(0..<document.pageCount)
+            selection = Set(0..<model.pageCount)
         }
         .alert("Couldn't insert those pages", isPresented: showingError) {
             Button("OK") {}
@@ -178,15 +178,15 @@ struct PageGrid: View {
     private func pageControls(index: Int) -> some View {
         HStack(spacing: 2) {
             controlButton(rotateTitle("Rotate", index), systemImage: "rotate.left") {
-                document.rotatePages(targets(for: index), by: -90)
+                model.rotatePages(targets(for: index), by: -90)
             }
             controlButton(rotateTitle("Rotate", index), systemImage: "rotate.right") {
-                document.rotatePages(targets(for: index), by: 90)
+                model.rotatePages(targets(for: index), by: 90)
             }
             controlButton(deleteTitle(index), systemImage: "trash") {
                 delete(targets(for: index))
             }
-            .disabled(targets(for: index).count >= document.pageCount)
+            .disabled(targets(for: index).count >= model.pageCount)
         }
         .padding(.horizontal, 6)
         .padding(.vertical, 4)
@@ -313,7 +313,7 @@ struct PageGrid: View {
         guard !moving.contains(target) else { return }
 
         let destination = target > source ? target + 1 : target
-        document.movePages(moving, to: destination)
+        model.movePages(moving, to: destination)
 
         let start = destination - moving.filter { $0 < destination }.count
         selection = Set(start..<start + moving.count)
@@ -321,19 +321,19 @@ struct PageGrid: View {
     }
 
     private func delete(_ indices: IndexSet) {
-        document.deletePages(indices)
+        model.deletePages(indices)
         selection = []
         hovered = nil
     }
 
     private func insert(files urls: [URL], at index: Int) -> Bool {
-        let files = urls.filter { $0.pathExtension.lowercased() == "pdf" || QuireDocument.isImage($0) }
+        let files = urls.filter { $0.pathExtension.lowercased() == "pdf" || PDFModel.isImage($0) }
         guard !files.isEmpty else { return false }
 
         var insertAt = index
         do {
             for url in files {
-                insertAt += try document.insertPages(from: url, at: insertAt)
+                insertAt += try model.insertPages(from: url, at: insertAt)
             }
         } catch {
             errorMessage = "One of the files could not be read. It may be damaged or password protected."
@@ -352,7 +352,7 @@ struct PageGrid: View {
         var insertAt = index
         do {
             for url in panel.urls {
-                insertAt += try document.insertPages(from: url, at: insertAt)
+                insertAt += try model.insertPages(from: url, at: insertAt)
             }
         } catch {
             errorMessage = "One of the files could not be read. It may be damaged or password protected."
