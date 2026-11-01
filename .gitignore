@@ -4,3 +4,4 @@ DerivedData/
 xcuserdata/
 *.xcuserstate
 Quire.xcodeproj/
+Config/Release.xcconfig

@@ -62,7 +62,10 @@ macOS 27 and Xcode 26. No third-party dependencies: PDFKit and Vision ship with 
 ## Building
 
 The Xcode project is generated from `project.yml` using `xcodegen` and is not committed.
-Generate it first, and again whenever a file is added or removed:
+Release builds read the Apple development team from `Config/Release.xcconfig`, which is not
+committed either. Copy `Config/Release.xcconfig.example` and fill it in.
+
+Generate the project first, and again whenever a file is added or removed:
 
 ```bash
 xcodegen generate
