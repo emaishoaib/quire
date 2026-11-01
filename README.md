@@ -84,36 +84,32 @@ open build/Build/Products/Debug/Quire.app
 
 ## Releasing
 
-Push a version tag to publish a release:
+### Mac: DMG from any website
 
-```bash
-git tag v1.1
-git push origin v1.1
-```
+**Setup**
 
-GitHub then builds `Quire.app` and attaches it as `Quire.zip` to a release for that tag.
-The app's version is the tag's number without the `v`. The `MARKETING_VERSION` build
-setting is only what a local build reports. The workflow is `.github/workflows/release.yml`.
+All of these are already set up on this Mac.
 
-On a Mac set up with [workshop](https://github.com/emaishoaib/workshop), the next
-`setup.sh` run replaces the installed Quire with the new release. That copy is downloaded
-with curl, which does not quarantine it, so it opens without the step below.
+1. **Create a Developer ID certificate** -- this shows Macs the app came from you
+2. **Store the notarization login** -- this lets the script send the app to Apple for scanning. Quire uses the login stored as `notary`
+3. **Generate the Sparkle key** -- this proves that updates really came from you. Quire uses the key already in the keychain
+4. **Get a website address** -- this is where the DMG and update file will live. Set it as `QUIRE_UPDATES_HOST` in `Config/Release.xcconfig`
 
-## Giving someone a copy
+**Release**
 
-Send them the [latest release](https://github.com/emaishoaib/quire/releases/latest). They
-download `Quire.zip` from it, unzip it and move Quire to Applications.
+1. Raise the version and build number in `project.yml`
+2. Run `scripts/release-mac.sh`. It does all of this for you:
+   - builds and signs the app
+   - puts it in a DMG
+   - gets Apple to scan it
+   - updates `appcast.xml`, the file that tells installed apps what the latest version is
+3. Upload the new DMG and `appcast.xml` from `releases/` to your website
 
-The app is signed ad-hoc, which means the signature proves the app has not been tampered
-with but does not say who made it. macOS therefore blocks the first launch of a copy that
-arrived from elsewhere. **Tell whoever you send it to: right-click Quire and choose Open,
-then click Open in the dialog.** Double-clicking first gives a message with no way
-forward. After that one time, it launches normally on that machine.
+**What people do**
 
-Building from source avoids that entirely, since locally built apps are not quarantined.
-
-Paying for an Apple Developer Program membership would remove that step, by allowing a
-Developer ID signature and notarisation. It is not worth it for a couple of machines.
+1. They download the DMG from your website
+2. They open it and drag Quire into Applications
+3. From then on, the app checks `appcast.xml` by itself and offers new versions as you release them. They can also use **Check for Updates…** in the Quire menu
 
 ## Decisions worth knowing
 
@@ -126,8 +122,8 @@ hosted in an AppKit window.
 **The app is not sandboxed.** The sandbox was turned off for a feature that has since been
 removed, which merged the other PDFs in a file's folder into it. A sandboxed app can only
 touch the files the user picked, and that feature needed the whole folder. Nothing needs
-that now, and the sandbox has not been turned back on. The app is signed ad-hoc and never
-goes near the App Store, so the sandbox was protecting little.
+that now, and the sandbox has not been turned back on. The Mac app is released as a DMG
+rather than through the App Store, and only the App Store requires the sandbox.
 
 **An inserted image keeps its own size.** Its page is the size the file states for print,
 which is its pixels divided by its dots per inch, as in Preview. A photo can therefore land
