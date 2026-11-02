@@ -1,35 +1,16 @@
-//
-//  OCREngine.swift
-//  Quire
-//
-//  Created by Mustafa Shoaib on 9/23/26.
-//
-
 import CoreGraphics
 import CoreText
 import Foundation
 import Vision
 
-/// Makes a scanned page searchable.
-///
-/// The page is rendered to an image, Vision reads the words from it, and a new page is
-/// written with the original content plus an invisible text layer on top. Readers see the
-/// scan unchanged, while search and text selection find the recognised words.
-///
-/// Nothing here touches PDFKit or the UI, so it runs off the main actor.
 nonisolated enum OCREngine {
 
-    /// A recognised word and where it sits, in the page as a reader sees it.
-    ///
-    /// `box` is normalised (0...1) against the upright page. `spaceAfter` is true for
-    /// every word but the last on its line, and means a real space is drawn after it.
     struct Word {
         let text: String
         var spaceAfter: Bool
         let box: CGRect
     }
 
-    /// Returns a one-page PDF with a text layer, or nil when no text was found.
     static func searchablePage(from page: CGPDFPage, rotation: Int) async throws -> Data? {
         let mediaBox = page.getBoxRect(.mediaBox)
         guard let image = render(page, mediaBox: mediaBox) else { return nil }
@@ -40,9 +21,6 @@ nonisolated enum OCREngine {
         return writePage(page, mediaBox: mediaBox, rotation: rotation, words: words)
     }
 
-    /// Draws the page into a bitmap at 300 dpi, capped at 4000 pixels on the long side.
-    ///
-    /// `drawPDFPage` ignores the page's rotation, so this is always the unrotated page.
     static func render(_ page: CGPDFPage, mediaBox: CGRect) -> CGImage? {
         let scale = min(300.0 / 72.0, 4000.0 / max(mediaBox.width, mediaBox.height))
         let width = Int(mediaBox.width * scale)
@@ -67,14 +45,6 @@ nonisolated enum OCREngine {
         return context.makeImage()
     }
 
-    /// Reads the image with Vision, one entry per word.
-    ///
-    /// Words are kept apart rather than merged into lines because a line of our font is
-    /// a different width from the scanned line, which drags later words out of place.
-    ///
-    /// `minimumTextHeightFraction` is set to zero deliberately. Its default skips text
-    /// below a fraction of the image height, which loses table and footnote text: on the
-    /// sample scan it dropped a quarter of the lines, and misread "5GB" as "SGB".
     static func recognizeWords(in image: CGImage, rotation: Int) async throws -> [Word] {
         var request = RecognizeTextRequest()
         request.recognitionLevel = .accurate
@@ -123,7 +93,6 @@ nonisolated enum OCREngine {
         return ranges
     }
 
-    /// How the stored page has to be turned to be read upright.
     private static func orientation(for rotation: Int) -> CGImagePropertyOrientation {
         switch rotation {
         case 90: .right
@@ -133,7 +102,6 @@ nonisolated enum OCREngine {
         }
     }
 
-    /// Writes a one-page PDF holding the original page plus the invisible text layer.
     static func writePage(_ page: CGPDFPage, mediaBox: CGRect, rotation: Int, words: [Word]) -> Data? {
         let data = NSMutableData()
         var box = mediaBox
@@ -168,7 +136,6 @@ nonisolated enum OCREngine {
         return data as Data
     }
 
-    /// Maps a point in the upright page onto the unrotated page, undoing PDF's clockwise rotation.
     private static func uprightToPage(rotation: Int, pageSize: CGSize) -> CGAffineTransform {
         let width = pageSize.width
         let height = pageSize.height
@@ -181,10 +148,6 @@ nonisolated enum OCREngine {
         }
     }
 
-    /// Draws one word stretched to cover `rect`, so highlights land on the scanned word.
-    ///
-    /// The trailing space is drawn outside that fitted width and spills into the gap,
-    /// which is what stops PDFKit from running neighbouring words together.
     private static func draw(_ text: String, spaceAfter: Bool, fittedTo rect: CGRect, in context: CGContext) {
         guard rect.width > 0, rect.height > 0 else { return }
 

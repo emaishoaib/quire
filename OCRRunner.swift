@@ -1,23 +1,11 @@
-//
-//  OCRRunner.swift
-//  Quire
-//
-//  Created by Mustafa Shoaib on 9/23/26.
-//
-
 import CoreGraphics
 import CoreText
 import PDFKit
 import SwiftUI
 
-/// Runs the OCR engine over a document and reports what it is doing.
-///
-/// Recognition happens off the main actor, one page at a time, so the window stays
-/// usable and the run can be cancelled between pages. The whole run is applied as a
-/// single edit, so one press of Cmd-Z puts the document back.
+@MainActor
 @Observable
 final class OCRRunner {
-
     var isRunning = false
     private(set) var progress = 0.0
     private(set) var status = ""
@@ -25,16 +13,10 @@ final class OCRRunner {
 
     @ObservationIgnored private var task: Task<Void, Never>?
 
-    /// Pages holding at least this much text already are left alone.
     @ObservationIgnored private static let existingTextThreshold = 20
 
-    /// False until Vision has recognised something in this run of the app.
     @ObservationIgnored private static var isVisionReady = false
 
-    /// Loads Vision's model in the background at launch.
-    ///
-    /// The first recognition after a restart can take up to a minute while macOS
-    /// prepares the model, and doing it here means the user rarely waits for it.
     static func warmUp() {
         Task {
             await recognizeSample()
@@ -139,7 +121,6 @@ final class OCRRunner {
         summary = message
     }
 
-    /// Turns the engine's one-page PDF into a page carrying the original's crop and annotations.
     private static func makePage(from data: Data, like original: PDFPage) -> PDFPage? {
         guard let page = PDFDocument(data: data)?.page(at: 0)?.copy() as? PDFPage else { return nil }
         page.setBounds(original.bounds(for: .cropBox), for: .cropBox)
@@ -155,7 +136,6 @@ final class OCRRunner {
     private static let preparingMessage = "Preparing text recognition… This can take up to a minute the first time."
 }
 
-/// The sheet shown while a document is being recognised.
 struct OCRProgressView: View {
     @Bindable var ocr: OCRRunner
 

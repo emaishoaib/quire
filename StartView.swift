@@ -1,22 +1,7 @@
-//
-//  StartView.swift
-//  Quire
-//
-//  Created by Mustafa Shoaib on 9/23/26.
-//
-
 import AppKit
 import SwiftUI
 import UniformTypeIdentifiers
 
-/// The screen shown when Quire opens with nothing to read.
-///
-/// The list is AppKit's own record of recently opened documents, the same one behind
-/// File → Open Recent, and files open through the document controller so that they are
-/// opened exactly as that menu would open them.
-///
-/// Everything sits in a column of its own rather than filling the window, because a tab
-/// is as wide as the window and a full-width list of a few files reads as broken.
 struct StartView: View {
     @State private var recents = NSDocumentController.shared.recentDocumentURLs
     @State private var hasAppeared = false
@@ -137,21 +122,15 @@ struct StartView: View {
         .contentShape(.rect)
     }
 
-    /// Opens a file chosen by the user. The document closes this tab as it opens.
     private func openPanel() {
         NSDocumentController.shared.openDocument(nil)
     }
 
-    /// Opens a recent file. The document closes this tab as it opens.
     private func open(_ url: URL) {
         NSDocumentController.shared.openDocument(withContentsOf: url, display: true) { _, _, _ in }
     }
 }
 
-/// The screen a tab shows while its PDF is still being read.
-///
-/// A large PDF takes a moment to read. Without this, the window would carry on showing
-/// whatever was there before, as if the file had never arrived.
 struct OpeningView: View {
     let url: URL
 

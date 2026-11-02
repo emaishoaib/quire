@@ -1,21 +1,12 @@
-//
-//  ContentsSidebar.swift
-//  Quire
-//
-//  Created by Mustafa Shoaib on 9/24/26.
-//
-
 import PDFKit
 import SwiftUI
 
-/// Which list the sidebar beside the document is showing.
 enum SidebarTab: String, CaseIterable, Identifiable {
     case thumbnails = "Thumbnails"
     case contents = "Contents"
 
     var id: Self { self }
 
-    /// The tab a PDF opens on: its table of contents when it has one, or its thumbnails.
     static func opening(_ pdf: PDFDocument) -> SidebarTab {
         (pdf.outlineRoot?.numberOfChildren ?? 0) > 0 ? .contents : .thumbnails
     }
@@ -28,10 +19,6 @@ enum SidebarTab: String, CaseIterable, Identifiable {
     }
 }
 
-/// The document's table of contents, in the sidebar beside the document in Read mode.
-///
-/// The entries come from the PDF's outline, which is the list of sections a PDF can carry
-/// for readers to show. Scans and many generated PDFs have none, and get an empty state.
 struct ContentsSidebar: View {
     let document: QuireDocument
     let viewer: ViewerController
@@ -69,12 +56,6 @@ struct ContentsSidebar: View {
         }
     }
 
-    /// The section being read: the last entry, in reading order, starting on or before the current page.
-    ///
-    /// Entries are compared by page, because that is as finely as PDFKit reports where the
-    /// reader is, so of several sections starting on the current page, the last one wins.
-    /// An entry whose page has been deleted never matches, because its page is no longer
-    /// among the document's pages.
     private var current: OutlineItem.Entry? {
         let pageIndex = Dictionary(
             uniqueKeysWithValues: document.pages.enumerated().map { (ObjectIdentifier($0.element), $0.offset) }
@@ -93,11 +74,6 @@ struct ContentsSidebar: View {
         }
     }
 
-    /// Expands the sections around the current entry and scrolls it into view.
-    ///
-    /// The scroll waits a moment, because the rows of a section that has only just been
-    /// expanded do not exist yet to scroll to. A section the reader collapses stays
-    /// collapsed until reading moves on to another entry.
     private func revealCurrent(with scroller: ScrollViewProxy) {
         guard let current else { return }
         withAnimation(.easeOut(duration: 0.2)) {
@@ -112,14 +88,6 @@ struct ContentsSidebar: View {
     }
 }
 
-/// One entry in the table of contents, with its sections nested beneath it.
-///
-/// Built from disclosure groups rather than the list's own `children:` form, because
-/// that form keeps its expansion to itself, and the sidebar needs to open the section
-/// being read. The expansion lives in `expanded` instead.
-///
-/// The current section is drawn in the accent colour, echoing the outline the thumbnail
-/// strip draws around the current page.
 private struct OutlineRow: View {
     let item: OutlineItem
     let currentID: ObjectIdentifier?
@@ -168,14 +136,7 @@ private struct OutlineRow: View {
     }
 }
 
-/// One entry in the table of contents, with its children already read out of PDFKit.
-///
-/// `PDFOutline` hands out its children one index at a time, while the list needs them as
-/// an array, or nil for an entry with none so that it draws no disclosure triangle. The
-/// tree is built once per document rather than on every redraw, so each entry keeps the
-/// same identity and stays expanded or collapsed as it was.
 struct OutlineItem: Identifiable {
-    /// An entry together with the entries it sits inside, outermost first.
     struct Entry {
         let item: OutlineItem
         let ancestors: [ObjectIdentifier]
@@ -190,10 +151,6 @@ struct OutlineItem: Identifiable {
         outline.label?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
     }
 
-    /// Where the entry leads.
-    ///
-    /// A PDF can store this either as the entry's destination or as a go-to action
-    /// carrying one, and both are common, so both are read.
     var destination: PDFDestination? {
         outline.destination ?? (outline.action as? PDFActionGoTo)?.destination
     }
@@ -204,12 +161,10 @@ struct OutlineItem: Identifiable {
         self.children = children.isEmpty ? nil : children
     }
 
-    /// The top-level entries, which are the children of the outline's invisible root.
     static func roots(of pdf: PDFDocument) -> [OutlineItem] {
         pdf.outlineRoot.map(children(of:)) ?? []
     }
 
-    /// Every entry in reading order, each with the entries it sits inside.
     static func flattened(_ items: [OutlineItem], inside ancestors: [ObjectIdentifier] = []) -> [Entry] {
         items.flatMap { item in
             [Entry(item: item, ancestors: ancestors)]

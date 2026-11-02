@@ -1,23 +1,11 @@
-//
-//  ZoomControl.swift
-//  Quire
-//
-//  Created by Mustafa Shoaib on 9/23/26.
-//
-
 import SwiftUI
 
-/// Formatting shared by the zoom controls.
 enum ZoomControl {
     static func percentage(_ scale: Double) -> String {
         "\(Int((scale * 100).rounded()))%"
     }
 }
 
-/// The zoom readout that appears while the zoom level is changing and fades away after.
-///
-/// Pinch-zooming on the trackpad gives no feedback of its own, so this shows what the
-/// level now is and offers a slider for landing on a particular one.
 struct ZoomHUD: View {
     let viewer: ViewerController
 
@@ -71,7 +59,6 @@ struct ZoomHUD: View {
         }
     }
 
-    /// The slider works in powers of two, so each step feels the same size at any zoom level.
     private var sliderValue: Binding<Double> {
         Binding(
             get: { max(range.lowerBound, min(range.upperBound, log2(viewer.scale))) },

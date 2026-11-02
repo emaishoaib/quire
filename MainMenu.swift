@@ -1,18 +1,5 @@
-//
-//  MainMenu.swift
-//  Quire
-//
-//  Created by Mustafa Shoaib on 9/23/26.
-//
-
 import AppKit
 
-/// Builds the menu bar.
-///
-/// The items use AppKit's standard selectors, so the document system answers them:
-/// `NSDocumentController` handles New, Open and Open Recent, the open document handles
-/// Save, Save As and Revert, and its undo manager handles Undo and Redo. Close Tab goes
-/// to the window's controller, because a tab is Quire's own and AppKit knows nothing of it.
 enum MainMenu {
 
     static func make() -> NSMenu {
@@ -93,10 +80,6 @@ enum MainMenu {
 }
 
 private extension MainMenu {
-    /// Adds the items behind Command-1 to Command-9, which show the tab in that position.
-    ///
-    /// They are hidden from the menu but still answer their keys. The tabs already show
-    /// their own numbers while Command is held, so a list of them here would add nothing.
     static func addTabItems(to menu: NSMenu) {
         for index in 0..<Workspace.numberedTabs {
             let item = menu.addItem(

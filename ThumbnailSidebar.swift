@@ -1,40 +1,12 @@
-//
-//  ThumbnailSidebar.swift
-//  Quire
-//
-//  Created by Mustafa Shoaib on 9/23/26.
-//
-
 import PDFKit
 import SwiftUI
 import UniformTypeIdentifiers
 
-/// A strip of page thumbnails beside the document in Read mode.
-///
-/// This is written in SwiftUI rather than wrapping PDFKit's `PDFThumbnailView` so that
-/// each page can carry its own controls. What PDFKit gave for nothing is reproduced
-/// here: the current page is highlighted, and the strip scrolls to keep it in view.
-///
-/// Hovering a page reveals rotate and delete beneath it, hovering the gap between two
-/// pages reveals a plus that inserts there, and a page can be dragged to a new position.
-/// Unlike the Pages grid there is no selection, so every control acts on the one page it
-/// belongs to, and a drag moves that page alone.
 struct ThumbnailSidebar: View {
-    /// How the sidebar slides in and out.
-    ///
-    /// Attached to the container that holds the sidebar, not to a `withAnimation` around
-    /// the toggle: the setting is `@AppStorage`, so the change arrives from UserDefaults
-    /// outside whatever transaction set it, and an animation wrapped around the toggle is
-    /// simply lost.
     static let animation = Animation.spring(duration: 0.3, bounce: 0.1)
 
-    /// How the pages part to show where a dragged page will land.
     static let dropAnimation = Animation.spring(duration: 0.22, bounce: 0.15)
 
-    /// How thumbnails follow the size slider.
-    ///
-    /// Keyed to the width rather than wrapped around the slider's change, because the
-    /// size is `@AppStorage` and arrives from UserDefaults outside any transaction.
     static let sizeAnimation = Animation.easeOut(duration: 0.12)
 
     @Bindable var document: QuireDocument
@@ -143,7 +115,6 @@ struct ThumbnailSidebar: View {
         }
     }
 
-    /// The rotate and delete buttons that appear over a hovered page.
     private func pageControls(index: Int) -> some View {
         HStack(spacing: 2) {
             controlButton("Rotate Left", systemImage: "rotate.left") {
@@ -181,10 +152,6 @@ struct ThumbnailSidebar: View {
         .help(title)
     }
 
-    /// A plus in the gap above or below a page, which inserts pages at `index`.
-    ///
-    /// The button stays in the view tree and only fades, because removing it while the
-    /// pointer is on it makes hover flip on and off and the plus disappear.
     private func insertionZone(at index: Int, edge: VerticalEdge, besidePage page: Int) -> some View {
         let isVisible = insertionPoint == index || hovered == page
 
@@ -225,14 +192,12 @@ struct ThumbnailSidebar: View {
             .offset(y: edge == .top ? -10 : 10)
     }
 
-    /// Moves the dragged page onto `target`, shifting that page aside.
     private func move(from source: Int, to target: Int) {
         guard source != target else { return }
         let destination = target > source ? target + 1 : target
         document.movePages(IndexSet(integer: source), to: destination)
     }
 
-    /// Inserts dropped files at `index`, refusing anything that is not a PDF or an image.
     private func insert(files urls: [URL], at index: Int) -> Bool {
         let files = urls.filter { $0.pathExtension.lowercased() == "pdf" || QuireDocument.isImage($0) }
         guard !files.isEmpty else { return false }
@@ -249,7 +214,6 @@ struct ThumbnailSidebar: View {
         return true
     }
 
-    /// Asks for PDFs or images and inserts them at `index`.
     private func insertPages(at index: Int) {
         let panel = NSOpenPanel()
         panel.allowedContentTypes = [.pdf, .image]
@@ -268,13 +232,11 @@ struct ThumbnailSidebar: View {
         )
     }
 
-    /// How wide the sidebar has to be to hold a thumbnail of this width.
     static func sidebarWidth(for thumbnailWidth: Double) -> Double {
         thumbnailWidth + 48
     }
 }
 
-/// Handles a page being dropped onto the thumbnail at `target`.
 private struct SidebarDropDelegate: DropDelegate {
     let target: Int
     @Binding var dragging: Int?
@@ -305,26 +267,4 @@ private struct SidebarDropDelegate: DropDelegate {
         return true
     }
 
-}
-
-/// The size slider under the thumbnails, in the manner of Finder's icon size control.
-struct ThumbnailSizeControl: View {
-    @Binding var thumbnailWidth: Double
-
-    var body: some View {
-        HStack(spacing: 8) {
-            Image(systemName: "rectangle.portrait")
-                .font(.system(size: 8))
-                .foregroundStyle(.secondary)
-
-            Slider(value: $thumbnailWidth, in: 60...220)
-                .controlSize(.mini)
-
-            Image(systemName: "rectangle.portrait")
-                .font(.system(size: 13))
-                .foregroundStyle(.secondary)
-        }
-        .padding(.horizontal, 12)
-        .padding(.vertical, 6)
-    }
 }

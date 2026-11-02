@@ -1,28 +1,7 @@
-//
-//  FindBar.swift
-//  Quire
-//
-//  Created by Mustafa Shoaib on 9/23/26.
-//
-
 import PDFKit
 import SwiftUI
 
-/// The find panel, opened with Cmd-F and closed with Escape or its close button.
-///
-/// Results appear as you type, listed underneath by what they matched and how often,
-/// rather than only as a count. Clicking a row jumps to the first of that form, and the
-/// arrows beside the count step through them one at a time.
-///
-/// The field takes focus a moment after the panel appears, rather than immediately: the
-/// panel is not yet in the window when `onAppear` runs, and focus asked for then is lost.
-/// Asking for Find again while the panel is open returns focus to the field, which is
-/// what `focusRequests` counts.
 struct FindBar: View {
-    /// How the panel arrives and leaves, and how its results appear.
-    ///
-    /// Set where `showsFind` changes rather than in the view, because a panel being
-    /// inserted or removed cannot animate its own arrival.
     static let animation = Animation.spring(duration: 0.28, bounce: 0.12)
 
     let viewer: ViewerController

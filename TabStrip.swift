@@ -1,39 +1,9 @@
-//
-//  TabStrip.swift
-//  Quire
-//
-//  Created by Mustafa Shoaib on 10/5/26.
-//
-
 import AppKit
 import SwiftUI
 
-/// The row of tabs in the window's title bar, one for each open PDF.
-///
-/// The tabs share the width between them. Each is as wide as it likes while there is
-/// room, and they all narrow together, shortening their names, once there is not.
-///
-/// Dragging a tab along the strip reorders it. The tab follows the pointer, and the
-/// others step aside as it passes over them, so the order on release is the order shown.
-///
-/// The real order does not change until the tab is let go. While it is held the tabs are
-/// only drawn out of place, each shifted by an offset. Changing the order mid-drag has
-/// the strip animate the dragged tab to its new place while the pointer is also moving
-/// it, and the two disagree for a moment, which shows as the tab jumping away and back.
-///
-/// The plus button after the last tab opens a start tab, the same as File → New Tab.
-/// The empty stretch after it stands in for the title bar this strip covers: dragging
-/// it moves the window, and double-clicking it does what the user has set a title bar's
-/// double-click to do.
 struct TabStrip: View {
-    /// How tabs arrive, leave and make room for one another.
     static let animation = Animation.spring(duration: 0.26, bounce: 0.1)
 
-    /// A tab being dragged.
-    ///
-    /// `origin` is its place in the order, which stays its place until the drag is over.
-    /// `target` is the place it would take if let go now. `isSettling` is true from the
-    /// release until the tab has slid into that place.
     private struct TabDrag {
         let id: WorkspaceTab.ID
         let origin: Int
@@ -49,9 +19,6 @@ struct TabStrip: View {
     @State private var drag: TabDrag?
     @State private var tabWidth = 0.0
 
-    /// The distance from one tab's leading edge to the next one's.
-    ///
-    /// One figure serves for every tab, because the tabs share the width equally.
     private var step: Double { tabWidth + Self.spacing }
 
     var body: some View {
@@ -111,10 +78,6 @@ struct TabStrip: View {
         .clipped()
     }
 
-    /// How far a tab is drawn from its place in the order while a drag is going on.
-    ///
-    /// The dragged tab is at the pointer. The tabs between where it started and where it
-    /// would land are one step over, towards the gap it left.
     private func dragOffset(for tab: WorkspaceTab, at index: Int) -> Double {
         guard let drag else { return 0 }
 
@@ -130,12 +93,6 @@ struct TabStrip: View {
         return 0
     }
 
-    /// Follows the pointer with a tab, and works out where it would land.
-    ///
-    /// The distance is held between the first and last places, so a tab cannot be pulled
-    /// off either end of the row. Only a change of landing place is animated, which is
-    /// what slides the other tabs aside. The dragged tab itself is left out of that, or
-    /// it would lag behind the pointer.
     private func dragGesture(for tab: WorkspaceTab) -> some Gesture {
         DragGesture(minimumDistance: 4, coordinateSpace: .global)
             .onChanged { value in
@@ -170,10 +127,6 @@ struct TabStrip: View {
             }
     }
 
-    /// Makes the order that is being shown the real one, once the tab has settled.
-    ///
-    /// Animations are off for this. Every tab is already drawn where the new order puts
-    /// it, so the order and the offsets change together and nothing is seen to move.
     private func finishDrag(of tab: WorkspaceTab, at index: Int) {
         var transaction = Transaction()
         transaction.disablesAnimations = true
@@ -184,8 +137,6 @@ struct TabStrip: View {
         }
     }
 
-    /// Zooms or minimises the window, whichever System Settings says a double-click on a
-    /// title bar should do.
     private func titleBarDoubleClick() {
         guard let window = NSApp.keyWindow else { return }
 
@@ -200,19 +151,7 @@ struct TabStrip: View {
     }
 }
 
-/// One tab in the strip.
-///
-/// Clicking it shows the tab. The showing tab has a filled background, and the tab under
-/// the pointer a fainter one.
-///
-/// The spot at the tab's trailing edge shows one thing at a time, and never changes
-/// size, so the tabs do not shift about as it changes.
 private struct TabButton: View {
-    /// What the spot at the trailing edge is showing.
-    ///
-    /// The number comes first, because it is only there while Command is held. The dot
-    /// gives way to the close button under the pointer, so an unsaved tab can still be
-    /// closed with a click.
     private enum Accessory: Equatable {
         case number(Int)
         case unsavedDot

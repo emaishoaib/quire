@@ -1,25 +1,7 @@
-//
-//  PageGrid.swift
-//  Quire
-//
-//  Created by Mustafa Shoaib on 9/23/26.
-//
-
 import PDFKit
 import SwiftUI
 import UniformTypeIdentifiers
 
-/// A grid of page thumbnails with Finder-style selection and drag-to-reorder.
-///
-/// Click selects one page, Cmd-click adds or removes one, Shift-click extends from
-/// the last page clicked, and double-click opens that page in the viewer. Dragging a
-/// page that is part of the selection moves the whole selection.
-///
-/// Editing is done in place: hovering a page reveals rotate and delete buttons beneath
-/// it, and hovering the gap between two pages reveals a plus that inserts there.
-///
-/// The page being read arrives selected, as though it had been clicked, and scrolled to
-/// the middle of the grid, so switching over from Read starts from where you were.
 struct PageGrid: View {
     @Bindable var document: QuireDocument
     @Binding var selection: Set<Int>
@@ -193,7 +175,6 @@ struct PageGrid: View {
             }
     }
 
-    /// The rotate and delete buttons that float beneath a hovered page.
     private func pageControls(index: Int) -> some View {
         HStack(spacing: 2) {
             controlButton(rotateTitle("Rotate", index), systemImage: "rotate.left") {
@@ -241,11 +222,6 @@ struct PageGrid: View {
         .help(title)
     }
 
-    /// A plus in the gap beside a page that inserts pages at `index`.
-    ///
-    /// The button is always present and only fades, because removing it from the view
-    /// tree while the pointer is on it makes hover flip on and off and the plus vanish.
-    /// It stays visible while the pointer is over `besidePage`, the gap, or the plus itself.
     private func insertionZone(at index: Int, edge: HorizontalEdge, besidePage page: Int) -> some View {
         let isVisible = (insertionPoint == index || hovered == page) && dragging == nil
 
@@ -286,12 +262,6 @@ struct PageGrid: View {
             .offset(x: edge == .leading ? -14 : 14)
     }
 
-    /// Rubber-band selection.
-    ///
-    /// The gesture covers the whole scroll view, including the empty space below the
-    /// pages, and ignores drags that begin on a page, because those reorder it instead.
-    /// Everything works in the scroll view's coordinate space, so page frames and the
-    /// drag location agree however far the grid is scrolled.
     private var marqueeGesture: some Gesture {
         DragGesture(minimumDistance: 6, coordinateSpace: .named("grid"))
             .onChanged { value in
@@ -316,8 +286,6 @@ struct PageGrid: View {
             }
     }
 
-    /// The pages an action applies to: the whole selection when the hovered page is part
-    /// of it, and otherwise just the page being pointed at.
     private func targets(for index: Int) -> IndexSet {
         selection.contains(index) ? IndexSet(selection) : IndexSet(integer: index)
     }
@@ -340,7 +308,6 @@ struct PageGrid: View {
         }
     }
 
-    /// Moves the dragged page, or the whole selection when the dragged page belongs to it.
     private func move(from source: Int, to target: Int) {
         let moving = selection.contains(source) ? IndexSet(selection) : IndexSet(integer: source)
         guard !moving.contains(target) else { return }
@@ -359,7 +326,6 @@ struct PageGrid: View {
         hovered = nil
     }
 
-    /// Inserts dropped files at `index`, refusing anything that is not a PDF or an image.
     private func insert(files urls: [URL], at index: Int) -> Bool {
         let files = urls.filter { $0.pathExtension.lowercased() == "pdf" || QuireDocument.isImage($0) }
         guard !files.isEmpty else { return false }
@@ -376,7 +342,6 @@ struct PageGrid: View {
         return true
     }
 
-    /// Asks for PDFs or images and inserts them at `index`.
     private func insertPages(at index: Int) {
         let panel = NSOpenPanel()
         panel.allowedContentTypes = [.pdf, .image]
@@ -403,7 +368,6 @@ struct PageGrid: View {
     }
 }
 
-/// Collects where each page sits, so a marquee drag can tell which pages it covers.
 private struct CellFramesKey: PreferenceKey {
     static let defaultValue: [Int: CGRect] = [:]
 
@@ -412,7 +376,6 @@ private struct CellFramesKey: PreferenceKey {
     }
 }
 
-/// Handles a page being dropped onto the cell at `target`.
 private struct PageDropDelegate: DropDelegate {
     let target: Int
     @Binding var dragging: Int?
@@ -441,26 +404,5 @@ private struct PageDropDelegate: DropDelegate {
         guard let source = dragging else { return false }
         move(source, target)
         return true
-    }
-}
-
-/// Keeps rendered thumbnails until their page or its rotation changes.
-@Observable
-final class ThumbnailCache {
-    private struct Key: Hashable {
-        let page: ObjectIdentifier
-        let rotation: Int
-    }
-
-    @ObservationIgnored private var images: [Key: NSImage] = [:]
-
-    func image(for page: PDFPage) -> NSImage {
-        let key = Key(page: ObjectIdentifier(page), rotation: page.rotation)
-        if let image = images[key] {
-            return image
-        }
-        let image = page.thumbnail(of: NSSize(width: 280, height: 360), for: .cropBox)
-        images[key] = image
-        return image
     }
 }

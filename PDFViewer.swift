@@ -1,18 +1,6 @@
-//
-//  PDFViewer.swift
-//  Quire
-//
-//  Created by Mustafa Shoaib on 9/23/26.
-//
-
 import PDFKit
 import SwiftUI
 
-/// Shows a PDF using PDFKit's own view, which brings scrolling, zooming,
-/// page breaks and text selection with it.
-///
-/// A document opens with its first page fitted to the window's height, or where it was
-/// last closed if it has been open before.
 struct PDFViewer: NSViewRepresentable {
     let pdf: PDFDocument
     let revision: Int
@@ -23,7 +11,6 @@ struct PDFViewer: NSViewRepresentable {
         Coordinator(revision: revision, controller: controller)
     }
 
-    /// Hands the view's zoom and position to the controller as SwiftUI removes it.
     static func dismantleNSView(_ view: PDFView, coordinator: Coordinator) {
         coordinator.controller.detach(view)
     }
@@ -49,10 +36,6 @@ struct PDFViewer: NSViewRepresentable {
         return view
     }
 
-    /// Reloads only when the document object or its page list has actually changed.
-    ///
-    /// SwiftUI calls this on every state change, and assigning `document` scrolls the
-    /// view back to the first page, so a reload restores the page you were on.
     func updateNSView(_ view: PDFView, context: Context) {
         let pagesChanged = context.coordinator.revision != revision
         guard view.document !== pdf || pagesChanged else { return }
@@ -65,7 +48,6 @@ struct PDFViewer: NSViewRepresentable {
         }
     }
 
-    /// Remembers the page list the view was last loaded with, and which controller drives it.
     final class Coordinator {
         var revision: Int
         let controller: ViewerController
@@ -77,29 +59,16 @@ struct PDFViewer: NSViewRepresentable {
     }
 }
 
-/// A `PDFView` that reports its first layout with a real size, and every resize after.
-/// It also reports the mouse being pressed and released over it, and offers right clicks
-/// to its owner before opening a menu.
-///
-/// The view has no size when it is created, so anything that fits the page to the
-/// window has to wait until here. The window also keeps changing size while it opens,
-/// so an opening fit has to follow those changes too.
 final class FittingPDFView: PDFView {
     var onFirstLayout: (() -> Void)?
     var onResize: ((PDFDestination?) -> Void)?
     var onMouseDown: (() -> Void)?
     var onMouseUp: ((NSPoint) -> Void)?
 
-    /// Offered each right click or Control-click, with where in this view it landed.
-    /// Returning true means the click has been dealt with, and no menu should open.
     var onContextClick: ((NSPoint) -> Bool)?
 
     private var dealtWithClick: TimeInterval?
 
-    /// Reports the new size along with the spot that was at the top before the resize.
-    ///
-    /// Resizing moves the scroll position by itself, so the spot is read before `super`
-    /// applies the new size, while it is still the one the user was looking at.
     override func setFrameSize(_ newSize: NSSize) {
         let oldSize = frame.size
         let top = currentDestination
@@ -113,20 +82,11 @@ final class FittingPDFView: PDFView {
         super.mouseDown(with: event)
     }
 
-    /// Reports the release, and where in this view it happened.
-    ///
-    /// PDFKit sees the release first, so the selection is the finished one.
     override func mouseUp(with event: NSEvent) {
         super.mouseUp(with: event)
         onMouseUp?(convert(event.locationInWindow, from: nil))
     }
 
-    /// Offers the click to `onContextClick` before letting PDFKit open its menu.
-    ///
-    /// PDFKit asks for the menu twice for one right click, once from the page under the
-    /// mouse and once from this view. The click is offered the first time only, and the
-    /// second is answered the same way without asking. Offered twice, a click on two
-    /// highlights lying one over the other would remove both.
     override func menu(for event: NSEvent) -> NSMenu? {
         if dealtWithClick == event.timestamp {
             return nil

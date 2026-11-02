@@ -1,17 +1,3 @@
-//
-//  make-icon.swift
-//  Quire
-//
-//  Draws the app icon and the PDF document icon.
-//
-//  The app icon is written into Assets.xcassets at every size Xcode asks for. The
-//  document icon becomes DocumentIcon.icns, which Info.plist names as the icon for
-//  PDFs, so files show Quire's own icon once it handles them.
-//
-//  Run from the repository root:
-//      swift Tools/make-icon.swift
-//
-
 import AppKit
 
 let master = 1024.0
@@ -30,7 +16,6 @@ let slate = rgb(77, 87, 102)
 let charcoal = rgb(33, 38, 46)
 let cream = rgb(255, 248, 238)
 
-/// Draws horizontal bars standing in for lines of text.
 func lines(_ context: CGContext, in rect: CGRect, colour: CGColor, count: Int, thickness: Double, gap: Double, marginFraction: Double = 0.15) {
     context.setFillColor(colour)
     let margin = rect.width * marginFraction
@@ -43,10 +28,6 @@ func lines(_ context: CGContext, in rect: CGRect, colour: CGColor, count: Int, t
     }
 }
 
-/// Draws the icon at 1024 points: a page of text under a magnifying glass.
-///
-/// Everything is clipped to the rounded square, so the glass handle can never spill
-/// past the corner however the layout is nudged.
 func drawIcon(in context: CGContext) {
     let scale = master / 512
 
@@ -108,12 +89,6 @@ func drawIcon(in context: CGContext) {
     context.restoreGState()
 }
 
-/// A page of text under the magnifying glass, framed in red.
-///
-/// The frame and the band along the foot are one filled shape with the white page inset
-/// inside it. Drawing them separately leaves a seam where the two edges fail to meet.
-/// The gradient runs left to right across the page, so it is visible along the band and
-/// the frame picks up the matching colour wherever it meets it.
 func drawDocumentIcon(in context: CGContext) {
     let scale = master / 1024
     let outer = CGRect(x: 180 * scale, y: 90 * scale, width: 664 * scale, height: 844 * scale)
