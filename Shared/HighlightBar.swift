@@ -8,11 +8,21 @@ struct SelectionAnchor {
 struct HighlightBar: View {
     static let animation = Animation.spring(duration: 0.22, bounce: 0.2)
 
+    #if os(macOS)
     private static let dot = 18.0
     private static let spacing = 8.0
-    private static let divider = 1.0
     private static let padding = CGSize(width: 10, height: 7)
-    private static let gap = 8.0
+    private static let removeIcon = 12.0
+    private static let selectionGap = 8.0
+    #else
+    private static let dot = 30.0
+    private static let spacing = 14.0
+    private static let padding = CGSize(width: 14, height: 10)
+    private static let removeIcon = 18.0
+    private static let selectionGap = 66.0
+    #endif
+    private static let divider = 1.0
+    private static let highlightGap = 8.0
     private static let margin = 8.0
 
     static func size(hasRemove: Bool) -> CGSize {
@@ -27,6 +37,7 @@ struct HighlightBar: View {
 
     static func centre(for anchor: SelectionAnchor, in container: CGSize, hasRemove: Bool) -> CGPoint {
         let size = size(hasRemove: hasRemove)
+        let gap = hasRemove ? highlightGap : selectionGap
         let above = anchor.firstLine.minY - gap - size.height
         let below = anchor.lastLine.maxY + gap
 
@@ -83,7 +94,7 @@ struct HighlightBar: View {
 
                 Button(action: remove) {
                     Image(systemName: "trash")
-                        .font(.system(size: 12, weight: .medium))
+                        .font(.system(size: Self.removeIcon, weight: .medium))
                         .frame(width: Self.dot, height: Self.dot)
                         .contentShape(.rect)
                 }

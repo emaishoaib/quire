@@ -33,7 +33,7 @@ extension ViewerController {
         isHighlighting ? highlight(at: point) : nil
     }
 
-    private func highlight(at point: CGPoint) -> Highlight? {
+    func highlight(at point: CGPoint) -> Highlight? {
         guard let view, let page = view.page(for: point, nearest: false) else { return nil }
         return PDFModel.highlight(at: view.convert(point, to: page), on: page)
     }
@@ -69,7 +69,9 @@ extension ViewerController {
     }
 
     func selectionDidChange() {
+        #if os(macOS)
         guard followsSelection else { return }
+        #endif
         placeHighlightBar()
     }
 
