@@ -141,13 +141,13 @@ struct HomeView: View {
 
     private func open(_ url: URL, recent: RecentFile? = nil) {
         Task {
+            let file = PDFFile(fileURL: url)
             do {
-                let contents = try await Task.detached { try Self.contents(of: url) }.value
-                let model = PDFModel()
-                try model.load(contents.data)
-                recents.add(url, bookmark: contents.bookmark, firstPage: model.pages.first)
-                opened = OpenedPDF(name: url.deletingPathExtension().lastPathComponent, model: model)
+                try await file.openFile()
+                recents.add(url, bookmark: try url.bookmarkData(), firstPage: file.model.pages.first)
+                opened = OpenedPDF(name: url.deletingPathExtension().lastPathComponent, file: file)
             } catch {
+                await file.closeFile()
                 if let recent {
                     recents.remove(recent)
                 } else {
@@ -156,33 +156,6 @@ struct HomeView: View {
             }
         }
     }
-
-    private nonisolated static func contents(of url: URL) throws -> FileContents {
-        let hasAccess = url.startAccessingSecurityScopedResource()
-        defer {
-            if hasAccess {
-                url.stopAccessingSecurityScopedResource()
-            }
-        }
-
-        var coordinationError: NSError?
-        var result: Result<Data, any Error>?
-        NSFileCoordinator().coordinate(readingItemAt: url, options: [], error: &coordinationError) { readable in
-            result = Result { try Data(contentsOf: readable) }
-        }
-        if let coordinationError {
-            throw coordinationError
-        }
-        guard let result else {
-            throw CocoaError(.fileReadUnknown)
-        }
-        return FileContents(data: try result.get(), bookmark: try url.bookmarkData())
-    }
-}
-
-private struct FileContents: Sendable {
-    let data: Data
-    let bookmark: Data
 }
 
 private struct RecentThumbnail: View {
