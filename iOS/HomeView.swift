@@ -46,7 +46,7 @@ struct HomeView: View {
             }
         }
         .fullScreenCover(item: $opened) { pdf in
-            OpenedPDFView(pdf: pdf)
+            ReaderView(pdf: pdf)
         }
         .alert("Couldn't Open the PDF", isPresented: showingFailure) {
             Button("OK") {}
@@ -246,35 +246,6 @@ private struct AllRecentsView: View {
             .toolbar {
                 ToolbarItem(placement: .confirmationAction) {
                     Button("Done") {
-                        dismiss()
-                    }
-                }
-            }
-        }
-    }
-}
-
-private struct OpenedPDF: Identifiable {
-    let id = UUID()
-    let name: String
-    let model: PDFModel
-}
-
-private struct OpenedPDFView: View {
-    let pdf: OpenedPDF
-
-    @Environment(\.dismiss) private var dismiss
-
-    var body: some View {
-        NavigationStack {
-            ContentUnavailableView(
-                pdf.name,
-                systemImage: "doc.text",
-                description: Text("^[\(pdf.model.pageCount) page](inflect: true)")
-            )
-            .toolbar {
-                ToolbarItem(placement: .cancellationAction) {
-                    Button("Close") {
                         dismiss()
                     }
                 }

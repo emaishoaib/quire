@@ -33,7 +33,7 @@ final class ViewerController {
 
     @ObservationIgnored private var openingPosition: ReadingPosition?
 
-    @ObservationIgnored private var keepsHeightFitted = false
+    @ObservationIgnored private var keepsFitted = false
 
     @ObservationIgnored private var keepsOpeningSpot = false
 
@@ -60,12 +60,12 @@ final class ViewerController {
             return openingPosition
         }
         guard let destination = snapshot?.destination ?? view?.currentDestination else { return nil }
-        let scale = keepsHeightFitted ? nil : snapshot?.scale ?? view?.scaleFactor
+        let scale = keepsFitted ? nil : snapshot?.scale ?? view?.scaleFactor
         return ReadingPosition(destination, scale: scale.map(Double.init))
     }
 
     private func zoomWasChosen() {
-        keepsHeightFitted = false
+        keepsFitted = false
         keepsOpeningSpot = false
     }
 
@@ -204,8 +204,8 @@ final class ViewerController {
                 keepsOpeningSpot = true
                 view.go(to: opening)
             } else {
-                keepsHeightFitted = true
-                applyHeightFit(keeping: opening ?? view.currentDestination)
+                keepsFitted = true
+                applyFit(keeping: opening ?? view.currentDestination)
             }
         }
         goToPendingPage()
@@ -213,8 +213,8 @@ final class ViewerController {
 
     func viewDidResize(keeping top: PDFDestination?) {
         hideHighlightBar()
-        if keepsHeightFitted {
-            applyHeightFit(keeping: top)
+        if keepsFitted {
+            applyFit(keeping: top)
         } else if keepsOpeningSpot, let top {
             view?.go(to: top)
         }
@@ -222,14 +222,18 @@ final class ViewerController {
 
     func fitHeight() {
         zoomWasChosen()
-        applyHeightFit(keeping: nil)
+        applyFit(keeping: nil)
     }
 
-    private func applyHeightFit(keeping top: PDFDestination?) {
+    private func applyFit(keeping top: PDFDestination?) {
         guard let size = displayedPageSize, let view, size.height > 0 else { return }
+        #if os(macOS)
         let margins = view.pageBreakMargins
         let gap = view.displaysPageBreaks ? margins.top + margins.bottom : 0
         applyScale(view.bounds.height / (size.height + gap))
+        #else
+        applyScale(view.scaleFactorForSizeToFit)
+        #endif
         if let top {
             view.go(to: top)
         }
