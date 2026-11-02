@@ -19,6 +19,7 @@ struct ThumbnailSidebar: View {
     @State private var dragging: Int?
     @State private var dropTarget: Int?
     @State private var errorMessage: String?
+    @State private var isInserting = false
 
     var body: some View {
         ScrollViewReader { scroller in
@@ -46,6 +47,9 @@ struct ThumbnailSidebar: View {
         } message: {
             Text(errorMessage ?? "")
         }
+        #if os(iOS)
+        .modifier(PageInserter(model: model, index: insertionPoint ?? 0, isPresented: $isInserting))
+        #endif
     }
 
     private func cell(index: Int, page: PDFPage) -> some View {
@@ -115,6 +119,13 @@ struct ThumbnailSidebar: View {
         }
         .overlay(alignment: .bottom) {
             insertionZone(at: index + 1, edge: .bottom, besidePage: index)
+        }
+        #else
+        .contextMenu {
+            PageMenu(model: model, page: index, targets: IndexSet(integer: index)) { point in
+                insertionPoint = point
+                isInserting = true
+            }
         }
         #endif
     }

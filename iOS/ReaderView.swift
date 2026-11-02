@@ -14,6 +14,7 @@ struct ReaderView: View {
     let pdf: OpenedPDF
 
     @State private var controller = ViewerController()
+    @State private var mode: Mode = .read
     @State private var sidebarTab: SidebarTab
     @State private var showsSidebar = false
     @State private var sidebarDrag = 0.0
@@ -38,16 +39,8 @@ struct ReaderView: View {
     var body: some View {
         NavigationStack {
             HStack(spacing: 0) {
-                PDFViewer(
-                    pdf: model.pdf,
-                    controller: controller,
-                    onEdgeDrag: edgeDragged,
-                    onEdgeDragEnded: edgeDragEnded
-                )
-                .overlay { highlightBar }
-                .overlay(alignment: .topTrailing) { findPanel }
-                .overlay(alignment: .leading) { slidingSidebar }
-                .ignoresSafeArea(edges: .bottom)
+                content
+                    .ignoresSafeArea(edges: .bottom)
 
                 if hasRoomForRail {
                     Divider()
@@ -56,6 +49,7 @@ struct ReaderView: View {
                         viewer: controller,
                         pageCount: model.pageCount,
                         find: openFind,
+                        mode: $mode,
                         showsSidebar: $showsSidebar,
                         sidebarTab: $sidebarTab
                     )
@@ -71,10 +65,39 @@ struct ReaderView: View {
                 }
             }
         }
+        .onChange(of: model.revision) {
+            controller.clearSearch()
+        }
         .alert("Couldn't Save the PDF", isPresented: showingFailure) {
             Button("OK", action: acknowledgeFailure)
         } message: {
             Text(pdf.file.failure?.localizedDescription ?? "")
+        }
+    }
+
+    @ViewBuilder
+    private var content: some View {
+        switch mode {
+        case .read:
+            PDFViewer(
+                pdf: model.pdf,
+                revision: model.revision,
+                controller: controller,
+                onEdgeDrag: edgeDragged,
+                onEdgeDragEnded: edgeDragEnded
+            )
+            .overlay { highlightBar }
+            .overlay(alignment: .topTrailing) { findPanel }
+            .overlay(alignment: .leading) { slidingSidebar }
+            .transition(.opacity.combined(with: .scale(scale: 1.02)))
+        case .pages:
+            PageGrid(model: model, currentPage: controller.currentPage) { index in
+                withAnimation(Mode.animation) {
+                    mode = .read
+                }
+                controller.goToPage(index)
+            }
+            .transition(.opacity.combined(with: .scale(scale: 0.98)))
         }
     }
 
@@ -185,6 +208,9 @@ struct ReaderView: View {
 
     private func openFind() {
         findRequests += 1
+        withAnimation(Mode.animation) {
+            mode = .read
+        }
         withAnimation(FindBar.animation) {
             showsFind = true
         }

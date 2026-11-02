@@ -3,12 +3,13 @@ import SwiftUI
 
 struct PDFViewer: UIViewRepresentable {
     let pdf: PDFDocument
+    let revision: Int
     let controller: ViewerController
     let onEdgeDrag: (CGFloat) -> Void
     let onEdgeDragEnded: (CGFloat) -> Void
 
     func makeCoordinator() -> Coordinator {
-        Coordinator(controller: controller)
+        Coordinator(revision: revision, controller: controller)
     }
 
     static func dismantleUIView(_ view: PDFView, coordinator: Coordinator) {
@@ -43,16 +44,25 @@ struct PDFViewer: UIViewRepresentable {
     func updateUIView(_ view: PDFView, context: Context) {
         context.coordinator.onEdgeDrag = onEdgeDrag
         context.coordinator.onEdgeDragEnded = onEdgeDragEnded
-        guard view.document !== pdf else { return }
+        let pagesChanged = context.coordinator.revision != revision
+        guard view.document !== pdf || pagesChanged else { return }
+        context.coordinator.revision = revision
+
+        let currentPage = view.currentPage.flatMap { view.document?.index(for: $0) } ?? 0
         view.document = pdf
+        if let page = pdf.page(at: min(currentPage, max(pdf.pageCount - 1, 0))) {
+            view.go(to: page)
+        }
     }
 
     final class Coordinator: NSObject, UIGestureRecognizerDelegate {
+        var revision: Int
         let controller: ViewerController
         var onEdgeDrag: ((CGFloat) -> Void)?
         var onEdgeDragEnded: ((CGFloat) -> Void)?
 
-        init(controller: ViewerController) {
+        init(revision: Int, controller: ViewerController) {
+            self.revision = revision
             self.controller = controller
         }
 

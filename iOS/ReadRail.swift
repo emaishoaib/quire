@@ -8,6 +8,7 @@ struct ReadRail: View {
     let viewer: ViewerController
     let pageCount: Int
     let find: () -> Void
+    @Binding var mode: Mode
     @Binding var showsSidebar: Bool
     @Binding var sidebarTab: SidebarTab
 
@@ -17,11 +18,24 @@ struct ReadRail: View {
 
             separator
 
-            button("Show or Hide Sidebar", systemImage: "sidebar.left") {
-                showsSidebar.toggle()
+            button(
+                mode == .read ? "Organise Pages" : "Read",
+                systemImage: mode == .read ? "square.grid.2x2" : "doc.text"
+            ) {
+                withAnimation(Mode.animation) {
+                    mode = mode == .read ? .pages : .read
+                    showsSidebar = false
+                }
             }
 
-            if showsSidebar {
+            if mode == .read {
+                button("Show or Hide Sidebar", systemImage: "sidebar.left") {
+                    showsSidebar.toggle()
+                }
+                .transition(.opacity)
+            }
+
+            if mode == .read && showsSidebar {
                 let other: SidebarTab = sidebarTab == .thumbnails ? .contents : .thumbnails
                 button("Show \(other.rawValue)", systemImage: other.systemImage) {
                     sidebarTab = other
@@ -32,11 +46,16 @@ struct ReadRail: View {
 
             Spacer(minLength: 20)
 
-            PageIndicator(viewer: viewer, pageCount: pageCount)
+            if mode == .read {
+                Group {
+                    PageIndicator(viewer: viewer, pageCount: pageCount)
 
-            separator
+                    separator
 
-            zoomMenu
+                    zoomMenu
+                }
+                .transition(.opacity)
+            }
         }
         .padding(.vertical, 14)
         .padding(.horizontal, 6)
