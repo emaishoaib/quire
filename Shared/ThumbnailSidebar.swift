@@ -54,7 +54,7 @@ struct ThumbnailSidebar: View {
         let isSlot = dropTarget == index && dragging != index
 
         return VStack(spacing: 4) {
-            Image(nsImage: thumbnails.image(for: page))
+            thumbnail(of: page)
                 .resizable()
                 .aspectRatio(contentMode: .fit)
                 .frame(width: thumbnailWidth, height: thumbnailWidth * 1.3)
@@ -66,12 +66,14 @@ struct ThumbnailSidebar: View {
                         .strokeBorder(isCurrent ? Color.accentColor : .clear, lineWidth: 2)
                 )
                 .opacity(dragging == index ? 0.4 : 1)
+                #if os(macOS)
                 .overlay(alignment: .bottom) {
                     pageControls(index: index)
                         .opacity(hovered == index ? 1 : 0)
                         .allowsHitTesting(hovered == index)
                         .animation(.easeOut(duration: 0.12), value: hovered == index)
                 }
+                #endif
 
             Text("\(index + 1)")
                 .font(.caption)
@@ -89,6 +91,7 @@ struct ThumbnailSidebar: View {
         .animation(Self.dropAnimation, value: isSlot)
         .contentShape(.rect)
         .onTapGesture { viewer.goToPage(index) }
+        #if os(macOS)
         .onDrag {
             dragging = index
             return NSItemProvider(object: String(index) as NSString)
@@ -113,8 +116,18 @@ struct ThumbnailSidebar: View {
         .overlay(alignment: .bottom) {
             insertionZone(at: index + 1, edge: .bottom, besidePage: index)
         }
+        #endif
     }
 
+    private func thumbnail(of page: PDFPage) -> Image {
+        #if os(macOS)
+        Image(nsImage: thumbnails.image(for: page))
+        #else
+        Image(uiImage: thumbnails.image(for: page))
+        #endif
+    }
+
+    #if os(macOS)
     private func pageControls(index: Int) -> some View {
         HStack(spacing: 2) {
             controlButton("Rotate Left", systemImage: "rotate.left") {
@@ -224,6 +237,7 @@ struct ThumbnailSidebar: View {
         _ = insert(files: panel.urls, at: index)
         insertionPoint = nil
     }
+    #endif
 
     private var showingError: Binding<Bool> {
         Binding(
@@ -237,6 +251,7 @@ struct ThumbnailSidebar: View {
     }
 }
 
+#if os(macOS)
 private struct SidebarDropDelegate: DropDelegate {
     let target: Int
     @Binding var dragging: Int?
@@ -268,3 +283,4 @@ private struct SidebarDropDelegate: DropDelegate {
     }
 
 }
+#endif

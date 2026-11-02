@@ -1,6 +1,12 @@
 import SwiftUI
 
 struct PageIndicator: View {
+    #if os(macOS)
+    private static let fieldHeight = 24.0
+    #else
+    private static let fieldHeight = 36.0
+    #endif
+
     let viewer: ViewerController
     let pageCount: Int
 
@@ -12,7 +18,10 @@ struct PageIndicator: View {
             TextField("", text: $text)
                 .textFieldStyle(.plain)
                 .multilineTextAlignment(.center)
-                .frame(width: fieldWidth, height: 24)
+                #if os(iOS)
+                .keyboardType(.numbersAndPunctuation)
+                #endif
+                .frame(width: fieldWidth, height: Self.fieldHeight)
                 .background(.background.secondary, in: .rect(cornerRadius: 5))
                 .overlay(RoundedRectangle(cornerRadius: 5).strokeBorder(.separator))
                 .focused($isFocused)

@@ -179,8 +179,14 @@ final class ViewerController {
     }
 
     func fitWidth() {
+        #if os(macOS)
         guard let size = displayedPageSize, let view, size.width > 0 else { return }
         setScale((view.bounds.width - 24) / size.width)
+        #else
+        zoomWasChosen()
+        keepsFitted = true
+        applyFit(keeping: view?.currentDestination)
+        #endif
     }
 
     func viewDidFirstLayout() {

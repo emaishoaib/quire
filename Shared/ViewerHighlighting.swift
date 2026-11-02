@@ -71,8 +71,18 @@ extension ViewerController {
     func selectionDidChange() {
         #if os(macOS)
         guard followsSelection else { return }
+        #else
+        guard !selectionIsCurrentMatch else { return }
         #endif
         placeHighlightBar()
+    }
+
+    private var selectionIsCurrentMatch: Bool {
+        guard let selection = view?.currentSelection,
+              let page = selection.pages.first,
+              matches.indices.contains(matchIndex)
+        else { return false }
+        return selection.bounds(for: page) == matches[matchIndex].bounds(for: page)
     }
 
     private func placeHighlightBar() {

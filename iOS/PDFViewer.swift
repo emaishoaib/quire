@@ -4,6 +4,8 @@ import SwiftUI
 struct PDFViewer: UIViewRepresentable {
     let pdf: PDFDocument
     let controller: ViewerController
+    let onEdgeDrag: (CGFloat) -> Void
+    let onEdgeDragEnded: (CGFloat) -> Void
 
     func makeCoordinator() -> Coordinator {
         Coordinator(controller: controller)
@@ -31,19 +33,41 @@ struct PDFViewer: UIViewRepresentable {
         tap.cancelsTouchesInView = false
         tap.delegate = context.coordinator
         view.addGestureRecognizer(tap)
+
+        let edgeDrag = UIScreenEdgePanGestureRecognizer(target: context.coordinator, action: #selector(Coordinator.edgeDragged))
+        edgeDrag.edges = .left
+        view.addGestureRecognizer(edgeDrag)
         return view
     }
 
     func updateUIView(_ view: PDFView, context: Context) {
+        context.coordinator.onEdgeDrag = onEdgeDrag
+        context.coordinator.onEdgeDragEnded = onEdgeDragEnded
         guard view.document !== pdf else { return }
         view.document = pdf
     }
 
     final class Coordinator: NSObject, UIGestureRecognizerDelegate {
         let controller: ViewerController
+        var onEdgeDrag: ((CGFloat) -> Void)?
+        var onEdgeDragEnded: ((CGFloat) -> Void)?
 
         init(controller: ViewerController) {
             self.controller = controller
+        }
+
+        @objc func edgeDragged(_ recognizer: UIScreenEdgePanGestureRecognizer) {
+            let distance = recognizer.translation(in: recognizer.view).x
+            switch recognizer.state {
+            case .began, .changed:
+                onEdgeDrag?(distance)
+            case .ended:
+                onEdgeDragEnded?(distance)
+            case .cancelled, .failed:
+                onEdgeDragEnded?(0)
+            default:
+                break
+            }
         }
 
         @objc func tapped(_ recognizer: UITapGestureRecognizer) {

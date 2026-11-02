@@ -4,6 +4,18 @@ import SwiftUI
 struct FindBar: View {
     static let animation = Animation.spring(duration: 0.28, bounce: 0.12)
 
+    #if os(macOS)
+    private static let width = 320.0
+    private static let buttonSize = 20.0
+    private static let iconSize = 12.0
+    private static let rowPadding = 7.0
+    #else
+    private static let width = 420.0
+    private static let buttonSize = 40.0
+    private static let iconSize = 16.0
+    private static let rowPadding = 12.0
+    #endif
+
     let viewer: ViewerController
     let pdf: PDFDocument
     let focusRequests: Int
@@ -21,7 +33,7 @@ struct FindBar: View {
                     .transition(.scale(scale: 0.94, anchor: .top).combined(with: .opacity))
             }
         }
-        .frame(width: 320)
+        .frame(width: Self.width)
         .animation(Self.animation, value: query.isEmpty)
         .animation(Self.animation, value: viewer.matches.count)
         .onAppear {
@@ -33,7 +45,9 @@ struct FindBar: View {
         .onChange(of: focusRequests) {
             isFocused = true
         }
+        #if os(macOS)
         .onExitCommand(perform: close)
+        #endif
     }
 
     private var field: some View {
@@ -43,6 +57,10 @@ struct FindBar: View {
 
             TextField("Find in document", text: $query)
                 .textFieldStyle(.plain)
+                #if os(iOS)
+                .textInputAutocapitalization(.never)
+                .autocorrectionDisabled()
+                #endif
                 .focused($isFocused)
                 .onSubmit { viewer.submitSearch(query, in: pdf) }
                 .onChange(of: query) { _, text in
@@ -74,8 +92,14 @@ struct FindBar: View {
                 ))
             } label: {
                 Image(systemName: "ellipsis")
+                    #if os(iOS)
+                    .frame(width: Self.buttonSize, height: Self.buttonSize)
+                    .contentShape(.rect)
+                    #endif
             }
+            #if os(macOS)
             .menuStyle(.borderlessButton)
+            #endif
             .menuIndicator(.hidden)
             .fixedSize()
             .help("Search options")
@@ -135,7 +159,7 @@ struct FindBar: View {
                                         .foregroundStyle(.secondary)
                                 }
                                 .padding(.horizontal, 14)
-                                .padding(.vertical, 7)
+                                .padding(.vertical, Self.rowPadding)
                                 .contentShape(.rect)
                             }
                             .buttonStyle(.plain)
@@ -158,8 +182,8 @@ struct FindBar: View {
     private func iconButton(_ title: String, systemImage: String, action: @escaping () -> Void) -> some View {
         Button(action: action) {
             Image(systemName: systemImage)
-                .font(.system(size: 12, weight: .medium))
-                .frame(width: 20, height: 20)
+                .font(.system(size: Self.iconSize, weight: .medium))
+                .frame(width: Self.buttonSize, height: Self.buttonSize)
                 .contentShape(.rect)
         }
         .buttonStyle(.plain)
