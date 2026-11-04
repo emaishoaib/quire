@@ -124,6 +124,13 @@ final class FittingPDFView: PDFView {
         return PDFDestination(page: page, at: convert(corner, to: page))
     }
 
+    override func go(to destination: PDFDestination) {
+        super.go(to: destination)
+        guard let page = destination.page, destination.point.y != kPDFDestinationUnspecifiedValue,
+              let scrollView else { return }
+        scrollView.contentOffset.y += convert(destination.point, from: page).y
+    }
+
     override func layoutSubviews() {
         let top = currentDestination
         super.layoutSubviews()
@@ -140,12 +147,16 @@ final class FittingPDFView: PDFView {
     }
 
     private func observeScrolling() {
-        guard let scrollView = subviews.lazy.compactMap({ $0 as? UIScrollView }).first else { return }
+        guard let scrollView else { return }
         scrollObservation = scrollView.observe(\.contentOffset) { [weak self] _, _ in
             MainActor.assumeIsolated {
                 self?.didScroll()
             }
         }
+    }
+
+    private var scrollView: UIScrollView? {
+        subviews.lazy.compactMap { $0 as? UIScrollView }.first
     }
 
     private func didScroll() {

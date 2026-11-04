@@ -13,7 +13,7 @@ struct ReaderView: View {
 
     let pdf: OpenedPDF
 
-    @State private var controller = ViewerController()
+    @State private var controller: ViewerController
     @State private var mode: Mode = .read
     @State private var sidebarTab: SidebarTab
     @State private var showsSidebar = false
@@ -24,6 +24,7 @@ struct ReaderView: View {
     @Environment(\.horizontalSizeClass) private var horizontalSizeClass
     @Environment(\.verticalSizeClass) private var verticalSizeClass
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.scenePhase) private var scenePhase
 
     private var model: PDFModel { pdf.file.model }
 
@@ -33,6 +34,9 @@ struct ReaderView: View {
 
     init(pdf: OpenedPDF) {
         self.pdf = pdf
+        _controller = State(initialValue: ViewerController(
+            openingPosition: ReadingPositions.position(for: pdf.file.fileURL)
+        ))
         _sidebarTab = State(initialValue: SidebarTab.opening(pdf.file.model.pdf))
     }
 
@@ -78,10 +82,18 @@ struct ReaderView: View {
                 ToolbarItem(placement: .cancellationAction) {
                     Button("Close", action: close)
                 }
+                ToolbarItem(placement: .primaryAction) {
+                    ShareLink(item: SharedPDF(name: pdf.name, model: model), preview: SharePreview(pdf.name))
+                }
             }
         }
         .onChange(of: model.revision) {
             controller.clearSearch()
+        }
+        .onChange(of: scenePhase) {
+            if scenePhase == .background {
+                savePosition()
+            }
         }
         .sheet(isPresented: showingSidebarSheet) {
             SidebarSheet(
@@ -246,7 +258,13 @@ struct ReaderView: View {
         }
     }
 
+    private func savePosition() {
+        guard let position = controller.position else { return }
+        ReadingPositions.save(position, for: pdf.file.fileURL)
+    }
+
     private func close() {
+        savePosition()
         Task {
             await pdf.file.closeFile()
             if pdf.file.failure == nil {
