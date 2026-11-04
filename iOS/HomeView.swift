@@ -9,20 +9,18 @@ struct HomeView: View {
     @State private var failure: String?
 
     var body: some View {
-        ScrollView {
-            VStack(alignment: .leading, spacing: 24) {
-                Wordmark(height: 44)
+        VStack(alignment: .leading, spacing: 24) {
+            Wordmark(height: 44)
 
-                if !recents.files.isEmpty {
-                    RecentRow(recents: recents, showAll: { showsAllRecents = true }, open: open)
-                }
-
-                LibrarySection(library: library) { url in
-                    open(url)
-                }
+            if !recents.files.isEmpty {
+                RecentRow(recents: recents, showAll: { showsAllRecents = true }, open: open)
             }
-            .padding(24)
+
+            LibrarySection(library: library) { url in
+                open(url)
+            }
         }
+        .padding([.top, .horizontal], 24)
         .background(Color.wine)
         .preferredColorScheme(.dark)
         .task { await library.refresh() }

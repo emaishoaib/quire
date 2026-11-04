@@ -20,22 +20,11 @@ struct LibrarySection: View {
                 LibrarySearchField(text: searchText) { search = nil }
             }
 
-            if library.hasLoaded && library.items.isEmpty {
-                EmptyLibrary(isTopLevel: library.folders.isEmpty)
-            } else if library.hasLoaded && visibleItems.isEmpty {
-                Text("No matches in this folder")
-                    .font(.headline)
-                    .foregroundStyle(Color.cream)
-                    .frame(maxWidth: .infinity)
-                    .padding(.vertical, 48)
-            } else {
-                LazyVGrid(
-                    columns: [GridItem(.adaptive(minimum: FileTile.width), spacing: 16, alignment: .top)],
-                    alignment: .leading,
-                    spacing: 20
-                ) {
-                    ForEach(visibleItems, content: tile)
-                }
+            PullToRefreshScrollView {
+                await library.refresh()
+            } content: {
+                content
+                    .padding(.bottom, 24)
             }
         }
         .onChange(of: library.folders) { search = nil }
@@ -48,6 +37,27 @@ struct LibrarySection: View {
             Button("OK") {}
         } message: {
             Text(folderFailure ?? "")
+        }
+    }
+
+    @ViewBuilder
+    private var content: some View {
+        if library.hasLoaded && library.items.isEmpty {
+            EmptyLibrary(isTopLevel: library.folders.isEmpty)
+        } else if library.hasLoaded && visibleItems.isEmpty {
+            Text("No matches in this folder")
+                .font(.headline)
+                .foregroundStyle(Color.cream)
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 48)
+        } else {
+            LazyVGrid(
+                columns: [GridItem(.adaptive(minimum: FileTile.width), spacing: 16, alignment: .top)],
+                alignment: .leading,
+                spacing: 20
+            ) {
+                ForEach(visibleItems, content: tile)
+            }
         }
     }
 
