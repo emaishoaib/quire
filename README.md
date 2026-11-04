@@ -84,6 +84,16 @@ xcodebuild -project Quire.xcodeproj -scheme Quire-macOS -configuration Debug \
 open build/Build/Products/Debug/Quire.app
 ```
 
+To try a change everywhere at once, use the rebuild script. It generates the project and builds
+Quire in Release for the Mac and for the iPhone and iPad simulators. Then it restarts all three
+from the new builds. The simulators are the iPhone 18 Pro and the iPad Pro 11-inch (M5), each on
+the newest runtime that has it, booted if needed. If either build fails, nothing running is
+touched:
+
+```bash
+scripts/rebuild.sh
+```
+
 ## Releasing
 
 ### iPhone and iPad: beta through TestFlight
