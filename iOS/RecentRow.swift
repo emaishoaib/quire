@@ -25,7 +25,7 @@ struct RecentRow: View {
 
             HStack(alignment: .top, spacing: 12) {
                 ForEach(recents.files.prefix(visibleCount)) { file in
-                    FileTile(name: file.name, image: recents.thumbnail(of: file)) {
+                    FileTile(name: file.name, preview: .page(recents.thumbnail(of: file))) {
                         open(file)
                     }
                 }
@@ -47,7 +47,7 @@ struct AllRecentsView: View {
             ScrollView {
                 LazyVGrid(columns: [GridItem(.adaptive(minimum: FileTile.width), spacing: 16)], spacing: 20) {
                     ForEach(recents.files) { file in
-                        FileTile(name: file.name, image: recents.thumbnail(of: file)) {
+                        FileTile(name: file.name, preview: .page(recents.thumbnail(of: file))) {
                             open(file)
                         }
                     }
