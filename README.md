@@ -125,6 +125,23 @@ All of these are already set up on this Mac.
    - gets Apple to scan it
    - updates `appcast.xml`, the file that tells installed apps what the latest version is
    - uploads the DMG and then `appcast.xml` to the website, so the appcast never lists a DMG that isn't there yet
+   - uploads the DMG a second time as `Quire.dmg`, which each release overwrites, so that name is always the latest version
+
+**Sharing the download**
+
+Share `https://<updates host>/quire`, where `<updates host>` is the domain in `QUIRE_UPDATES_HOST`. It works with or without the slash at the end. A redirect rule in Cloudflare sends both on to `/quire/Quire.dmg`, so they always download the latest version. The rule is set up once, by hand, under Rules > Redirect Rules for the domain:
+
+- **When incoming requests match** -- a custom filter expression, entered through **Edit expression**:
+
+  ```
+  http.host eq "<updates host>" and http.request.uri.path in {"/quire" "/quire/"}
+  ```
+
+- **Then** -- a static redirect to `https://<updates host>/quire/Quire.dmg` with status code 302, and the query string not preserved
+
+The expression lists both paths exactly. A wildcard such as `/quire*` would also catch `/quire/Quire.dmg` and `/quire/appcast.xml`, so the download would redirect to itself and installed copies couldn't check for updates.
+
+It's a 302, a temporary redirect, because browsers remember a 301 permanently.
 
 **What people do**
 

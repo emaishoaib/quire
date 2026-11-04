@@ -124,6 +124,7 @@ echo "Updating the appcast"
 
 echo "Uploading to the $BUCKET bucket"
 upload "$DMG" "$(basename "$DMG")"
+upload "$DMG" Quire.dmg --cache-control no-cache
 upload "$RELEASES/appcast.xml" appcast.xml
 
 echo "Released Quire $VERSION ($BUILD) to https://$UPDATES_HOST/quire/"
