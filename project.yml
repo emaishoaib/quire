@@ -42,6 +42,8 @@ targets:
       path: iOS/Info.plist
       properties:
         ITSAppUsesNonExemptEncryption: false
+        UIFileSharingEnabled: true
+        LSSupportsOpeningDocumentsInPlace: true
     settings:
       base:
         PRODUCT_NAME: Quire
