@@ -109,6 +109,7 @@ struct OpeningView: View {
 
             Text(FileManager.default.displayName(atPath: url.path))
                 .font(.system(size: 13, weight: .medium))
+                .foregroundStyle(Color.cream)
                 .lineLimit(1)
                 .truncationMode(.middle)
 
@@ -118,11 +119,12 @@ struct OpeningView: View {
 
                 Text("Opening…")
                     .font(.system(size: 12))
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(Color.cream.opacity(0.7))
             }
         }
         .padding(24)
         .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .background(Color(nsColor: .windowBackgroundColor))
+        .background(Color.wine)
+        .environment(\.colorScheme, .dark)
     }
 }
