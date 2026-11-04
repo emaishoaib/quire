@@ -3,7 +3,7 @@ name: Quire
 options:
   bundleIdPrefix: com.mashoaib
   deploymentTarget:
-    iOS: "26.0"
+    iOS: "27.0"
     macOS: "27.0"
   createIntermediateGroups: true
 
@@ -13,7 +13,7 @@ configFiles:
 settings:
   base:
     SWIFT_VERSION: "6.0"
-    MARKETING_VERSION: "2.7"
+    MARKETING_VERSION: "0.1.0"
     CURRENT_PROJECT_VERSION: "1"
     CODE_SIGN_STYLE: Automatic
     SWIFT_APPROACHABLE_CONCURRENCY: YES

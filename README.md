@@ -1,7 +1,8 @@
 # Quire
 
 A Mac app for reading and highlighting PDFs, reorganising their pages, and making scans
-searchable.
+searchable. An iPhone and iPad version reads, highlights and reorganises, but does not
+recognise text.
 
 Preview already reads PDFs and reorders pages. What it cannot do is add a text layer to a
 scan, so a scanned document stays unsearchable forever. That is the gap Quire fills, and
@@ -57,8 +58,9 @@ alone. The whole run undoes as one action.
 
 ## Requirements
 
-macOS 27 and Xcode 27. The only third-party dependency is Sparkle, which installs updates.
-PDFKit and Vision ship with macOS.
+macOS 27 for the Mac app, iOS 27 for the iPhone and iPad app, and Xcode 27 to build both.
+The only third-party dependency is Sparkle, which installs updates on the Mac. PDFKit and
+Vision ship with the system.
 
 ## Building
 
@@ -83,6 +85,24 @@ open build/Build/Products/Debug/Quire.app
 ```
 
 ## Releasing
+
+### iPhone and iPad: beta through TestFlight
+
+TestFlight is Apple's app for installing beta versions.
+
+**Setup**
+
+1. **Join the Apple Developer Program** -- already done on this Mac, along with signing in to the account in Xcode
+2. **Create the app record** -- add Quire in App Store Connect, Apple's website for managing apps, with the bundle ID `com.mashoaib.quire`
+
+**Every beta**
+
+1. Raise the version and build number in `project.yml`. App Store Connect turns down any build number that isn't higher than every earlier upload
+2. In Xcode, choose the `Quire-iOS` scheme and **Any iOS Device**, then **Product -> Archive**
+3. When the archive appears in the Organizer, choose **Distribute App -> TestFlight**
+4. Wait for Apple to process the build, and it appears in App Store Connect
+5. Give testers access to the build
+6. Testers install it from the TestFlight app on their iPhone or iPad
 
 ### Mac: DMG from any website
 
