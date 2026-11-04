@@ -1,5 +1,9 @@
 import SwiftUI
+#if os(macOS)
+import AppKit
+#else
 import UIKit
+#endif
 
 struct Wordmark: View {
     private enum Mark {
@@ -65,7 +69,11 @@ struct Wordmark: View {
     }
 
     private static func textWidth(_ string: String) -> Double {
+        #if os(macOS)
+        let font = NSFont.systemFont(ofSize: Mark.fontSize, weight: .bold)
+        #else
         let font = UIFont.systemFont(ofSize: Mark.fontSize, weight: .bold)
+        #endif
         return (string as NSString).size(withAttributes: [.font: font]).width
     }
 }
