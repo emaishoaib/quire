@@ -3,6 +3,8 @@ import SwiftUI
 import UniformTypeIdentifiers
 
 struct StartView: View {
+    private static let contentWidth = 760.0
+
     @State private var recents = NSDocumentController.shared.recentDocumentURLs
     @State private var hasAppeared = false
 
@@ -17,10 +19,11 @@ struct StartView: View {
                     recentGrid
                 }
             }
+            .frame(maxWidth: Self.contentWidth, alignment: .leading)
             .padding(.horizontal, 40)
             .padding(.top, 36)
             .padding(.bottom, 40)
-            .frame(maxWidth: .infinity, alignment: .leading)
+            .frame(maxWidth: .infinity)
             .opacity(hasAppeared ? 1 : 0)
             .offset(y: hasAppeared ? 0 : 12)
             .animation(.spring(duration: 0.35, bounce: 0.1), value: hasAppeared)
