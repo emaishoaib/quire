@@ -2,8 +2,6 @@ import PDFKit
 import SwiftUI
 
 struct PageGrid: View {
-    private static let columns = [GridItem(.adaptive(minimum: 170, maximum: 210), spacing: 28)]
-
     let model: PDFModel
     let currentPage: Int
     let openPage: (Int) -> Void
@@ -13,16 +11,23 @@ struct PageGrid: View {
     @State private var dropTarget: Int?
     @State private var insertionPoint = 0
     @State private var isInserting = false
+    @Environment(\.horizontalSizeClass) private var horizontalSizeClass
+
+    private var isCompact: Bool { horizontalSizeClass == .compact }
+
+    private var columns: [GridItem] {
+        [GridItem(.adaptive(minimum: isCompact ? 156 : 170, maximum: 210), spacing: isCompact ? 16 : 28)]
+    }
 
     var body: some View {
         ScrollViewReader { scroller in
             ScrollView {
-                LazyVGrid(columns: Self.columns, spacing: 28) {
+                LazyVGrid(columns: columns, spacing: 28) {
                     ForEach(Array(model.pages.enumerated()), id: \.element) { index, page in
                         cell(index: index, page: page)
                     }
                 }
-                .padding(32)
+                .padding(isCompact ? 16 : 32)
                 .frame(maxWidth: .infinity)
                 .contentShape(.rect)
                 .onTapGesture { selection = [] }

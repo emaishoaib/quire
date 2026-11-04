@@ -72,6 +72,7 @@ final class ViewerController {
     func attach(_ view: PDFView) {
         self.view = view
         attachCount += 1
+        appliedScale = view.scaleFactor
         applyDisplayMode()
         view.displaysAsBook = showsCoverPage
         if !matches.isEmpty {
@@ -196,9 +197,11 @@ final class ViewerController {
             if snapshot.autoScales {
                 view.autoScales = true
             } else {
-                setScale(snapshot.scale)
+                applyScale(snapshot.scale)
             }
-            if let destination = snapshot.destination {
+            if keepsFitted {
+                applyFit(keeping: snapshot.destination)
+            } else if let destination = snapshot.destination {
                 view.go(to: destination)
             }
         } else {

@@ -33,7 +33,11 @@ struct FindBar: View {
                     .transition(.scale(scale: 0.94, anchor: .top).combined(with: .opacity))
             }
         }
+        #if os(macOS)
         .frame(width: Self.width)
+        #else
+        .frame(maxWidth: Self.width)
+        #endif
         .animation(Self.animation, value: query.isEmpty)
         .animation(Self.animation, value: viewer.matches.count)
         .onAppear {

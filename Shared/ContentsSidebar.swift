@@ -22,6 +22,7 @@ enum SidebarTab: String, CaseIterable, Identifiable {
 struct ContentsSidebar: View {
     let model: PDFModel
     let viewer: ViewerController
+    var didOpenPage: () -> Void = {}
 
     @State private var items: [OutlineItem] = []
     @State private var entries: [OutlineItem.Entry] = []
@@ -71,6 +72,7 @@ struct ContentsSidebar: View {
     private func open(_ item: OutlineItem) {
         if let destination = item.destination {
             viewer.go(to: destination)
+            didOpenPage()
         }
     }
 

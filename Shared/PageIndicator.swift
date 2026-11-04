@@ -9,12 +9,15 @@ struct PageIndicator: View {
 
     let viewer: ViewerController
     let pageCount: Int
+    var isInline = false
 
     @State private var text = ""
     @FocusState private var isFocused: Bool
 
     var body: some View {
-        VStack(spacing: 6) {
+        let layout = isInline ? AnyLayout(HStackLayout(spacing: 6)) : AnyLayout(VStackLayout(spacing: 6))
+
+        layout {
             TextField("", text: $text)
                 .textFieldStyle(.plain)
                 .multilineTextAlignment(.center)

@@ -38,23 +38,38 @@ struct ReaderView: View {
 
     var body: some View {
         NavigationStack {
-            HStack(spacing: 0) {
-                content
-                    .ignoresSafeArea(edges: .bottom)
+            VStack(spacing: 0) {
+                HStack(spacing: 0) {
+                    content
+                        .ignoresSafeArea(edges: .bottom)
 
-                if hasRoomForRail {
+                    if hasRoomForRail {
+                        Divider()
+
+                        ReadRail(
+                            viewer: controller,
+                            pageCount: model.pageCount,
+                            find: openFind,
+                            mode: $mode,
+                            showsSidebar: $showsSidebar,
+                            sidebarTab: $sidebarTab
+                        )
+                    }
+                }
+
+                if !hasRoomForRail {
                     Divider()
 
-                    ReadRail(
+                    ReadBar(
                         viewer: controller,
                         pageCount: model.pageCount,
                         find: openFind,
                         mode: $mode,
-                        showsSidebar: $showsSidebar,
-                        sidebarTab: $sidebarTab
+                        showsSidebar: $showsSidebar
                     )
                 }
             }
+            .background(Color(.secondarySystemBackground), ignoresSafeAreaEdges: [.bottom, .horizontal])
             .animation(ThumbnailSidebar.animation, value: showsSidebar)
             .animation(ThumbnailSidebar.animation, value: sidebarTab)
             .navigationTitle(pdf.name)
@@ -67,6 +82,14 @@ struct ReaderView: View {
         }
         .onChange(of: model.revision) {
             controller.clearSearch()
+        }
+        .sheet(isPresented: showingSidebarSheet) {
+            SidebarSheet(
+                model: model,
+                viewer: controller,
+                thumbnailWidth: Self.thumbnailWidth,
+                tab: $sidebarTab
+            )
         }
         .alert("Couldn't Save the PDF", isPresented: showingFailure) {
             Button("OK", action: acknowledgeFailure)
@@ -168,7 +191,7 @@ struct ReaderView: View {
 
     private var findPanel: some View {
         VStack {
-            if hasRoomForRail && showsFind {
+            if showsFind {
                 FindBar(viewer: controller, pdf: model.pdf, focusRequests: findRequests, isPresented: $showsFind)
                     .transition(.scale(scale: 0.85, anchor: .topTrailing).combined(with: .opacity))
             }
@@ -197,6 +220,13 @@ struct ReaderView: View {
                 .transition(.scale(scale: 0.85, anchor: origin).combined(with: .opacity))
             }
         }
+    }
+
+    private var showingSidebarSheet: Binding<Bool> {
+        Binding(
+            get: { !hasRoomForRail && showsSidebar },
+            set: { showsSidebar = $0 }
+        )
     }
 
     private var showingFailure: Binding<Bool> {

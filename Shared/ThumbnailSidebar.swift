@@ -12,6 +12,7 @@ struct ThumbnailSidebar: View {
     @Bindable var model: PDFModel
     let viewer: ViewerController
     let thumbnailWidth: Double
+    var didOpenPage: () -> Void = {}
 
     @State private var thumbnails = ThumbnailCache()
     @State private var hovered: Int?
@@ -94,7 +95,10 @@ struct ThumbnailSidebar: View {
         }
         .animation(Self.dropAnimation, value: isSlot)
         .contentShape(.rect)
-        .onTapGesture { viewer.goToPage(index) }
+        .onTapGesture {
+            viewer.goToPage(index)
+            didOpenPage()
+        }
         #if os(macOS)
         .onDrag {
             dragging = index
