@@ -4,6 +4,10 @@ struct LibrarySection: View {
     let library: LibraryFiles
     let open: (URL) -> Void
 
+    @State private var isNamingFolder = false
+    @State private var folderName = ""
+    @State private var folderFailure: String?
+
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
             Divider()
@@ -23,6 +27,34 @@ struct LibrarySection: View {
                 }
             }
         }
+        .alert("New Folder", isPresented: $isNamingFolder) {
+            TextField("Name", text: $folderName)
+            Button("Cancel", role: .cancel) {}
+            Button("Create", action: createFolder)
+        }
+        .alert("Couldn't Create the Folder", isPresented: showingFolderFailure) {
+            Button("OK") {}
+        } message: {
+            Text(folderFailure ?? "")
+        }
+    }
+
+    private var showingFolderFailure: Binding<Bool> {
+        Binding(
+            get: { folderFailure != nil },
+            set: { if !$0 { folderFailure = nil } }
+        )
+    }
+
+    private func createFolder() {
+        let name = folderName
+        Task {
+            do {
+                try await library.createFolder(named: name)
+            } catch {
+                folderFailure = error.localizedDescription
+            }
+        }
     }
 
     private var header: some View {
@@ -36,8 +68,14 @@ struct LibrarySection: View {
 
             Text(library.folders.last?.lastPathComponent ?? "Library")
             Spacer()
-            Button("Refresh Library", systemImage: "arrow.clockwise") {
-                Task { await library.refresh() }
+            HStack(spacing: 20) {
+                Button("New Folder", systemImage: "folder.badge.plus") {
+                    folderName = ""
+                    isNamingFolder = true
+                }
+                Button("Refresh Library", systemImage: "arrow.clockwise") {
+                    Task { await library.refresh() }
+                }
             }
             .labelStyle(.iconOnly)
         }

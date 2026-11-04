@@ -39,6 +39,13 @@ final class LibraryFiles {
         await refresh()
     }
 
+    func createFolder(named name: String) async throws {
+        let trimmed = name.trimmingCharacters(in: .whitespacesAndNewlines)
+        let url = folder.appending(path: trimmed.isEmpty ? "Untitled Folder" : trimmed, directoryHint: .isDirectory)
+        try FileManager.default.createDirectory(at: url, withIntermediateDirectories: false)
+        await refresh()
+    }
+
     func goBack() async {
         guard !folders.isEmpty else { return }
         folders.removeLast()
