@@ -7,6 +7,7 @@ struct LibrarySection: View {
     @State private var isNamingFolder = false
     @State private var folderName = ""
     @State private var folderFailure: String?
+    @State private var search: String?
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
@@ -15,18 +16,29 @@ struct LibrarySection: View {
 
             header
 
+            if search != nil {
+                LibrarySearchField(text: searchText) { search = nil }
+            }
+
             if library.hasLoaded && library.items.isEmpty {
                 EmptyLibrary(isTopLevel: library.folders.isEmpty)
+            } else if library.hasLoaded && visibleItems.isEmpty {
+                Text("No matches in this folder")
+                    .font(.headline)
+                    .foregroundStyle(Color.cream)
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 48)
             } else {
                 LazyVGrid(
                     columns: [GridItem(.adaptive(minimum: FileTile.width), spacing: 16, alignment: .top)],
                     alignment: .leading,
                     spacing: 20
                 ) {
-                    ForEach(library.items, content: tile)
+                    ForEach(visibleItems, content: tile)
                 }
             }
         }
+        .onChange(of: library.folders) { search = nil }
         .alert("New Folder", isPresented: $isNamingFolder) {
             TextField("Name", text: $folderName)
             Button("Cancel", role: .cancel) {}
@@ -37,6 +49,18 @@ struct LibrarySection: View {
         } message: {
             Text(folderFailure ?? "")
         }
+    }
+
+    private var visibleItems: [LibraryItem] {
+        guard let search, !search.isEmpty else { return library.items }
+        return library.items.filter { $0.name.localizedStandardContains(search) }
+    }
+
+    private var searchText: Binding<String> {
+        Binding(
+            get: { search ?? "" },
+            set: { search = $0 }
+        )
     }
 
     private var showingFolderFailure: Binding<Bool> {
@@ -69,6 +93,9 @@ struct LibrarySection: View {
             Text(library.folders.last?.lastPathComponent ?? "Library")
             Spacer()
             HStack(spacing: 20) {
+                Button("Search", systemImage: "magnifyingglass") {
+                    search = search == nil ? "" : nil
+                }
                 Button("New Folder", systemImage: "folder.badge.plus") {
                     folderName = ""
                     isNamingFolder = true
