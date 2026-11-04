@@ -96,6 +96,8 @@ scripts/rebuild.sh
 
 ## Releasing
 
+There are two separate paths, because the iPhone and iPad app and the Mac app reach people in different ways. One script, `scripts/release.sh`, takes both at once, so the apps always share a version.
+
 ### iPhone and iPad: beta through TestFlight
 
 TestFlight is Apple's app for installing beta versions.
@@ -108,11 +110,10 @@ TestFlight is Apple's app for installing beta versions.
 **Every beta**
 
 1. Raise the version and build number in `project.yml`. App Store Connect turns down any build number that isn't higher than every earlier upload
-2. In Xcode, choose the `Quire-iOS` scheme and **Any iOS Device**, then **Product -> Archive**
-3. When the archive appears in the Organizer, choose **Distribute App -> TestFlight**
-4. Wait for Apple to process the build, and it appears in App Store Connect
-5. Give testers access to the build
-6. Testers install it from the TestFlight app on their iPhone or iPad
+2. Run `scripts/release.sh`. Alongside the Mac release below, it builds the iPhone and iPad app, signs it and uploads it to App Store Connect. It uses the account signed in to Xcode, the same as **Product -> Archive** and **Distribute App -> TestFlight** would
+3. Wait for Apple to process the build, and it appears in App Store Connect
+4. Give testers access to the build
+5. Testers install it from the TestFlight app on their iPhone or iPad
 
 ### Mac: DMG from any website
 
@@ -129,7 +130,7 @@ All of these are already set up on this Mac.
 **Release**
 
 1. Raise the version and build number in `project.yml`
-2. Run `scripts/release.sh`. It does all of this for you:
+2. Run `scripts/release.sh`. Alongside the TestFlight upload above, it does all of this for you:
    - builds and signs the app
    - puts it in a DMG
    - gets Apple to scan it
