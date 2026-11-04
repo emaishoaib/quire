@@ -1,8 +1,9 @@
 #!/bin/bash
 #
-# Builds Quire in Release for the Mac and for the iPhone and iPad simulators, then restarts all
-# three from the new builds, to try a change right away. Each simulator is the named device on the
-# newest runtime that has it, booted if needed. If either build fails, nothing running is touched.
+# Builds Quire in Release for the Mac and for the iPhone and iPad simulators. The Mac app is quit
+# and installed into /Applications, replacing the copy there, then reopened from there. The iPhone
+# and iPad apps are restarted from the new build. Each simulator is the named device on the newest
+# runtime that has it, booted if needed. If either build fails, nothing running is touched.
 
 set -euo pipefail
 
@@ -12,6 +13,7 @@ PROJECT=Quire.xcodeproj
 DERIVED_DATA=build
 PRODUCTS=$DERIVED_DATA/Build/Products
 MAC_APP=$PRODUCTS/Release/Quire.app
+INSTALLED_APP=/Applications/Quire.app
 IOS_APP=$PRODUCTS/Release-iphonesimulator/Quire.app
 MAC_PROCESS=Quire.app/Contents/MacOS/Quire
 BUNDLE_ID=com.mashoaib.quire
@@ -54,10 +56,12 @@ build macOS "generic/platform=macOS"
 echo "Building the iPhone and iPad app"
 build iOS "generic/platform=iOS Simulator"
 
-echo "Restarting the Mac app"
+echo "Installing the Mac app in /Applications and reopening it"
 pkill -f "$MAC_PROCESS" || true
 while pgrep -f "$MAC_PROCESS" > /dev/null; do sleep 0.1; done
-open "$MAC_APP"
+rm -rf "$INSTALLED_APP"
+ditto "$MAC_APP" "$INSTALLED_APP"
+open "$INSTALLED_APP"
 
 echo "Restarting the iPhone and iPad apps"
 for SIMULATOR in "$PHONE" "$PAD"; do
