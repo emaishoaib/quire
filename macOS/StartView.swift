@@ -8,29 +8,24 @@ struct StartView: View {
 
     var body: some View {
         ScrollView {
-            VStack(spacing: 0) {
+            VStack(alignment: .leading, spacing: 32) {
                 header
-
-                Divider()
 
                 if recents.isEmpty {
                     empty
                 } else {
-                    list
+                    recentGrid
                 }
             }
-            .background(.background.secondary, in: .rect(cornerRadius: 12))
-            .overlay(RoundedRectangle(cornerRadius: 12).strokeBorder(.separator))
+            .padding(.horizontal, 40)
+            .padding(.top, 36)
+            .padding(.bottom, 40)
+            .frame(maxWidth: .infinity, alignment: .leading)
             .opacity(hasAppeared ? 1 : 0)
             .offset(y: hasAppeared ? 0 : 12)
             .animation(.spring(duration: 0.35, bounce: 0.1), value: hasAppeared)
-            .frame(maxWidth: 680)
-            .padding(.top, 56)
-            .padding(.bottom, 40)
-            .padding(.horizontal, 24)
-            .frame(maxWidth: .infinity)
         }
-        .background(Color(nsColor: .windowBackgroundColor))
+        .background(Color.wine)
         .onAppear {
             recents = NSDocumentController.shared.recentDocumentURLs
             hasAppeared = true
@@ -38,88 +33,60 @@ struct StartView: View {
     }
 
     private var header: some View {
-        HStack(spacing: 12) {
-            Image(nsImage: NSApp.applicationIconImage)
-                .resizable()
-                .frame(width: 52, height: 52)
-
-            VStack(alignment: .leading, spacing: 2) {
-                Text("Quire")
-                    .font(.system(size: 20, weight: .semibold))
-
-                Text("Read, organise and recognise text in PDFs")
-                    .font(.system(size: 12))
-                    .foregroundStyle(.secondary)
-            }
+        HStack {
+            Wordmark(height: 40)
 
             Spacer()
 
-            Button("Open…", action: openPanel)
-                .controlSize(.large)
+            Button(action: openPanel) {
+                Text("Open…")
+                    .font(.system(size: 13, weight: .semibold))
+                    .foregroundStyle(Color.wine)
+                    .padding(.horizontal, 22)
+                    .padding(.vertical, 7)
+                    .background(Color.cream, in: .capsule)
+            }
+            .buttonStyle(.plain)
         }
-        .padding(20)
     }
 
     private var empty: some View {
-        ContentUnavailableView {
-            Label("No Recent PDFs", systemImage: "clock")
-        } description: {
-            Text("PDFs you open will be listed here.")
-        } actions: {
-            Button("Open…", action: openPanel)
+        VStack(spacing: 8) {
+            Image(systemName: "clock")
+                .font(.system(size: 32))
+            Text("No recent PDFs")
+                .font(.headline)
+            Text("PDFs you open will appear here.")
+                .font(.system(size: 13))
+                .opacity(0.7)
         }
+        .foregroundStyle(Color.cream)
+        .frame(maxWidth: .infinity)
+        .padding(.top, 60)
     }
 
-    private var list: some View {
-        LazyVStack(spacing: 0) {
-            ForEach(Array(recents.enumerated()), id: \.element) { index, url in
-                Button {
-                    open(url)
-                } label: {
-                    row(for: url)
-                }
-                .buttonStyle(.plain)
-                .opacity(hasAppeared ? 1 : 0)
-                .offset(y: hasAppeared ? 0 : 6)
-                .animation(
-                    .easeOut(duration: 0.25).delay(0.08 + Double(index) * 0.035),
-                    value: hasAppeared
-                )
+    private var recentGrid: some View {
+        VStack(alignment: .leading, spacing: 14) {
+            Text("Recent")
+                .font(.system(size: 13))
+                .foregroundStyle(Color.cream.opacity(0.7))
 
-                if index < recents.count - 1 {
-                    Divider()
-                        .padding(.leading, 60)
+            LazyVGrid(
+                columns: [GridItem(.adaptive(minimum: RecentTile.width + 24), spacing: 16, alignment: .top)],
+                alignment: .leading,
+                spacing: 24
+            ) {
+                ForEach(Array(recents.enumerated()), id: \.element) { index, url in
+                    RecentTile(url: url) { open(url) }
+                        .opacity(hasAppeared ? 1 : 0)
+                        .offset(y: hasAppeared ? 0 : 6)
+                        .animation(
+                            .easeOut(duration: 0.25).delay(0.08 + Double(index) * 0.035),
+                            value: hasAppeared
+                        )
                 }
             }
         }
-    }
-
-    private func row(for url: URL) -> some View {
-        HStack(spacing: 12) {
-            Image(nsImage: NSWorkspace.shared.icon(forFile: url.path))
-                .resizable()
-                .frame(width: 28, height: 28)
-
-            VStack(alignment: .leading, spacing: 1) {
-                Text(url.deletingPathExtension().lastPathComponent)
-                    .font(.system(size: 13))
-                    .lineLimit(1)
-
-                Text(url.deletingLastPathComponent().path.replacingOccurrences(
-                    of: NSHomeDirectory(),
-                    with: "~"
-                ))
-                .font(.system(size: 11))
-                .foregroundStyle(.secondary)
-                .lineLimit(1)
-                .truncationMode(.middle)
-            }
-
-            Spacer()
-        }
-        .padding(.horizontal, 20)
-        .padding(.vertical, 9)
-        .contentShape(.rect)
     }
 
     private func openPanel() {
