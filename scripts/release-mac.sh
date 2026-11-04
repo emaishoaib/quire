@@ -1,7 +1,7 @@
 #!/bin/bash
 #
-# Builds a signed and notarized Quire DMG for the Mac and adds it to the appcast.
-# Everything it produces lands in releases/, ready to upload to the updates host.
+# Builds a signed and notarized Quire DMG for the Mac, adds it to the appcast,
+# and uploads both to the apps bucket in Cloudflare R2, which serves the updates host.
 
 set -euo pipefail
 
@@ -14,6 +14,7 @@ NOTARY_PROFILE=notary
 DERIVED_DATA=build
 WORK=build/release
 RELEASES=releases
+BUCKET=apps
 GENERATE_APPCAST=$DERIVED_DATA/SourcePackages/artifacts/sparkle/Sparkle/bin/generate_appcast
 
 fail() {
@@ -25,6 +26,10 @@ setting() {
     printf '%s\n' "$SETTINGS" | awk -v key="$1" '$1 == key && $2 == "=" { print $3; exit }'
 }
 
+upload() {
+    npx --yes wrangler r2 object put "$BUCKET/quire/$2" --file "$1" --remote "${@:3}"
+}
+
 [ -f Config/Release.xcconfig ] || fail "Config/Release.xcconfig is missing. Copy the example and fill it in."
 
 IDENTITY=$(security find-identity -v -p codesigning | sed -n 's/.*"\(Developer ID Application:.*\)"/\1/p' | head -n 1)
@@ -32,6 +37,9 @@ IDENTITY=$(security find-identity -v -p codesigning | sed -n 's/.*"\(Developer I
 
 xcrun notarytool history --keychain-profile "$NOTARY_PROFILE" >/dev/null 2>&1 \
     || fail "No working notarytool login. Run: xcrun notarytool store-credentials $NOTARY_PROFILE"
+
+CLOUDFLARE_ACCOUNT=$(npx --yes wrangler whoami 2>&1 || true)
+[[ $CLOUDFLARE_ACCOUNT == *"You are logged in"* ]] || fail "Wrangler is not logged in to Cloudflare. Run: npx wrangler login"
 
 xcodegen generate
 
@@ -114,4 +122,8 @@ spctl --assess --type open --context context:primary-signature "$DMG"
 echo "Updating the appcast"
 "$GENERATE_APPCAST" --download-url-prefix "https://$UPDATES_HOST/quire/" "$RELEASES"
 
-echo "Released Quire $VERSION ($BUILD). Upload the new files in $RELEASES/ to https://$UPDATES_HOST/quire/"
+echo "Uploading to the $BUCKET bucket"
+upload "$DMG" "$(basename "$DMG")"
+upload "$RELEASES/appcast.xml" appcast.xml
+
+echo "Released Quire $VERSION ($BUILD) to https://$UPDATES_HOST/quire/"
