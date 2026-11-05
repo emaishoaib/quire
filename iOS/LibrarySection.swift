@@ -23,6 +23,7 @@ struct LibrarySection: View {
                 await library.refresh()
             } content: {
                 content
+                    .padding(.top, 8)
                     .padding(.bottom, 24)
             }
             .backSwipe(isEnabled: !library.folders.isEmpty) {
