@@ -12,14 +12,16 @@ struct HomeView: View {
         VStack(alignment: .leading, spacing: 24) {
             Wordmark(height: 44)
 
-            if !recents.files.isEmpty {
+            if !recents.files.isEmpty && library.folders.isEmpty {
                 RecentRow(recents: recents, showAll: { showsAllRecents = true }, open: open)
+                    .transition(.opacity.combined(with: .move(edge: .top)))
             }
 
             LibrarySection(library: library) { url in
                 open(url)
             }
         }
+        .animation(.snappy, value: library.folders.isEmpty)
         .padding([.top, .horizontal], 24)
         .background(Color.wine)
         .preferredColorScheme(.dark)
