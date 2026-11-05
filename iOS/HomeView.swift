@@ -22,16 +22,13 @@ struct HomeView: View {
                 }
             }
             Tab(role: .search) {
-                NavigationStack {
-                    HomePage {
-                        SearchSection(search: search) { url in
-                            open(url)
-                        }
+                HomePage {
+                    SearchSection(search: search) { url in
+                        open(url)
                     }
                 }
             }
         }
-        .searchable(text: $search.text, prompt: "Search your library")
         .tint(Color.cream)
         .preferredColorScheme(.dark)
         .task {

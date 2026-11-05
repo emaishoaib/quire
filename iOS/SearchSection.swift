@@ -1,11 +1,14 @@
 import SwiftUI
 
 struct SearchSection: View {
-    let search: LibrarySearch
+    @Bindable var search: LibrarySearch
     let open: (URL) -> Void
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
+            LibrarySearchField(text: $search.text)
+                .padding(.bottom, 12)
+
             Divider()
                 .overlay(Color.cream.opacity(0.25))
 
