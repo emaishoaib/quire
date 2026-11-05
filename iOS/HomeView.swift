@@ -23,7 +23,10 @@ struct HomeView: View {
         .padding([.top, .horizontal], 24)
         .background(Color.wine)
         .preferredColorScheme(.dark)
-        .task { await library.refresh() }
+        .task {
+            WelcomePDF.createIfNeeded()
+            await library.refresh()
+        }
         .sheet(isPresented: $showsAllRecents, onDismiss: openChosenRecent) {
             AllRecentsView(recents: recents) { file in
                 chosenRecent = file
