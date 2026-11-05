@@ -11,6 +11,7 @@ struct LibrarySection: View {
     @State private var isAddingPlace = false
     @State private var movingItem: URL?
     @State private var moveFailure: String?
+    @AppStorage("libraryLayout") private var layout = LibraryLayout.grid
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
@@ -62,12 +63,23 @@ struct LibrarySection: View {
         if library.hasLoaded && library.items.isEmpty {
             EmptyLibrary(isQuireFolder: library.isInQuireFolder)
         } else {
-            LazyVGrid(
-                columns: [GridItem(.adaptive(minimum: FileTile.width), spacing: 16, alignment: .top)],
-                alignment: .leading,
-                spacing: 20
-            ) {
-                ForEach(library.items, content: tile)
+            switch layout {
+            case .grid:
+                LazyVGrid(
+                    columns: [GridItem(.adaptive(minimum: FileTile.width), spacing: 16, alignment: .top)],
+                    alignment: .leading,
+                    spacing: 20
+                ) {
+                    ForEach(library.items, content: tile)
+                }
+            case .list:
+                LazyVStack(spacing: 0) {
+                    ForEach(library.items) { item in
+                        row(item)
+                        Divider()
+                            .overlay(Color.cream.opacity(0.15))
+                    }
+                }
             }
         }
     }
@@ -115,7 +127,9 @@ struct LibrarySection: View {
 
             Text(library.title)
             Spacer()
-            Group {
+            HStack(spacing: 24) {
+                Button(layout.switchTitle, systemImage: layout.switchSymbol) { layout = layout.other }
+
                 if library.folders.isEmpty {
                     Button("Add Location", systemImage: "plus") { isAddingPlace = true }
                 } else {
@@ -132,21 +146,33 @@ struct LibrarySection: View {
     }
 
     private func tile(_ item: LibraryItem) -> some View {
-        tileButton(item)
+        FileTile(name: item.name, detail: detail(of: item), preview: preview(of: item)) { activate(item) }
             .contextMenu { menu(for: item) }
     }
 
-    @ViewBuilder
-    private func tileButton(_ item: LibraryItem) -> some View {
+    private func row(_ item: LibraryItem) -> some View {
+        FileRow(name: item.name, detail: detail(of: item), preview: preview(of: item)) { activate(item) }
+            .contextMenu { menu(for: item) }
+    }
+
+    private func detail(of item: LibraryItem) -> String {
         switch item.kind {
-        case .folder(let itemCount):
-            FileTile(name: item.name, detail: count(itemCount, "item"), preview: .folder) {
-                Task { await library.open(item.url) }
-            }
-        case .pdf(let pageCount, let thumbnail):
-            FileTile(name: item.name, detail: count(pageCount, "page"), preview: .page(thumbnail)) {
-                open(item.url)
-            }
+        case .folder(let itemCount): count(itemCount, "item")
+        case .pdf(let pageCount, _): count(pageCount, "page")
+        }
+    }
+
+    private func preview(of item: LibraryItem) -> FileTile.Preview {
+        switch item.kind {
+        case .folder: .folder
+        case .pdf(_, let thumbnail): .page(thumbnail)
+        }
+    }
+
+    private func activate(_ item: LibraryItem) {
+        switch item.kind {
+        case .folder: Task { await library.open(item.url) }
+        case .pdf: open(item.url)
         }
     }
 
