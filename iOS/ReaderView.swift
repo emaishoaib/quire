@@ -20,6 +20,7 @@ struct ReaderView: View {
     @State private var sidebarDrag = 0.0
     @State private var showsFind = false
     @State private var findRequests = 0
+    @State private var scrollActivity = 0
     @AppStorage("highlightColour") private var highlightColour = HighlightColour.yellow
     @Environment(\.horizontalSizeClass) private var horizontalSizeClass
     @Environment(\.verticalSizeClass) private var verticalSizeClass
@@ -28,7 +29,7 @@ struct ReaderView: View {
 
     private var model: PDFModel { pdf.file.model }
 
-    private var hasRoomForRail: Bool {
+    private var hasRoomForSidebar: Bool {
         horizontalSizeClass == .regular && verticalSizeClass == .regular
     }
 
@@ -43,25 +44,10 @@ struct ReaderView: View {
     var body: some View {
         NavigationStack {
             VStack(spacing: 0) {
-                HStack(spacing: 0) {
-                    content
-                        .ignoresSafeArea(edges: .bottom)
+                content
+                    .ignoresSafeArea(edges: .bottom)
 
-                    if hasRoomForRail {
-                        Divider()
-
-                        ReadRail(
-                            viewer: controller,
-                            pageCount: model.pageCount,
-                            find: openFind,
-                            mode: $mode,
-                            showsSidebar: $showsSidebar,
-                            sidebarTab: $sidebarTab
-                        )
-                    }
-                }
-
-                if !hasRoomForRail {
+                if !hasRoomForSidebar {
                     Divider()
 
                     ReadBar(
@@ -78,14 +64,7 @@ struct ReaderView: View {
             .animation(ThumbnailSidebar.animation, value: sidebarTab)
             .navigationTitle(pdf.name)
             .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .cancellationAction) {
-                    Button("Close", action: close)
-                }
-                ToolbarItem(placement: .primaryAction) {
-                    ShareLink(item: SharedPDF(name: pdf.name, model: model), preview: SharePreview(pdf.name))
-                }
-            }
+            .toolbar { toolbar }
         }
         .onChange(of: model.revision) {
             controller.clearSearch()
@@ -119,8 +98,10 @@ struct ReaderView: View {
                 revision: model.revision,
                 controller: controller,
                 onEdgeDrag: edgeDragged,
-                onEdgeDragEnded: edgeDragEnded
+                onEdgeDragEnded: edgeDragEnded,
+                onScroll: { scrollActivity += 1 }
             )
+            .overlay(alignment: .bottom) { pagePill }
             .overlay { highlightBar }
             .overlay(alignment: .topTrailing) { findPanel }
             .overlay(alignment: .leading) { slidingSidebar }
@@ -136,6 +117,46 @@ struct ReaderView: View {
         }
     }
 
+    @ToolbarContentBuilder
+    private var toolbar: some ToolbarContent {
+        ToolbarItemGroup(placement: .topBarLeading) {
+            Button("Close", action: close)
+
+            if hasRoomForSidebar {
+                if mode == .read {
+                    Button("Show or Hide Sidebar", systemImage: "sidebar.left") {
+                        showsSidebar.toggle()
+                    }
+                }
+
+                Button(
+                    mode == .read ? "Organise Pages" : "Read",
+                    systemImage: mode == .read ? "square.grid.2x2" : "doc.text"
+                ) {
+                    withAnimation(Mode.animation) {
+                        mode = mode == .read ? .pages : .read
+                        showsSidebar = false
+                    }
+                }
+            }
+        }
+
+        ToolbarItemGroup(placement: .topBarTrailing) {
+            if hasRoomForSidebar {
+                Button("Find", systemImage: "magnifyingglass", action: openFind)
+            }
+            ShareLink(item: SharedPDF(name: pdf.name, model: model), preview: SharePreview(pdf.name))
+        }
+    }
+
+    @ViewBuilder
+    private var pagePill: some View {
+        if hasRoomForSidebar {
+            PagePill(viewer: controller, pageCount: model.pageCount, activity: scrollActivity)
+                .padding(.bottom, 28)
+        }
+    }
+
     private var sidebarOffset: Double {
         showsSidebar
             ? min(sidebarDrag, 0)
@@ -144,7 +165,7 @@ struct ReaderView: View {
 
     private var slidingSidebar: some View {
         ZStack(alignment: .leading) {
-            if hasRoomForRail && (showsSidebar || sidebarDrag > 0) {
+            if hasRoomForSidebar && (showsSidebar || sidebarDrag > 0) {
                 Color.black
                     .opacity(0.25 * (1 + sidebarOffset / Self.sidebarWidth))
                     .contentShape(.rect)
@@ -160,7 +181,17 @@ struct ReaderView: View {
     }
 
     private var sidebar: some View {
-        Group {
+        VStack(spacing: 0) {
+            Picker("Sidebar", selection: $sidebarTab) {
+                ForEach(SidebarTab.allCases) { tab in
+                    Text(tab.rawValue)
+                }
+            }
+            .pickerStyle(.segmented)
+            .padding(12)
+
+            Divider()
+
             switch sidebarTab {
             case .thumbnails:
                 ThumbnailSidebar(model: model, viewer: controller, thumbnailWidth: Self.thumbnailWidth)
@@ -189,12 +220,12 @@ struct ReaderView: View {
     }
 
     private func edgeDragged(_ distance: CGFloat) {
-        guard hasRoomForRail, !showsSidebar else { return }
+        guard hasRoomForSidebar, !showsSidebar else { return }
         sidebarDrag = max(distance, 0)
     }
 
     private func edgeDragEnded(_ distance: CGFloat) {
-        guard hasRoomForRail, !showsSidebar else { return }
+        guard hasRoomForSidebar, !showsSidebar else { return }
         withAnimation(ThumbnailSidebar.animation) {
             showsSidebar = distance > Self.sidebarWidth / 3
             sidebarDrag = 0
@@ -236,7 +267,7 @@ struct ReaderView: View {
 
     private var showingSidebarSheet: Binding<Bool> {
         Binding(
-            get: { !hasRoomForRail && showsSidebar },
+            get: { !hasRoomForSidebar && showsSidebar },
             set: { showsSidebar = $0 }
         )
     }

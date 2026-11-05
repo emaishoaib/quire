@@ -7,6 +7,7 @@ struct PDFViewer: UIViewRepresentable {
     let controller: ViewerController
     let onEdgeDrag: (CGFloat) -> Void
     let onEdgeDragEnded: (CGFloat) -> Void
+    var onScroll: () -> Void = {}
 
     func makeCoordinator() -> Coordinator {
         Coordinator(revision: revision, controller: controller)
@@ -27,7 +28,10 @@ struct PDFViewer: UIViewRepresentable {
         controller.attach(view)
         view.onFirstLayout = { [weak controller] in controller?.viewDidFirstLayout() }
         view.onResize = { [weak controller] top in controller?.viewDidResize(keeping: top) }
-        view.onScroll = { [weak controller] in controller?.hideHighlightBar() }
+        view.onScroll = { [weak controller, weak coordinator = context.coordinator] in
+            controller?.hideHighlightBar()
+            coordinator?.onScroll?()
+        }
         view.onScrollEnded = { [weak controller] in controller?.selectionDidChange() }
 
         let tap = UITapGestureRecognizer(target: context.coordinator, action: #selector(Coordinator.tapped))
@@ -44,6 +48,7 @@ struct PDFViewer: UIViewRepresentable {
     func updateUIView(_ view: PDFView, context: Context) {
         context.coordinator.onEdgeDrag = onEdgeDrag
         context.coordinator.onEdgeDragEnded = onEdgeDragEnded
+        context.coordinator.onScroll = onScroll
         let pagesChanged = context.coordinator.revision != revision
         guard view.document !== pdf || pagesChanged else { return }
         context.coordinator.revision = revision
@@ -60,6 +65,7 @@ struct PDFViewer: UIViewRepresentable {
         let controller: ViewerController
         var onEdgeDrag: ((CGFloat) -> Void)?
         var onEdgeDragEnded: ((CGFloat) -> Void)?
+        var onScroll: (() -> Void)?
 
         init(revision: Int, controller: ViewerController) {
             self.revision = revision

@@ -10,6 +10,7 @@ struct PageIndicator: View {
     let viewer: ViewerController
     let pageCount: Int
     var isInline = false
+    var editingChanged: (Bool) -> Void = { _ in }
 
     @State private var text = ""
     @FocusState private var isFocused: Bool
@@ -37,6 +38,7 @@ struct PageIndicator: View {
         .monospacedDigit()
         .help("Current page. Type a number and press Return to go there.")
         .onAppear { showCurrentPage() }
+        .onChange(of: isFocused) { editingChanged(isFocused) }
         .onChange(of: viewer.currentPage) {
             guard !isFocused else { return }
             showCurrentPage()
