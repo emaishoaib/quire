@@ -19,18 +19,38 @@ nonisolated struct LibraryItem: Identifiable, Sendable {
 @MainActor
 @Observable
 final class LibraryFiles {
+    private let places = Places()
+    private let deviceStorageName = "On My \(UIDevice.current.model)"
     private(set) var items: [LibraryItem] = []
     private(set) var hasLoaded = false
     private(set) var folders: [URL] = []
 
-    var folder: URL { folders.last ?? .documentsDirectory }
+    var title: String {
+        folders.last.map { Self.name(of: $0, deviceStorageName: deviceStorageName) } ?? "Browse"
+    }
+
+    var isInQuireFolder: Bool { folders.count == 1 && Self.isQuireFolder(folders[0]) }
 
     func refresh() async {
-        let folder = folder
-        let items = await Self.items(in: folder)
-        guard folder == self.folder else { return }
+        let folder = folders.last
+        let items = await Self.items(in: folder, places: places.urls, deviceStorageName: deviceStorageName)
+        guard folder == folders.last else { return }
         self.items = items
         hasLoaded = true
+    }
+
+    func isAddedPlace(_ url: URL) -> Bool {
+        folders.isEmpty && places.contains(url)
+    }
+
+    func addPlace(_ url: URL) async {
+        places.add(url)
+        await refresh()
+    }
+
+    func removePlace(_ url: URL) async {
+        places.remove(url)
+        await refresh()
     }
 
     func open(_ folder: URL) async {
@@ -40,6 +60,7 @@ final class LibraryFiles {
     }
 
     func createFolder(named name: String) async throws {
+        guard let folder = folders.last else { return }
         let trimmed = name.trimmingCharacters(in: .whitespacesAndNewlines)
         let url = folder.appending(path: trimmed.isEmpty ? "Untitled Folder" : trimmed, directoryHint: .isDirectory)
         try FileManager.default.createDirectory(at: url, withIntermediateDirectories: false)
@@ -54,7 +75,10 @@ final class LibraryFiles {
     }
 
     @concurrent
-    private nonisolated static func items(in folder: URL) async -> [LibraryItem] {
+    private nonisolated static func items(in folder: URL?, places: [URL], deviceStorageName: String) async -> [LibraryItem] {
+        guard let folder else {
+            return ([.documentsDirectory] + places).map { place(at: $0, deviceStorageName: deviceStorageName) }
+        }
         let urls = contents(of: folder).sorted {
             $0.lastPathComponent.localizedStandardCompare($1.lastPathComponent) == .orderedAscending
         }
@@ -63,6 +87,27 @@ final class LibraryFiles {
         }
         let pdfs = urls.filter { $0.pathExtension.lowercased() == "pdf" }.map(pdf(at:))
         return folders + pdfs
+    }
+
+    private nonisolated static func place(at url: URL, deviceStorageName: String) -> LibraryItem {
+        LibraryItem(
+            url: url,
+            name: name(of: url, deviceStorageName: deviceStorageName),
+            kind: .folder(itemCount: contents(of: url).count)
+        )
+    }
+
+    private nonisolated static func name(of folder: URL, deviceStorageName: String) -> String {
+        guard !isQuireFolder(folder) else { return "Quire" }
+        switch folder.lastPathComponent {
+        case "File Provider Storage": return deviceStorageName
+        case "com~apple~CloudDocs": return "iCloud Drive"
+        default: return (try? folder.resourceValues(forKeys: [.localizedNameKey]))?.localizedName ?? folder.lastPathComponent
+        }
+    }
+
+    private nonisolated static func isQuireFolder(_ folder: URL) -> Bool {
+        folder.standardizedFileURL.path == URL.documentsDirectory.standardizedFileURL.path
     }
 
     private nonisolated static func contents(of folder: URL) -> [URL] {

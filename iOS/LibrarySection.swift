@@ -1,4 +1,5 @@
 import SwiftUI
+import UniformTypeIdentifiers
 
 struct LibrarySection: View {
     let library: LibraryFiles
@@ -7,6 +8,7 @@ struct LibrarySection: View {
     @State private var isNamingFolder = false
     @State private var folderName = ""
     @State private var folderFailure: String?
+    @State private var isAddingPlace = false
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
@@ -25,6 +27,10 @@ struct LibrarySection: View {
                 await library.goBack()
             }
         }
+        .fileImporter(isPresented: $isAddingPlace, allowedContentTypes: [.folder]) { result in
+            guard case .success(let url) = result else { return }
+            Task { await library.addPlace(url) }
+        }
         .alert("New Folder", isPresented: $isNamingFolder) {
             TextField("Name", text: $folderName)
             Button("Cancel", role: .cancel) {}
@@ -40,7 +46,7 @@ struct LibrarySection: View {
     @ViewBuilder
     private var content: some View {
         if library.hasLoaded && library.items.isEmpty {
-            EmptyLibrary(isTopLevel: library.folders.isEmpty)
+            EmptyLibrary(isQuireFolder: library.isInQuireFolder)
         } else {
             LazyVGrid(
                 columns: [GridItem(.adaptive(minimum: FileTile.width), spacing: 16, alignment: .top)],
@@ -79,11 +85,17 @@ struct LibrarySection: View {
                 .labelStyle(.iconOnly)
             }
 
-            Text(library.folders.last?.lastPathComponent ?? "Browse")
+            Text(library.title)
             Spacer()
-            Button("New Folder", systemImage: "folder.badge.plus") {
-                folderName = ""
-                isNamingFolder = true
+            Group {
+                if library.folders.isEmpty {
+                    Button("Add Location", systemImage: "plus") { isAddingPlace = true }
+                } else {
+                    Button("New Folder", systemImage: "folder.badge.plus") {
+                        folderName = ""
+                        isNamingFolder = true
+                    }
+                }
             }
             .labelStyle(.iconOnly)
         }
@@ -91,11 +103,19 @@ struct LibrarySection: View {
         .foregroundStyle(Color.cream)
     }
 
+    @ViewBuilder
     private func tile(_ item: LibraryItem) -> some View {
         switch item.kind {
         case .folder(let itemCount):
             FileTile(name: item.name, detail: count(itemCount, "item"), preview: .folder) {
                 Task { await library.open(item.url) }
+            }
+            .contextMenu {
+                if library.isAddedPlace(item.url) {
+                    Button("Remove Location", systemImage: "minus.circle", role: .destructive) {
+                        Task { await library.removePlace(item.url) }
+                    }
+                }
             }
         case .pdf(let pageCount, let thumbnail):
             FileTile(name: item.name, detail: count(pageCount, "page"), preview: .page(thumbnail)) {
@@ -110,15 +130,15 @@ struct LibrarySection: View {
 }
 
 private struct EmptyLibrary: View {
-    let isTopLevel: Bool
+    let isQuireFolder: Bool
 
     var body: some View {
         VStack(spacing: 8) {
-            Image(systemName: isTopLevel ? "tray" : "folder")
+            Image(systemName: isQuireFolder ? "tray" : "folder")
                 .font(.system(size: 36))
-            Text(isTopLevel ? "Quire's folder is empty" : "This folder is empty")
+            Text(isQuireFolder ? "Quire's folder is empty" : "This folder is empty")
                 .font(.headline)
-            if isTopLevel {
+            if isQuireFolder {
                 Text("Move PDFs into Quire's folder in the Files app to see them here.")
                     .font(.subheadline)
                     .multilineTextAlignment(.center)
