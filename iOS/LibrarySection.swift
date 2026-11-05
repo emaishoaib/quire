@@ -11,7 +11,7 @@ struct LibrarySection: View {
     @State private var isAddingPlace = false
     @State private var movingItem: URL?
     @State private var moveFailure: String?
-    @AppStorage("libraryLayout") private var layout = LibraryLayout.grid
+    @AppStorage(LibraryLayout.storageKey) private var layout = LibraryLayout.grid
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
@@ -63,24 +63,7 @@ struct LibrarySection: View {
         if library.hasLoaded && library.items.isEmpty {
             EmptyLibrary(isQuireFolder: library.isInQuireFolder)
         } else {
-            switch layout {
-            case .grid:
-                LazyVGrid(
-                    columns: [GridItem(.adaptive(minimum: FileTile.width), spacing: 16, alignment: .top)],
-                    alignment: .leading,
-                    spacing: 20
-                ) {
-                    ForEach(library.items, content: tile)
-                }
-            case .list:
-                LazyVStack(spacing: 0) {
-                    ForEach(library.items) { item in
-                        row(item)
-                        Divider()
-                            .overlay(Color.cream.opacity(0.15))
-                    }
-                }
-            }
+            FileCollection(items: library.items, tile: tile, row: row)
         }
     }
 

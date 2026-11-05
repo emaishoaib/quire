@@ -25,15 +25,13 @@ struct RecentSection: View {
         if recents.files.isEmpty {
             EmptyRecents()
         } else {
-            LazyVGrid(
-                columns: [GridItem(.adaptive(minimum: FileTile.width), spacing: 16, alignment: .top)],
-                alignment: .leading,
-                spacing: 20
-            ) {
-                ForEach(recents.files) { file in
-                    FileTile(name: file.name, preview: .page(recents.thumbnail(of: file))) {
-                        open(file)
-                    }
+            FileCollection(items: recents.files) { file in
+                FileTile(name: file.name, preview: .page(recents.thumbnail(of: file))) {
+                    open(file)
+                }
+            } row: { file in
+                FileRow(name: file.name, preview: .page(recents.thumbnail(of: file))) {
+                    open(file)
                 }
             }
         }

@@ -2,6 +2,8 @@ enum LibraryLayout: String {
     case grid
     case list
 
+    static let storageKey = "libraryLayout"
+
     var other: LibraryLayout {
         switch self {
         case .grid: .list

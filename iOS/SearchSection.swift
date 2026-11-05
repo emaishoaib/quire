@@ -31,23 +31,30 @@ struct SearchSection: View {
         } else if search.hasLoaded && search.results.isEmpty {
             SearchMessage(symbol: "doc.questionmark", title: "No matches", detail: nil)
         } else {
-            LazyVGrid(
-                columns: [GridItem(.adaptive(minimum: FileTile.width), spacing: 16, alignment: .top)],
-                alignment: .leading,
-                spacing: 20
-            ) {
-                ForEach(search.results, content: tile)
-            }
+            FileCollection(items: search.results, tile: tile, row: row)
         }
     }
 
     @ViewBuilder
     private func tile(_ item: LibraryItem) -> some View {
         if case .pdf(let pageCount, let thumbnail) = item.kind {
-            FileTile(name: item.name, detail: pageCount == 1 ? "1 page" : "\(pageCount) pages", preview: .page(thumbnail)) {
+            FileTile(name: item.name, detail: pages(pageCount), preview: .page(thumbnail)) {
                 open(item.url)
             }
         }
+    }
+
+    @ViewBuilder
+    private func row(_ item: LibraryItem) -> some View {
+        if case .pdf(let pageCount, let thumbnail) = item.kind {
+            FileRow(name: item.name, detail: pages(pageCount), preview: .page(thumbnail)) {
+                open(item.url)
+            }
+        }
+    }
+
+    private func pages(_ count: Int) -> String {
+        count == 1 ? "1 page" : "\(count) pages"
     }
 }
 

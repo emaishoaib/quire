@@ -5,7 +5,7 @@ struct FileRow: View {
     private static let previewHeight = 48.0
 
     let name: String
-    let detail: String
+    var detail: String?
     let preview: FileTile.Preview
     let open: () -> Void
 
@@ -20,9 +20,11 @@ struct FileRow: View {
                         .font(.body)
                         .foregroundStyle(Color.cream)
                         .lineLimit(1)
-                    Text(detail)
-                        .font(.caption)
-                        .foregroundStyle(Color.cream.opacity(0.6))
+                    if let detail {
+                        Text(detail)
+                            .font(.caption)
+                            .foregroundStyle(Color.cream.opacity(0.6))
+                    }
                 }
 
                 Spacer(minLength: 0)
