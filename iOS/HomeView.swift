@@ -79,6 +79,10 @@ struct HomeView: View {
     }
 }
 
+enum HomeLayout {
+    static let margin = 24.0
+}
+
 private struct HomePage<Content: View>: View {
     @ViewBuilder let content: Content
 
@@ -87,7 +91,7 @@ private struct HomePage<Content: View>: View {
             Wordmark(height: 44)
             content
         }
-        .padding([.top, .horizontal], 24)
+        .padding([.top, .horizontal], HomeLayout.margin)
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
         .background(Color.wine)
     }

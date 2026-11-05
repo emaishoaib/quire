@@ -11,6 +11,7 @@ struct LibrarySection: View {
     @State private var isAddingPlace = false
     @State private var movingItem: URL?
     @State private var moveFailure: String?
+    @State private var visibleHeight = 0.0
     @AppStorage(LibraryLayout.storageKey) private var layout = LibraryLayout.grid
 
     var body: some View {
@@ -26,7 +27,12 @@ struct LibrarySection: View {
                 content
                     .padding(.top, 8)
                     .padding(.bottom, 24)
+                    .padding(.horizontal, HomeLayout.margin)
+                    .frame(maxWidth: .infinity, minHeight: visibleHeight, alignment: .top)
+                    .contentShape(.rect)
             }
+            .padding(.horizontal, -HomeLayout.margin)
+            .onGeometryChange(for: Double.self) { $0.size.height } action: { visibleHeight = $0 }
             .backSwipe(isEnabled: !library.folders.isEmpty) {
                 await library.goBack()
             }
