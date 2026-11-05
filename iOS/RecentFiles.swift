@@ -21,7 +21,9 @@ final class RecentFiles {
     init() {
         let saved = UserDefaults.standard.data(forKey: Self.key)
         files = saved.flatMap { try? JSONDecoder().decode([RecentFile].self, from: $0) } ?? []
-        for file in files where url(of: file) == nil {
+        var seen = Set<String>()
+        for file in files {
+            if let path = currentPath(of: file), seen.insert(path).inserted { continue }
             remove(file)
         }
     }
@@ -33,10 +35,14 @@ final class RecentFiles {
 
     func add(_ url: URL, bookmark: Data, firstPage: PDFPage?) {
         let path = url.resolvingSymlinksInPath().path
-        let id = files.first { $0.path == path }?.id ?? UUID()
+        let sameFile = files.filter { $0.path == path || currentPath(of: $0) == path }
+        let id = sameFile.first?.id ?? UUID()
         let name = url.deletingPathExtension().lastPathComponent
 
-        files.removeAll { $0.path == path }
+        for file in sameFile where file.id != id {
+            remove(file)
+        }
+        files.removeAll { $0.id == id }
         files.insert(RecentFile(id: id, name: name, path: path, bookmark: bookmark), at: 0)
         for file in files.dropFirst(Self.limit) {
             remove(file)
@@ -55,6 +61,10 @@ final class RecentFiles {
 
     func thumbnail(of file: RecentFile) -> UIImage? {
         UIImage(contentsOfFile: thumbnailURL(of: file.id).path)
+    }
+
+    private func currentPath(of file: RecentFile) -> String? {
+        url(of: file)?.resolvingSymlinksInPath().path
     }
 
     private func save() {
