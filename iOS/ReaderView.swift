@@ -150,6 +150,8 @@ struct ReaderView: View {
         }
 
         ToolbarItemGroup(placement: .topBarTrailing) {
+            ShareLink(item: SharedPDF(name: pdf.name, model: model), preview: SharePreview(pdf.name))
+
             if hasRoomForSidebar {
                 if mode == .read {
                     Button(
@@ -164,7 +166,6 @@ struct ReaderView: View {
                 }
                 Button("Find", systemImage: "magnifyingglass", action: openFind)
             }
-            ShareLink(item: SharedPDF(name: pdf.name, model: model), preview: SharePreview(pdf.name))
         }
     }
 
