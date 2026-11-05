@@ -3,6 +3,7 @@ import SwiftUI
 struct HomeView: View {
     @State private var recents = RecentFiles()
     @State private var library = LibraryFiles()
+    @State private var search = LibrarySearch()
     @State private var opened: OpenedPDF?
     @State private var failure: String?
 
@@ -20,7 +21,17 @@ struct HomeView: View {
                     RecentSection(recents: recents, open: open)
                 }
             }
+            Tab(role: .search) {
+                NavigationStack {
+                    HomePage {
+                        SearchSection(search: search) { url in
+                            open(url)
+                        }
+                    }
+                }
+            }
         }
+        .searchable(text: $search.text, prompt: "Search your library")
         .tint(Color.cream)
         .preferredColorScheme(.dark)
         .task {

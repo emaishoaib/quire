@@ -77,7 +77,7 @@ final class LibraryFiles {
         (try? url.resourceValues(forKeys: [.isDirectoryKey]))?.isDirectory == true
     }
 
-    private nonisolated static func pdf(at url: URL) -> LibraryItem {
+    nonisolated static func pdf(at url: URL) -> LibraryItem {
         let pdf = PDFDocument(url: url)
         let thumbnail = pdf?.page(at: 0)?.thumbnail(of: CGSize(width: 252, height: 336), for: .cropBox)
         return LibraryItem(
