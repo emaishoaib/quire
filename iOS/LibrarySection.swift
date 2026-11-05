@@ -33,9 +33,12 @@ struct LibrarySection: View {
             }
             .padding(.horizontal, -HomeLayout.margin)
             .onGeometryChange(for: Double.self) { $0.size.height } action: { visibleHeight = $0 }
-            .backSwipe(isEnabled: !library.folders.isEmpty) {
-                await library.goBack()
-            }
+            .folderSwipe(
+                canGoBack: library.canGoBack,
+                canGoForward: library.canGoForward,
+                goBack: { await library.goBack() },
+                goForward: { await library.goForward() }
+            )
         }
         .fileImporter(isPresented: $isAddingPlace, allowedContentTypes: [.folder]) { result in
             guard case .success(let url) = result else { return }

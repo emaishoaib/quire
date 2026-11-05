@@ -24,6 +24,10 @@ final class LibraryFiles {
     private(set) var items: [LibraryItem] = []
     private(set) var hasLoaded = false
     private(set) var folders: [URL] = []
+    private var foldersAhead: [URL] = []
+
+    var canGoBack: Bool { !folders.isEmpty }
+    var canGoForward: Bool { !foldersAhead.isEmpty }
 
     var title: String {
         folders.last.map { Self.name(of: $0, deviceStorageName: deviceStorageName) } ?? "Browse"
@@ -50,11 +54,13 @@ final class LibraryFiles {
 
     func removePlace(_ url: URL) async {
         places.remove(url)
+        foldersAhead.removeAll()
         await refresh()
     }
 
     func open(_ folder: URL) async {
         folders.append(folder)
+        foldersAhead.removeAll()
         hasLoaded = false
         await refresh()
     }
@@ -68,8 +74,15 @@ final class LibraryFiles {
     }
 
     func goBack() async {
-        guard !folders.isEmpty else { return }
-        folders.removeLast()
+        guard let folder = folders.popLast() else { return }
+        foldersAhead.append(folder)
+        hasLoaded = false
+        await refresh()
+    }
+
+    func goForward() async {
+        guard let folder = foldersAhead.popLast() else { return }
+        folders.append(folder)
         hasLoaded = false
         await refresh()
     }
