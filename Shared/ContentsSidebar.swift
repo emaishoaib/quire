@@ -10,13 +10,6 @@ enum SidebarTab: String, CaseIterable, Identifiable {
     static func opening(_ pdf: PDFDocument) -> SidebarTab {
         (pdf.outlineRoot?.numberOfChildren ?? 0) > 0 ? .contents : .thumbnails
     }
-
-    var systemImage: String {
-        switch self {
-        case .thumbnails: "rectangle.portrait.on.rectangle.portrait"
-        case .contents: "list.bullet.indent"
-        }
-    }
 }
 
 struct ContentsSidebar: View {

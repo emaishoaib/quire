@@ -78,8 +78,7 @@ struct ContentView: View {
                         model: model,
                         find: openFind,
                         mode: $mode,
-                        showsThumbnails: $showsThumbnails,
-                        sidebarTab: $sidebarTab
+                        showsThumbnails: $showsThumbnails
                     )
                 }
                 .animation(ThumbnailSidebar.animation, value: showsThumbnails)
@@ -129,6 +128,17 @@ struct ContentView: View {
 
     private var sidebar: some View {
         VStack(spacing: 0) {
+            Picker("Sidebar", selection: $sidebarTab) {
+                ForEach(SidebarTab.allCases) { tab in
+                    Text(tab.rawValue)
+                }
+            }
+            .pickerStyle(.segmented)
+            .labelsHidden()
+            .padding(10)
+
+            Divider()
+
             Group {
                 switch sidebarTab {
                 case .thumbnails:

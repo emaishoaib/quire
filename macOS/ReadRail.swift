@@ -7,7 +7,6 @@ struct ReadRail: View {
     let find: () -> Void
     @Binding var mode: Mode
     @Binding var showsThumbnails: Bool
-    @Binding var sidebarTab: SidebarTab
 
     static let width = 62.0
 
@@ -31,15 +30,6 @@ struct ReadRail: View {
                     showsThumbnails.toggle()
                 }
                 .keyboardShortcut("t", modifiers: [.command, .option])
-                .transition(.opacity)
-            }
-
-            if mode == .read && showsThumbnails {
-                let other: SidebarTab = sidebarTab == .thumbnails ? .contents : .thumbnails
-                button("Show \(other.rawValue)", systemImage: other.systemImage) {
-                    sidebarTab = other
-                }
-                .contentTransition(.symbolEffect(.replace))
                 .transition(.opacity)
             }
 

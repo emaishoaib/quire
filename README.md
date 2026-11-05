@@ -20,7 +20,7 @@ rail down the right edge, which also holds the page number, text recognition, hi
 mode, find, the fit modes and the switch between reading and organising. A thumbnail
 sidebar sized by its own slider, where pages can be dragged into a new order, hovering a
 page reveals rotate and delete, and hovering between pages reveals a plus that inserts a
-PDF or an image there. A button on the rail swaps the thumbnails for the PDF's table of contents, where
+PDF or an image there. Two tabs at the top of the sidebar switch it between the thumbnails and the PDF's table of contents, where
 clicking a title jumps to that section. The section being read is highlighted, and the
 chapter around it opens as you reach it. Scans have no table of contents, and say so. A
 PDF with a table of contents opens on it, and any other opens on its thumbnails. The
@@ -263,8 +263,7 @@ sidebar toggle and the thumbnail size are `@AppStorage`, so the new value comes 
 UserDefaults outside whatever transaction set it, and an animation wrapped around the
 change is simply lost. Both are animated from the container that holds them, keyed to the
 setting. The sidebar's tab is plain window state, since each PDF picks its own, but it is
-animated the same way, from a container that holds the rail as well as the sidebar, so
-that the rail's icon animates too.
+animated the same way, from the container that holds the sidebar.
 
 **Page edits animate because pages are identified by object.** `PageGrid` and
 `ThumbnailSidebar` list `document.pages`, whose elements survive a reorder, and
