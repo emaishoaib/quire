@@ -18,13 +18,13 @@ was closed on, and to the zoom it had if you had changed it.
 **Read.** Continuous scrolling, single or two-page layout, and zoom by pinch or from the
 rail down the right edge, which also holds the page number, text recognition, highlight
 mode, find, the fit modes and the switch between reading and organising. A thumbnail
-sidebar, where pages can be dragged into a new order, hovering a
+sidebar sized by its own slider, where pages can be dragged into a new order, hovering a
 page reveals rotate and delete, and hovering between pages reveals a plus that inserts a
 PDF or an image there. Two tabs at the top of the sidebar switch it between the thumbnails and the PDF's table of contents, where
 clicking a title jumps to that section. The section being read is highlighted, and the
 chapter around it opens as you reach it. Scans have no table of contents, and say so. A
 PDF with a table of contents opens on it, and any other opens on its thumbnails. The
-sidebar keeps the same width when you switch.
+sidebar keeps its size when you switch, and the slider sizes it on either side.
 
 **Find.** Cmd-F, or the rail's magnifying glass, opens a panel over the document. Results
 appear as you type, listed by the text that actually matched and how often, so a
@@ -259,9 +259,9 @@ position. `ViewerController` holds the spot until you first change the zoom, the
 it holds the opening fit to height.
 
 **Settings that drive animation use `.animation(_:value:)`, not `withAnimation`.** The
-sidebar toggle is `@AppStorage`, so the new value comes back from
+sidebar toggle and the thumbnail size are `@AppStorage`, so the new value comes back from
 UserDefaults outside whatever transaction set it, and an animation wrapped around the
-change is simply lost. It is animated from the container that holds it, keyed to the
+change is simply lost. Both are animated from the container that holds them, keyed to the
 setting. The sidebar's tab is plain window state, since each PDF picks its own, but it is
 animated the same way, from the container that holds the sidebar.
 
