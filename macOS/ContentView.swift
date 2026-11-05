@@ -2,6 +2,8 @@ import PDFKit
 import SwiftUI
 
 struct ContentView: View {
+    private static let thumbnailWidth = 220.0
+
     let document: QuireDocument
 
     @State private var viewer: ViewerController
@@ -11,7 +13,6 @@ struct ContentView: View {
     @State private var mode: Mode = .read
     @State private var selection = Set<Int>()
     @AppStorage("showsThumbnails") private var showsThumbnails = true
-    @AppStorage("thumbnailWidth") private var thumbnailWidth = 120.0
     @AppStorage("highlightColour") private var highlightColour = HighlightColour.yellow
     @State private var sidebarTab: SidebarTab
 
@@ -139,21 +140,16 @@ struct ContentView: View {
                     ThumbnailSidebar(
                         model: model,
                         viewer: viewer,
-                        thumbnailWidth: thumbnailWidth
+                        thumbnailWidth: Self.thumbnailWidth
                     )
                 case .contents:
                     ContentsSidebar(model: model, viewer: viewer)
                 }
             }
             .frame(maxHeight: .infinity)
-
-            Divider()
-
-            ThumbnailSizeControl(thumbnailWidth: $thumbnailWidth)
         }
-        .frame(width: ThumbnailSidebar.sidebarWidth(for: thumbnailWidth))
+        .frame(width: ThumbnailSidebar.sidebarWidth(for: Self.thumbnailWidth))
         .background(Color(nsColor: .underPageBackgroundColor))
-        .animation(ThumbnailSidebar.sizeAnimation, value: thumbnailWidth)
     }
 
     private var highlightBar: some View {
