@@ -45,6 +45,8 @@ final class ViewerController {
 
     @ObservationIgnored var isDraggingHighlight = false
 
+    @ObservationIgnored var highlightPreview: [Highlight] = []
+
     private struct Snapshot {
         let scale: CGFloat
         let autoScales: Bool

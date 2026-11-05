@@ -9,6 +9,7 @@ struct PDFViewer: UIViewRepresentable {
     let onEdgeDragEnded: (CGFloat) -> Void
     var onScroll: () -> Void = {}
     var isHighlighting = false
+    var highlightColour = HighlightColour.yellow
 
     func makeCoordinator() -> Coordinator {
         Coordinator(revision: revision, controller: controller)
@@ -57,6 +58,7 @@ struct PDFViewer: UIViewRepresentable {
         context.coordinator.onEdgeDrag = onEdgeDrag
         context.coordinator.onEdgeDragEnded = onEdgeDragEnded
         context.coordinator.onScroll = onScroll
+        context.coordinator.highlightColour = highlightColour
         context.coordinator.setHighlighting(isHighlighting, in: view)
         let pagesChanged = context.coordinator.revision != revision
         guard view.document !== pdf || pagesChanged else { return }
@@ -75,8 +77,10 @@ struct PDFViewer: UIViewRepresentable {
         var onEdgeDrag: ((CGFloat) -> Void)?
         var onEdgeDragEnded: ((CGFloat) -> Void)?
         var onScroll: (() -> Void)?
+        var highlightColour = HighlightColour.yellow
         weak var highlightDrag: UIPanGestureRecognizer?
         private var dragStart: CGPoint?
+        private var dragSelection: PDFSelection?
         private var isHighlighting = false
 
         static func touchTypes(highlighting: Bool) -> [NSNumber] {
@@ -124,21 +128,28 @@ struct PDFViewer: UIViewRepresentable {
                       let startPage = view.page(for: start, nearest: true),
                       let endPage = view.page(for: point, nearest: true)
                 else { return }
-                view.currentSelection = document.selection(
+                dragSelection = document.selection(
                     from: startPage,
                     at: view.convert(start, to: startPage),
                     to: endPage,
                     at: view.convert(point, to: endPage)
                 )
+                controller.previewHighlight(of: dragSelection, in: highlightColour)
             case .ended:
+                view.currentSelection = dragSelection
                 dragStart = nil
+                dragSelection = nil
                 controller.isDraggingHighlight = false
                 if view.currentSelection != nil {
                     controller.highlightRequests += 1
+                } else {
+                    controller.clearHighlightPreview()
                 }
             case .cancelled, .failed:
                 dragStart = nil
+                dragSelection = nil
                 controller.isDraggingHighlight = false
+                controller.clearHighlightPreview()
                 view.clearSelection()
             default:
                 break

@@ -33,10 +33,8 @@ struct Highlight {
         }
         return lines.isEmpty ? [annotation.bounds] : lines
     }
-}
 
-extension PDFModel {
-    func highlight(_ selection: PDFSelection, in colour: HighlightColour) {
+    static func covering(_ selection: PDFSelection, in colour: HighlightColour) -> [Highlight] {
         var linesByPage: [(page: PDFPage, lines: [CGRect])] = []
         for line in selection.selectionsByLine() {
             for page in line.pages {
@@ -50,7 +48,7 @@ extension PDFModel {
             }
         }
 
-        let highlights = linesByPage.map { page, lines in
+        return linesByPage.map { page, lines in
             let bounds = lines.dropFirst().reduce(lines[0]) { $0.union($1) }
             let annotation = PDFAnnotation(bounds: bounds, forType: .highlight, withProperties: nil)
             annotation.color = colour.colour
@@ -70,6 +68,12 @@ extension PDFModel {
             }
             return Highlight(annotation: annotation, page: page)
         }
+    }
+}
+
+extension PDFModel {
+    func highlight(_ selection: PDFSelection, in colour: HighlightColour) {
+        let highlights = Highlight.covering(selection, in: colour)
         guard !highlights.isEmpty else { return }
         setHighlights(highlights, shown: true, actionName: "Highlight")
     }

@@ -107,7 +107,8 @@ struct ReaderView: View {
                 onEdgeDrag: edgeDragged,
                 onEdgeDragEnded: edgeDragEnded,
                 onScroll: { scrollActivity += 1 },
-                isHighlighting: controller.isHighlighting
+                isHighlighting: controller.isHighlighting,
+                highlightColour: highlightColour
             )
             .overlay(alignment: hasRoomForSidebar ? .topTrailing : .bottomTrailing) { palette }
             .overlay(alignment: .bottom) { pagePill }
