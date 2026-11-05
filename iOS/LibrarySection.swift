@@ -92,7 +92,7 @@ struct LibrarySection: View {
     }
 
     private var header: some View {
-        HStack(spacing: 4) {
+        HStack(spacing: 6) {
             if !library.folders.isEmpty {
                 Button("Back", systemImage: "chevron.left") {
                     Task { await library.goBack() }
@@ -102,7 +102,7 @@ struct LibrarySection: View {
 
             Text(library.folders.last?.lastPathComponent ?? "Library")
             Spacer()
-            HStack(spacing: 20) {
+            HStack(spacing: 24) {
                 Button("New Folder", systemImage: "folder.badge.plus") {
                     folderName = ""
                     isNamingFolder = true
@@ -113,7 +113,7 @@ struct LibrarySection: View {
             }
             .labelStyle(.iconOnly)
         }
-        .font(.subheadline)
+        .font(.title3)
         .foregroundStyle(Color.cream)
     }
 
