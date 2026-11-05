@@ -101,11 +101,6 @@ struct LibrarySection: View {
             }
 
             Text(library.folders.last?.lastPathComponent ?? "Library")
-            Button("Refresh Library", systemImage: "arrow.clockwise") {
-                Task { await library.refresh() }
-            }
-            .labelStyle(.iconOnly)
-            .padding(.leading, 6)
             Spacer()
             HStack(spacing: 20) {
                 Button("New Folder", systemImage: "folder.badge.plus") {
