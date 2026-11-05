@@ -11,7 +11,7 @@ struct FileCollection<Item: Identifiable, Tile: View, Row: View>: View {
         switch layout {
         case .grid:
             LazyVGrid(
-                columns: [GridItem(.adaptive(minimum: FileTile.width), spacing: 16, alignment: .top)],
+                columns: [GridItem(.adaptive(minimum: FileTile.width), spacing: 16, alignment: .bottom)],
                 alignment: .leading,
                 spacing: 20
             ) {

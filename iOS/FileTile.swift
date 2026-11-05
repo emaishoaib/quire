@@ -18,7 +18,6 @@ struct FileTile: View {
         Button(action: open) {
             VStack(spacing: 4) {
                 previewView
-                    .frame(width: Self.width, height: Self.height)
 
                 Text(name)
                     .font(.caption)
@@ -47,7 +46,9 @@ struct FileTile: View {
                 .clipShape(.rect(cornerRadius: 4))
         case .folder:
             Image(systemName: "folder.fill")
-                .font(.system(size: 64))
+                .resizable()
+                .scaledToFit()
+                .frame(width: Self.width)
                 .foregroundStyle(Color.cream)
         }
     }
