@@ -128,14 +128,8 @@ struct ContentView: View {
 
     private var sidebar: some View {
         VStack(spacing: 0) {
-            Picker("Sidebar", selection: $sidebarTab) {
-                ForEach(SidebarTab.allCases) { tab in
-                    Text(tab.rawValue)
-                }
-            }
-            .pickerStyle(.segmented)
-            .labelsHidden()
-            .padding(10)
+            SidebarTabSwitch(selection: $sidebarTab)
+                .padding(10)
 
             Divider()
 
