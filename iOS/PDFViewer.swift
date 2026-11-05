@@ -79,6 +79,7 @@ struct PDFViewer: UIViewRepresentable {
         var onScroll: (() -> Void)?
         var highlightColour = HighlightColour.yellow
         weak var highlightDrag: UIPanGestureRecognizer?
+        private var touchDown: CGPoint?
         private var dragStart: CGPoint?
         private var dragSelection: PDFSelection?
         private var isHighlighting = false
@@ -119,8 +120,7 @@ struct PDFViewer: UIViewRepresentable {
             let point = recognizer.location(in: view)
             switch recognizer.state {
             case .began:
-                let moved = recognizer.translation(in: view)
-                dragStart = CGPoint(x: point.x - moved.x, y: point.y - moved.y)
+                dragStart = touchDown ?? point
                 controller.isDraggingHighlight = true
                 controller.hideHighlightBar()
             case .changed:
@@ -160,6 +160,13 @@ struct PDFViewer: UIViewRepresentable {
             controller.hideHighlightBar()
             (recognizer.view as? PDFView)?.clearSelection()
             controller.pressEnded(at: recognizer.location(in: recognizer.view))
+        }
+
+        func gestureRecognizer(_ gestureRecognizer: UIGestureRecognizer, shouldReceive touch: UITouch) -> Bool {
+            if gestureRecognizer === highlightDrag {
+                touchDown = touch.location(in: gestureRecognizer.view)
+            }
+            return true
         }
 
         func gestureRecognizer(
