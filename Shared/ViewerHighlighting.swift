@@ -10,12 +10,16 @@ extension ViewerController {
     }
 
     func pressEnded(at point: CGPoint) {
+        #if os(macOS)
         guard !isHighlighting else {
             if view?.currentSelection != nil {
                 highlightRequests += 1
             }
             return
         }
+        #else
+        guard !isHighlighting || highlight(at: point) != nil else { return }
+        #endif
         followsSelection = true
         placeHighlightBar()
         guard selectionAnchor == nil,
