@@ -51,24 +51,10 @@ extension ViewerController {
         }
     }
 
-    func previewHighlight(of selection: PDFSelection?, in colour: HighlightColour) {
-        clearHighlightPreview()
-        guard let selection else { return }
-        highlightPreview = Highlight.covering(selection, in: colour)
-        for highlight in highlightPreview {
-            highlight.page.addAnnotation(highlight.annotation)
-        }
-    }
-
-    func clearHighlightPreview() {
-        for highlight in highlightPreview {
-            highlight.page.removeAnnotation(highlight.annotation)
-        }
-        highlightPreview = []
-    }
-
     func highlight(in colour: HighlightColour, of model: PDFModel) {
-        clearHighlightPreview()
+        #if os(iOS)
+        (view as? FittingPDFView)?.clearHighlightPreview()
+        #endif
         if let highlight = selectedHighlight {
             if highlight.isOnPage {
                 model.recolourHighlight(highlight, to: colour)

@@ -115,7 +115,7 @@ struct PDFViewer: UIViewRepresentable {
         }
 
         @objc func highlightDragged(_ recognizer: UIPanGestureRecognizer) {
-            guard let view = recognizer.view as? PDFView, let document = view.document else { return }
+            guard let view = recognizer.view as? FittingPDFView, let document = view.document else { return }
             let point = recognizer.location(in: view)
             switch recognizer.state {
             case .began:
@@ -134,7 +134,7 @@ struct PDFViewer: UIViewRepresentable {
                     to: endPage,
                     at: view.convert(point, to: endPage)
                 )
-                controller.previewHighlight(of: dragSelection, in: highlightColour)
+                view.showHighlightPreview(of: dragSelection, in: highlightColour)
             case .ended:
                 view.currentSelection = dragSelection
                 dragStart = nil
@@ -143,13 +143,13 @@ struct PDFViewer: UIViewRepresentable {
                 if view.currentSelection != nil {
                     controller.highlightRequests += 1
                 } else {
-                    controller.clearHighlightPreview()
+                    view.clearHighlightPreview()
                 }
             case .cancelled, .failed:
                 dragStart = nil
                 dragSelection = nil
                 controller.isDraggingHighlight = false
-                controller.clearHighlightPreview()
+                view.clearHighlightPreview()
                 view.clearSelection()
             default:
                 break
@@ -195,6 +195,14 @@ final class FittingPDFView: PDFView {
     private var laidOutWidth: CGFloat = 0
     private var scrollObservation: NSKeyValueObservation?
     private var scrollEnd: Task<Void, Never>?
+
+    lazy var highlightPreview: CAShapeLayer = {
+        let preview = CAShapeLayer()
+        preview.compositingFilter = "multiplyBlendMode"
+        preview.zPosition = 1
+        layer.addSublayer(preview)
+        return preview
+    }()
 
     override var currentDestination: PDFDestination? {
         let corner = CGPoint(x: bounds.minX, y: bounds.minY)
