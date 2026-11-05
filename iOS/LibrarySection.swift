@@ -26,6 +26,9 @@ struct LibrarySection: View {
                 content
                     .padding(.bottom, 24)
             }
+            .backSwipe(isEnabled: !library.folders.isEmpty) {
+                await library.goBack()
+            }
         }
         .onChange(of: library.folders) { search = nil }
         .alert("New Folder", isPresented: $isNamingFolder) {
