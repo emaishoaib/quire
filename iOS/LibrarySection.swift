@@ -9,6 +9,8 @@ struct LibrarySection: View {
     @State private var folderName = ""
     @State private var folderFailure: String?
     @State private var isAddingPlace = false
+    @State private var movingItem: URL?
+    @State private var moveFailure: String?
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
@@ -30,6 +32,17 @@ struct LibrarySection: View {
         .fileImporter(isPresented: $isAddingPlace, allowedContentTypes: [.folder]) { result in
             guard case .success(let url) = result else { return }
             Task { await library.addPlace(url) }
+        }
+        .fileMover(isPresented: isMoving, file: movingItem) { result in
+            if case .failure(let error) = result, (error as? CocoaError)?.code != .userCancelled {
+                moveFailure = error.localizedDescription
+            }
+            Task { await library.refresh() }
+        }
+        .alert("Couldn't Move It", isPresented: showingMoveFailure) {
+            Button("OK") {}
+        } message: {
+            Text(moveFailure ?? "")
         }
         .alert("New Folder", isPresented: $isNamingFolder) {
             TextField("Name", text: $folderName)
@@ -56,6 +69,20 @@ struct LibrarySection: View {
                 ForEach(library.items, content: tile)
             }
         }
+    }
+
+    private var isMoving: Binding<Bool> {
+        Binding(
+            get: { movingItem != nil },
+            set: { if !$0 { movingItem = nil } }
+        )
+    }
+
+    private var showingMoveFailure: Binding<Bool> {
+        Binding(
+            get: { moveFailure != nil },
+            set: { if !$0 { moveFailure = nil } }
+        )
     }
 
     private var showingFolderFailure: Binding<Bool> {
@@ -103,24 +130,33 @@ struct LibrarySection: View {
         .foregroundStyle(Color.cream)
     }
 
-    @ViewBuilder
     private func tile(_ item: LibraryItem) -> some View {
+        tileButton(item)
+            .contextMenu { menu(for: item) }
+    }
+
+    @ViewBuilder
+    private func tileButton(_ item: LibraryItem) -> some View {
         switch item.kind {
         case .folder(let itemCount):
             FileTile(name: item.name, detail: count(itemCount, "item"), preview: .folder) {
                 Task { await library.open(item.url) }
             }
-            .contextMenu {
-                if library.isAddedPlace(item.url) {
-                    Button("Remove Location", systemImage: "minus.circle", role: .destructive) {
-                        Task { await library.removePlace(item.url) }
-                    }
-                }
-            }
         case .pdf(let pageCount, let thumbnail):
             FileTile(name: item.name, detail: count(pageCount, "page"), preview: .page(thumbnail)) {
                 open(item.url)
             }
+        }
+    }
+
+    @ViewBuilder
+    private func menu(for item: LibraryItem) -> some View {
+        if library.isAddedPlace(item.url) {
+            Button("Remove Location", systemImage: "minus.circle", role: .destructive) {
+                Task { await library.removePlace(item.url) }
+            }
+        } else if !library.folders.isEmpty {
+            Button("Move", systemImage: "folder") { movingItem = item.url }
         }
     }
 
