@@ -69,6 +69,12 @@ struct ReaderView: View {
         .onChange(of: model.revision) {
             controller.clearSearch()
         }
+        .onChange(of: controller.highlightRequests) {
+            controller.highlight(in: highlightColour, of: model)
+        }
+        .onChange(of: mode) {
+            controller.setHighlighting(false)
+        }
         .onChange(of: scenePhase) {
             if scenePhase == .background {
                 savePosition()
@@ -99,8 +105,10 @@ struct ReaderView: View {
                 controller: controller,
                 onEdgeDrag: edgeDragged,
                 onEdgeDragEnded: edgeDragEnded,
-                onScroll: { scrollActivity += 1 }
+                onScroll: { scrollActivity += 1 },
+                isHighlighting: controller.isHighlighting
             )
+            .overlay(alignment: hasRoomForSidebar ? .topTrailing : .bottomTrailing) { palette }
             .overlay(alignment: .bottom) { pagePill }
             .overlay { highlightBar }
             .overlay(alignment: .topTrailing) { findPanel }
@@ -143,9 +151,29 @@ struct ReaderView: View {
 
         ToolbarItemGroup(placement: .topBarTrailing) {
             if hasRoomForSidebar {
+                if mode == .read {
+                    Button(
+                        controller.isHighlighting ? "Stop Highlighting" : "Highlight",
+                        systemImage: "highlighter"
+                    ) {
+                        withAnimation(HighlightPalette.animation) {
+                            controller.setHighlighting(!controller.isHighlighting)
+                        }
+                    }
+                    .tint(controller.isHighlighting ? .yellow : nil)
+                }
                 Button("Find", systemImage: "magnifyingglass", action: openFind)
             }
             ShareLink(item: SharedPDF(name: pdf.name, model: model), preview: SharePreview(pdf.name))
+        }
+    }
+
+    @ViewBuilder
+    private var palette: some View {
+        if controller.isHighlighting {
+            HighlightPalette(selected: $highlightColour)
+                .padding(16)
+                .transition(.scale(scale: 0.3, anchor: hasRoomForSidebar ? .topTrailing : .bottomTrailing).combined(with: .opacity))
         }
     }
 

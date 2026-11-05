@@ -8,6 +8,7 @@ struct PDFViewer: UIViewRepresentable {
     let onEdgeDrag: (CGFloat) -> Void
     let onEdgeDragEnded: (CGFloat) -> Void
     var onScroll: () -> Void = {}
+    var isHighlighting = false
 
     func makeCoordinator() -> Coordinator {
         Coordinator(revision: revision, controller: controller)
@@ -39,6 +40,13 @@ struct PDFViewer: UIViewRepresentable {
         tap.delegate = context.coordinator
         view.addGestureRecognizer(tap)
 
+        let highlightDrag = UIPanGestureRecognizer(target: context.coordinator, action: #selector(Coordinator.highlightDragged))
+        highlightDrag.maximumNumberOfTouches = 1
+        highlightDrag.delegate = context.coordinator
+        highlightDrag.isEnabled = false
+        view.addGestureRecognizer(highlightDrag)
+        context.coordinator.highlightDrag = highlightDrag
+
         let edgeDrag = UIScreenEdgePanGestureRecognizer(target: context.coordinator, action: #selector(Coordinator.edgeDragged))
         edgeDrag.edges = .left
         view.addGestureRecognizer(edgeDrag)
@@ -49,6 +57,7 @@ struct PDFViewer: UIViewRepresentable {
         context.coordinator.onEdgeDrag = onEdgeDrag
         context.coordinator.onEdgeDragEnded = onEdgeDragEnded
         context.coordinator.onScroll = onScroll
+        context.coordinator.setHighlighting(isHighlighting, in: view)
         let pagesChanged = context.coordinator.revision != revision
         guard view.document !== pdf || pagesChanged else { return }
         context.coordinator.revision = revision
@@ -66,6 +75,8 @@ struct PDFViewer: UIViewRepresentable {
         var onEdgeDrag: ((CGFloat) -> Void)?
         var onEdgeDragEnded: ((CGFloat) -> Void)?
         var onScroll: (() -> Void)?
+        weak var highlightDrag: UIPanGestureRecognizer?
+        private var dragStart: CGPoint?
 
         init(revision: Int, controller: ViewerController) {
             self.revision = revision
@@ -86,6 +97,44 @@ struct PDFViewer: UIViewRepresentable {
             }
         }
 
+        func setHighlighting(_ highlighting: Bool, in view: PDFView) {
+            guard highlightDrag?.isEnabled != highlighting else { return }
+            highlightDrag?.isEnabled = highlighting
+            (view as? FittingPDFView)?.scrollView?.panGestureRecognizer.minimumNumberOfTouches = highlighting ? 2 : 1
+        }
+
+        @objc func highlightDragged(_ recognizer: UIPanGestureRecognizer) {
+            guard let view = recognizer.view as? PDFView, let document = view.document else { return }
+            let point = recognizer.location(in: view)
+            switch recognizer.state {
+            case .began:
+                let moved = recognizer.translation(in: view)
+                dragStart = CGPoint(x: point.x - moved.x, y: point.y - moved.y)
+                controller.hideHighlightBar()
+            case .changed:
+                guard let start = dragStart,
+                      let startPage = view.page(for: start, nearest: true),
+                      let endPage = view.page(for: point, nearest: true)
+                else { return }
+                view.currentSelection = document.selection(
+                    from: startPage,
+                    at: view.convert(start, to: startPage),
+                    to: endPage,
+                    at: view.convert(point, to: endPage)
+                )
+            case .ended:
+                dragStart = nil
+                if view.currentSelection != nil {
+                    controller.highlightRequests += 1
+                }
+            case .cancelled, .failed:
+                dragStart = nil
+                view.clearSelection()
+            default:
+                break
+            }
+        }
+
         @objc func tapped(_ recognizer: UITapGestureRecognizer) {
             controller.hideHighlightBar()
             (recognizer.view as? PDFView)?.clearSelection()
@@ -96,14 +145,16 @@ struct PDFViewer: UIViewRepresentable {
             _ gestureRecognizer: UIGestureRecognizer,
             shouldRecognizeSimultaneouslyWith otherGestureRecognizer: UIGestureRecognizer
         ) -> Bool {
-            !isOnHighlight(gestureRecognizer)
+            guard gestureRecognizer !== highlightDrag else { return false }
+            return !isOnHighlight(gestureRecognizer)
         }
 
         func gestureRecognizer(
             _ gestureRecognizer: UIGestureRecognizer,
             shouldBeRequiredToFailBy otherGestureRecognizer: UIGestureRecognizer
         ) -> Bool {
-            otherGestureRecognizer is UITapGestureRecognizer && isOnHighlight(gestureRecognizer)
+            guard gestureRecognizer !== highlightDrag else { return false }
+            return otherGestureRecognizer is UITapGestureRecognizer && isOnHighlight(gestureRecognizer)
         }
 
         private func isOnHighlight(_ recognizer: UIGestureRecognizer) -> Bool {
@@ -161,7 +212,7 @@ final class FittingPDFView: PDFView {
         }
     }
 
-    private var scrollView: UIScrollView? {
+    var scrollView: UIScrollView? {
         subviews.lazy.compactMap { $0 as? UIScrollView }.first
     }
 

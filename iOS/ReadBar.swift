@@ -33,6 +33,20 @@ struct ReadBar: View {
 
                 Spacer()
 
+                button(
+                    viewer.isHighlighting ? "Stop Highlighting" : "Highlight",
+                    systemImage: "highlighter"
+                ) {
+                    withAnimation(HighlightPalette.animation) {
+                        viewer.setHighlighting(!viewer.isHighlighting)
+                    }
+                }
+                .foregroundStyle(viewer.isHighlighting ? Color.yellow : Color.primary)
+                .opacity(mode == .read ? 1 : 0)
+                .disabled(mode != .read)
+
+                Spacer()
+
                 button("Find", systemImage: "magnifyingglass", action: find)
             }
 
