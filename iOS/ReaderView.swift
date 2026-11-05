@@ -59,6 +59,7 @@ struct ReaderView: View {
                     )
                 }
             }
+            .ignoresSafeArea(.container, edges: .bottom)
             .background(Color(.secondarySystemBackground), ignoresSafeAreaEdges: [.bottom, .horizontal])
             .animation(ThumbnailSidebar.animation, value: showsSidebar)
             .animation(ThumbnailSidebar.animation, value: sidebarTab)

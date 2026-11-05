@@ -4,6 +4,7 @@ struct ReadBar: View {
     private static let buttonSize = 44.0
     private static let zoomWidth = 56.0
     private static let zoomHeight = 36.0
+    private static let bottomGap = 16.0
 
     let viewer: ViewerController
     let pageCount: Int
@@ -61,7 +62,8 @@ struct ReadBar: View {
             }
         }
         .padding(.horizontal, 12)
-        .padding(.vertical, 4)
+        .padding(.top, 4)
+        .padding(.bottom, Self.bottomGap)
         .background(.bar, ignoresSafeAreaEdges: [.bottom, .horizontal])
     }
 
