@@ -72,7 +72,7 @@ extension ViewerController {
         #if os(macOS)
         guard followsSelection else { return }
         #else
-        guard !isHighlighting, !selectionIsCurrentMatch else { return }
+        guard !isHighlighting, !isDraggingHighlight, !selectionIsCurrentMatch else { return }
         #endif
         placeHighlightBar()
     }

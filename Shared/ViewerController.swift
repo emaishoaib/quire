@@ -43,6 +43,8 @@ final class ViewerController {
 
     @ObservationIgnored var followsSelection = false
 
+    @ObservationIgnored var isDraggingHighlight = false
+
     private struct Snapshot {
         let scale: CGFloat
         let autoScales: Bool

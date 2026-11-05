@@ -43,7 +43,7 @@ struct PDFViewer: UIViewRepresentable {
         let highlightDrag = UIPanGestureRecognizer(target: context.coordinator, action: #selector(Coordinator.highlightDragged))
         highlightDrag.maximumNumberOfTouches = 1
         highlightDrag.delegate = context.coordinator
-        highlightDrag.isEnabled = false
+        highlightDrag.allowedTouchTypes = Coordinator.touchTypes(highlighting: false)
         view.addGestureRecognizer(highlightDrag)
         context.coordinator.highlightDrag = highlightDrag
 
@@ -77,6 +77,12 @@ struct PDFViewer: UIViewRepresentable {
         var onScroll: (() -> Void)?
         weak var highlightDrag: UIPanGestureRecognizer?
         private var dragStart: CGPoint?
+        private var isHighlighting = false
+
+        static func touchTypes(highlighting: Bool) -> [NSNumber] {
+            let types: [UITouch.TouchType] = highlighting ? [.direct, .pencil] : [.pencil]
+            return types.map { NSNumber(value: $0.rawValue) }
+        }
 
         init(revision: Int, controller: ViewerController) {
             self.revision = revision
@@ -98,8 +104,9 @@ struct PDFViewer: UIViewRepresentable {
         }
 
         func setHighlighting(_ highlighting: Bool, in view: PDFView) {
-            guard highlightDrag?.isEnabled != highlighting else { return }
-            highlightDrag?.isEnabled = highlighting
+            guard isHighlighting != highlighting else { return }
+            isHighlighting = highlighting
+            highlightDrag?.allowedTouchTypes = Self.touchTypes(highlighting: highlighting)
             (view as? FittingPDFView)?.scrollView?.panGestureRecognizer.minimumNumberOfTouches = highlighting ? 2 : 1
         }
 
@@ -110,6 +117,7 @@ struct PDFViewer: UIViewRepresentable {
             case .began:
                 let moved = recognizer.translation(in: view)
                 dragStart = CGPoint(x: point.x - moved.x, y: point.y - moved.y)
+                controller.isDraggingHighlight = true
                 controller.hideHighlightBar()
             case .changed:
                 guard let start = dragStart,
@@ -124,11 +132,13 @@ struct PDFViewer: UIViewRepresentable {
                 )
             case .ended:
                 dragStart = nil
+                controller.isDraggingHighlight = false
                 if view.currentSelection != nil {
                     controller.highlightRequests += 1
                 }
             case .cancelled, .failed:
                 dragStart = nil
+                controller.isDraggingHighlight = false
                 view.clearSelection()
             default:
                 break
@@ -205,6 +215,8 @@ final class FittingPDFView: PDFView {
 
     private func observeScrolling() {
         guard let scrollView else { return }
+        let fingers: [UITouch.TouchType] = [.direct, .indirect, .indirectPointer]
+        scrollView.panGestureRecognizer.allowedTouchTypes = fingers.map { NSNumber(value: $0.rawValue) }
         scrollObservation = scrollView.observe(\.contentOffset) { [weak self] _, _ in
             MainActor.assumeIsolated {
                 self?.didScroll()
