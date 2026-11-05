@@ -3,37 +3,29 @@ import SwiftUI
 struct HomeView: View {
     @State private var recents = RecentFiles()
     @State private var library = LibraryFiles()
-    @State private var showsAllRecents = false
-    @State private var chosenRecent: RecentFile?
     @State private var opened: OpenedPDF?
     @State private var failure: String?
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 24) {
-            Wordmark(height: 44)
-
-            if !recents.files.isEmpty && library.folders.isEmpty {
-                RecentRow(recents: recents, showAll: { showsAllRecents = true }, open: open)
-                    .transition(.opacity.combined(with: .move(edge: .top)))
+        TabView {
+            Tab("Library", systemImage: "books.vertical") {
+                HomePage {
+                    LibrarySection(library: library) { url in
+                        open(url)
+                    }
+                }
             }
-
-            LibrarySection(library: library) { url in
-                open(url)
+            Tab("Recent", systemImage: "clock") {
+                HomePage {
+                    RecentSection(recents: recents, open: open)
+                }
             }
         }
-        .animation(.snappy, value: library.folders.isEmpty)
-        .padding([.top, .horizontal], 24)
-        .background(Color.wine)
+        .tint(Color.cream)
         .preferredColorScheme(.dark)
         .task {
             WelcomePDF.createIfNeeded()
             await library.refresh()
-        }
-        .sheet(isPresented: $showsAllRecents, onDismiss: openChosenRecent) {
-            AllRecentsView(recents: recents) { file in
-                chosenRecent = file
-                showsAllRecents = false
-            }
         }
         .fullScreenCover(item: $opened, onDismiss: { Task { await library.refresh() } }) { pdf in
             ReaderView(pdf: pdf)
@@ -50,12 +42,6 @@ struct HomeView: View {
             get: { failure != nil },
             set: { if !$0 { failure = nil } }
         )
-    }
-
-    private func openChosenRecent() {
-        guard let chosenRecent else { return }
-        self.chosenRecent = nil
-        open(chosenRecent)
     }
 
     private func open(_ file: RecentFile) {
@@ -82,5 +68,19 @@ struct HomeView: View {
                 }
             }
         }
+    }
+}
+
+private struct HomePage<Content: View>: View {
+    @ViewBuilder let content: Content
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 24) {
+            Wordmark(height: 44)
+            content
+        }
+        .padding([.top, .horizontal], 24)
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+        .background(Color.wine)
     }
 }
