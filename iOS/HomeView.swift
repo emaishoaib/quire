@@ -9,7 +9,7 @@ struct HomeView: View {
 
     var body: some View {
         TabView {
-            Tab("Library", systemImage: "books.vertical") {
+            Tab("Browse", systemImage: "folder") {
                 HomePage {
                     LibrarySection(library: library) { url in
                         open(url)

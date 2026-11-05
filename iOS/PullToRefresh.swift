@@ -92,7 +92,7 @@ private struct RefreshHeader: View {
         switch state {
         case .pull: "Pull to refresh"
         case .release: "Release to refresh"
-        case .refreshing: "Refreshing your library…"
+        case .refreshing: "Refreshing…"
         }
     }
 }

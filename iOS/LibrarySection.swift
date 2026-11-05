@@ -79,7 +79,7 @@ struct LibrarySection: View {
                 .labelStyle(.iconOnly)
             }
 
-            Text(library.folders.last?.lastPathComponent ?? "Library")
+            Text(library.folders.last?.lastPathComponent ?? "Browse")
             Spacer()
             Button("New Folder", systemImage: "folder.badge.plus") {
                 folderName = ""
@@ -116,7 +116,7 @@ private struct EmptyLibrary: View {
         VStack(spacing: 8) {
             Image(systemName: isTopLevel ? "tray" : "folder")
                 .font(.system(size: 36))
-            Text(isTopLevel ? "Your library is empty" : "This folder is empty")
+            Text(isTopLevel ? "Quire's folder is empty" : "This folder is empty")
                 .font(.headline)
             if isTopLevel {
                 Text("Move PDFs into Quire's folder in the Files app to see them here.")
