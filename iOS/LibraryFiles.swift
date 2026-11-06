@@ -23,6 +23,7 @@ final class LibraryFiles {
     private let deviceStorageName = "On My \(UIDevice.current.model)"
     private(set) var items: [LibraryItem] = []
     private(set) var hasLoaded = false
+    private(set) var listedFolder: URL?
     private(set) var folders: [URL] = []
     private var foldersAhead: [URL] = []
 
@@ -40,6 +41,7 @@ final class LibraryFiles {
         let items = await Self.items(in: folder, places: places.urls, deviceStorageName: deviceStorageName)
         guard folder == folders.last else { return }
         self.items = items
+        listedFolder = folder
         hasLoaded = true
     }
 

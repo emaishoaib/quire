@@ -12,6 +12,7 @@ struct LibrarySection: View {
     @State private var movingItem: URL?
     @State private var moveFailure: String?
     @State private var visibleHeight = 0.0
+    @State private var folderChange = FolderChange.deeper
     @AppStorage(LibraryLayout.storageKey) private var layout = LibraryLayout.grid
 
     var body: some View {
@@ -21,21 +22,23 @@ struct LibrarySection: View {
 
             header
 
-            PullToRefreshScrollView {
-                await library.refresh()
-            } content: {
-                content
-                    .padding(.top, 8)
-                    .padding(.bottom, 24)
-                    .padding(.horizontal, HomeLayout.margin)
-                    .frame(maxWidth: .infinity, minHeight: visibleHeight, alignment: .top)
-                    .contentShape(.rect)
+            ZStack {
+                folderList
+                    .id(library.listedFolder)
+                    .transition(folderChange.transition)
             }
+            .animation(.snappy, value: library.listedFolder)
             .folderSwipe(
                 canGoBack: library.canGoBack,
                 canGoForward: library.canGoForward,
-                goBack: { await library.goBack() },
-                goForward: { await library.goForward() }
+                goBack: {
+                    folderChange = .swipedBack
+                    await library.goBack()
+                },
+                goForward: {
+                    folderChange = .swipedForward
+                    await library.goForward()
+                }
             )
             .padding(.horizontal, -HomeLayout.margin)
             .onGeometryChange(for: Double.self) { $0.size.height } action: { visibleHeight = $0 }
@@ -64,6 +67,19 @@ struct LibrarySection: View {
             Button("OK") {}
         } message: {
             Text(folderFailure ?? "")
+        }
+    }
+
+    private var folderList: some View {
+        PullToRefreshScrollView {
+            await library.refresh()
+        } content: {
+            content
+                .padding(.top, 8)
+                .padding(.bottom, 24)
+                .padding(.horizontal, HomeLayout.margin)
+                .frame(maxWidth: .infinity, minHeight: visibleHeight, alignment: .top)
+                .contentShape(.rect)
         }
     }
 
@@ -112,6 +128,7 @@ struct LibrarySection: View {
         HStack(spacing: 6) {
             if !library.folders.isEmpty {
                 Button("Back", systemImage: "chevron.left") {
+                    folderChange = .back
                     Task { await library.goBack() }
                 }
                 .labelStyle(.iconOnly)
@@ -163,7 +180,9 @@ struct LibrarySection: View {
 
     private func activate(_ item: LibraryItem) {
         switch item.kind {
-        case .folder: Task { await library.open(item.url) }
+        case .folder:
+            folderChange = .deeper
+            Task { await library.open(item.url) }
         case .pdf: open(item.url)
         }
     }
