@@ -32,7 +32,6 @@ private struct FolderSwipe: ViewModifier {
 
     func body(content: Content) -> some View {
         content
-            .offset(x: slide.offset)
             .onGeometryChange(for: Double.self) { $0.size.width } action: { slide.width = $0 }
             .simultaneousGesture(swipe, isEnabled: canGoBack || canGoForward)
     }

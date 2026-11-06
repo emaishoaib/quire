@@ -24,8 +24,9 @@ struct LibrarySection: View {
 
             ZStack {
                 folderList
+                    .offset(x: slide.offset)
                     .id(library.listedFolder)
-                    .transition(.asymmetric(insertion: .move(edge: slide.arrivalEdge), removal: .opacity.animation(nil)))
+                    .transition(.asymmetric(insertion: .move(edge: slide.arrivalEdge), removal: .move(edge: slide.departureEdge)))
             }
             .animation(.snappy, value: library.listedFolder)
             .folderSwipe(

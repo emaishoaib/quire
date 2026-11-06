@@ -2,13 +2,10 @@ import SwiftUI
 
 struct LoadingFiles: View {
     private static var placeholderCount: Int { 6 }
-    private static var delayBeforeShowing: Duration { .milliseconds(150) }
 
     private struct Placeholder: Identifiable {
         let id: Int
     }
-
-    @State private var isShowing = false
 
     var body: some View {
         FileCollection(
@@ -21,11 +18,6 @@ struct LoadingFiles: View {
             content.opacity(isBright ? 1 : 0.4)
         } animation: { _ in
             .easeInOut(duration: 0.8)
-        }
-        .opacity(isShowing ? 1 : 0)
-        .task {
-            try? await Task.sleep(for: Self.delayBeforeShowing)
-            withAnimation(.easeIn(duration: 0.2)) { isShowing = true }
         }
         .accessibilityLabel("Loading")
     }
