@@ -12,7 +12,7 @@ struct LibrarySection: View {
     @State private var movingItem: URL?
     @State private var moveFailure: String?
     @State private var visibleHeight = 0.0
-    @State private var folderChange = FolderChange.deeper
+    @State private var slide = FolderSlide()
     @AppStorage(LibraryLayout.storageKey) private var layout = LibraryLayout.grid
 
     var body: some View {
@@ -25,20 +25,15 @@ struct LibrarySection: View {
             ZStack {
                 folderList
                     .id(library.listedFolder)
-                    .transition(folderChange.transition)
+                    .transition(.asymmetric(insertion: .move(edge: slide.arrivalEdge), removal: .opacity.animation(nil)))
             }
             .animation(.snappy, value: library.listedFolder)
             .folderSwipe(
+                slide,
                 canGoBack: library.canGoBack,
                 canGoForward: library.canGoForward,
-                goBack: {
-                    folderChange = .swipedBack
-                    await library.goBack()
-                },
-                goForward: {
-                    folderChange = .swipedForward
-                    await library.goForward()
-                }
+                goBack: { await library.goBack() },
+                goForward: { await library.goForward() }
             )
             .padding(.horizontal, -HomeLayout.margin)
             .onGeometryChange(for: Double.self) { $0.size.height } action: { visibleHeight = $0 }
@@ -128,8 +123,7 @@ struct LibrarySection: View {
         HStack(spacing: 6) {
             if !library.folders.isEmpty {
                 Button("Back", systemImage: "chevron.left") {
-                    folderChange = .back
-                    Task { await library.goBack() }
+                    slide.leave(.back) { await library.goBack() }
                 }
                 .labelStyle(.iconOnly)
             }
@@ -181,8 +175,7 @@ struct LibrarySection: View {
     private func activate(_ item: LibraryItem) {
         switch item.kind {
         case .folder:
-            folderChange = .deeper
-            Task { await library.open(item.url) }
+            slide.leave(.forward) { await library.open(item.url) }
         case .pdf: open(item.url)
         }
     }

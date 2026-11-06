@@ -2,12 +2,13 @@ import SwiftUI
 
 extension View {
     func folderSwipe(
+        _ slide: FolderSlide,
         canGoBack: Bool,
         canGoForward: Bool,
         goBack: @escaping () async -> Void,
         goForward: @escaping () async -> Void
     ) -> some View {
-        modifier(FolderSwipe(canGoBack: canGoBack, canGoForward: canGoForward, goBack: goBack, goForward: goForward))
+        modifier(FolderSwipe(slide: slide, canGoBack: canGoBack, canGoForward: canGoForward, goBack: goBack, goForward: goForward))
     }
 }
 
@@ -15,42 +16,25 @@ private struct FolderSwipe: ViewModifier {
     private static var shareOfWidthToMove: Double { 1.0 / 3 }
     private static var flickPointsPerSecond: Double { 500 }
 
-    private enum Direction {
-        case back
-        case forward
-
-        var sign: Double {
-            switch self {
-            case .back: 1
-            case .forward: -1
-            }
-        }
-    }
-
-    private enum Drag: Equatable {
+    private enum Drag {
         case resting
         case ignored
-        case following(Direction, distance: Double)
+        case following(FolderSlide.Direction)
     }
 
+    let slide: FolderSlide
     let canGoBack: Bool
     let canGoForward: Bool
     let goBack: () async -> Void
     let goForward: () async -> Void
 
     @State private var drag = Drag.resting
-    @State private var width = 0.0
 
     func body(content: Content) -> some View {
         content
-            .offset(x: offset)
-            .onGeometryChange(for: Double.self) { $0.size.width } action: { width = $0 }
+            .offset(x: slide.offset)
+            .onGeometryChange(for: Double.self) { $0.size.width } action: { slide.width = $0 }
             .simultaneousGesture(swipe, isEnabled: canGoBack || canGoForward)
-    }
-
-    private var offset: Double {
-        guard case .following(let direction, let distance) = drag else { return 0 }
-        return direction.sign * distance
     }
 
     private var swipe: some Gesture {
@@ -61,41 +45,31 @@ private struct FolderSwipe: ViewModifier {
                     return
                 case .resting:
                     guard let direction = direction(of: value.translation) else { drag = .ignored; return }
-                    drag = .following(direction, distance: abs(value.translation.width))
-                case .following(let direction, _):
-                    drag = .following(direction, distance: max(value.translation.width * direction.sign, 0))
+                    drag = .following(direction)
+                    slide.follow(direction, distance: abs(value.translation.width))
+                case .following(let direction):
+                    slide.follow(direction, distance: value.translation.width * direction.sign)
                 }
             }
             .onEnded { value in
-                guard case .following(let direction, let distance) = drag else { drag = .resting; return }
+                defer { drag = .resting }
+                guard case .following(let direction) = drag else { return }
+                let distance = value.translation.width * direction.sign
                 let isFlick = value.velocity.width * direction.sign > Self.flickPointsPerSecond
-                guard distance > width * Self.shareOfWidthToMove || isFlick else {
-                    withAnimation(.snappy) { drag = .resting }
+                guard distance > slide.width * Self.shareOfWidthToMove || isFlick else {
+                    slide.settle()
                     return
                 }
-                slideAway(direction)
+                switch direction {
+                case .back: slide.leave(.back, then: goBack)
+                case .forward: slide.leave(.forward, then: goForward)
+                }
             }
     }
 
-    private func direction(of translation: CGSize) -> Direction? {
+    private func direction(of translation: CGSize) -> FolderSlide.Direction? {
         guard abs(translation.width) > abs(translation.height) else { return nil }
         if translation.width > 0 { return canGoBack ? .back : nil }
         return canGoForward ? .forward : nil
-    }
-
-    private func slideAway(_ direction: Direction) {
-        withAnimation(.snappy(duration: 0.2)) {
-            drag = .following(direction, distance: width)
-        } completion: {
-            Task {
-                switch direction {
-                case .back: await goBack()
-                case .forward: await goForward()
-                }
-                var transaction = Transaction()
-                transaction.disablesAnimations = true
-                withTransaction(transaction) { drag = .resting }
-            }
-        }
     }
 }
