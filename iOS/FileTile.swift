@@ -7,7 +7,7 @@ struct FileTile: View {
     }
 
     static let width = 84.0
-    private static let height = 112.0
+    static let height = 112.0
 
     let name: String
     var detail: String?

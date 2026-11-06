@@ -32,8 +32,8 @@ struct LibrarySection: View {
                 slide,
                 canGoBack: library.canGoBack,
                 canGoForward: library.canGoForward,
-                goBack: { await library.goBack() },
-                goForward: { await library.goForward() }
+                goBack: { library.goBack() },
+                goForward: { library.goForward() }
             )
             .padding(.horizontal, -HomeLayout.margin)
             .onGeometryChange(for: Double.self) { $0.size.height } action: { visibleHeight = $0 }
@@ -75,15 +75,21 @@ struct LibrarySection: View {
                 .padding(.horizontal, HomeLayout.margin)
                 .frame(maxWidth: .infinity, minHeight: visibleHeight, alignment: .top)
                 .contentShape(.rect)
+                .animation(.easeInOut(duration: 0.25), value: library.hasLoaded)
         }
     }
 
     @ViewBuilder
     private var content: some View {
-        if library.hasLoaded && library.items.isEmpty {
+        if !library.hasLoaded {
+            LoadingFiles()
+                .transition(.opacity)
+        } else if library.items.isEmpty {
             EmptyLibrary(isQuireFolder: library.isInQuireFolder)
+                .transition(.opacity)
         } else {
             FileCollection(items: library.items, tile: tile, row: row)
+                .transition(.opacity)
         }
     }
 
@@ -123,7 +129,7 @@ struct LibrarySection: View {
         HStack(spacing: 6) {
             if !library.folders.isEmpty {
                 Button("Back", systemImage: "chevron.left") {
-                    slide.leave(.back) { await library.goBack() }
+                    slide.leave(.back) { library.goBack() }
                 }
                 .labelStyle(.iconOnly)
             }
@@ -175,7 +181,7 @@ struct LibrarySection: View {
     private func activate(_ item: LibraryItem) {
         switch item.kind {
         case .folder:
-            slide.leave(.forward) { await library.open(item.url) }
+            slide.leave(.forward) { library.open(item.url) }
         case .pdf: open(item.url)
         }
     }

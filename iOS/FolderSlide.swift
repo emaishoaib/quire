@@ -48,16 +48,14 @@ import SwiftUI
         withAnimation(.snappy) { position = .resting }
     }
 
-    func leave(_ direction: Direction, then move: @escaping () async -> Void) {
+    func leave(_ direction: Direction, then move: @escaping () -> Void) {
         if case .gone = position { return }
         arrivalEdge = direction.arrivalEdge
         withAnimation(.snappy(duration: 0.2)) {
             position = .gone(direction)
         } completion: {
-            Task {
-                await move()
-                self.position = .resting
-            }
+            move()
+            self.position = .resting
         }
     }
 }

@@ -51,14 +51,15 @@ final class LibraryFiles {
         hasLoaded = true
     }
 
-    private func arrive() async {
+    private func arrive() {
         let folder = folders.last
-        guard let items = visitedItems[folder] else {
+        if let items = visitedItems[folder] {
+            list(items, in: folder)
+        } else {
+            items = []
             hasLoaded = false
-            await refresh()
-            return
+            listedFolder = folder
         }
-        list(items, in: folder)
         Task { await refresh() }
     }
 
@@ -77,10 +78,10 @@ final class LibraryFiles {
         await refresh()
     }
 
-    func open(_ folder: URL) async {
+    func open(_ folder: URL) {
         folders.append(folder)
         foldersAhead.removeAll()
-        await arrive()
+        arrive()
     }
 
     func createFolder(named name: String) async throws {
@@ -91,16 +92,16 @@ final class LibraryFiles {
         await refresh()
     }
 
-    func goBack() async {
+    func goBack() {
         guard let folder = folders.popLast() else { return }
         foldersAhead.append(folder)
-        await arrive()
+        arrive()
     }
 
-    func goForward() async {
+    func goForward() {
         guard let folder = foldersAhead.popLast() else { return }
         folders.append(folder)
-        await arrive()
+        arrive()
     }
 
     @concurrent

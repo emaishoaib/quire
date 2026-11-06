@@ -1,8 +1,8 @@
 import SwiftUI
 
 struct FileRow: View {
-    private static let previewWidth = 36.0
-    private static let previewHeight = 48.0
+    static let previewWidth = 36.0
+    static let previewHeight = 48.0
 
     let name: String
     var detail: String?

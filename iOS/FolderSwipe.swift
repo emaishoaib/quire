@@ -5,8 +5,8 @@ extension View {
         _ slide: FolderSlide,
         canGoBack: Bool,
         canGoForward: Bool,
-        goBack: @escaping () async -> Void,
-        goForward: @escaping () async -> Void
+        goBack: @escaping () -> Void,
+        goForward: @escaping () -> Void
     ) -> some View {
         modifier(FolderSwipe(slide: slide, canGoBack: canGoBack, canGoForward: canGoForward, goBack: goBack, goForward: goForward))
     }
@@ -25,8 +25,8 @@ private struct FolderSwipe: ViewModifier {
     let slide: FolderSlide
     let canGoBack: Bool
     let canGoForward: Bool
-    let goBack: () async -> Void
-    let goForward: () async -> Void
+    let goBack: () -> Void
+    let goForward: () -> Void
 
     @State private var drag = Drag.resting
 
