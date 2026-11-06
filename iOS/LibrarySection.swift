@@ -31,14 +31,14 @@ struct LibrarySection: View {
                     .frame(maxWidth: .infinity, minHeight: visibleHeight, alignment: .top)
                     .contentShape(.rect)
             }
-            .padding(.horizontal, -HomeLayout.margin)
-            .onGeometryChange(for: Double.self) { $0.size.height } action: { visibleHeight = $0 }
             .folderSwipe(
                 canGoBack: library.canGoBack,
                 canGoForward: library.canGoForward,
                 goBack: { await library.goBack() },
                 goForward: { await library.goForward() }
             )
+            .padding(.horizontal, -HomeLayout.margin)
+            .onGeometryChange(for: Double.self) { $0.size.height } action: { visibleHeight = $0 }
         }
         .fileImporter(isPresented: $isAddingPlace, allowedContentTypes: [.folder]) { result in
             guard case .success(let url) = result else { return }
