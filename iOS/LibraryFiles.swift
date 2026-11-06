@@ -26,6 +26,7 @@ final class LibraryFiles {
     private(set) var listedFolder: URL?
     private(set) var folders: [URL] = []
     private var foldersAhead: [URL] = []
+    private var visitedItems: [URL?: [LibraryItem]] = [:]
 
     var canGoBack: Bool { !folders.isEmpty }
     var canGoForward: Bool { !foldersAhead.isEmpty }
@@ -39,10 +40,26 @@ final class LibraryFiles {
     func refresh() async {
         let folder = folders.last
         let items = await Self.items(in: folder, places: places.urls, deviceStorageName: deviceStorageName)
+        visitedItems[folder] = items
         guard folder == folders.last else { return }
+        list(items, in: folder)
+    }
+
+    private func list(_ items: [LibraryItem], in folder: URL?) {
         self.items = items
         listedFolder = folder
         hasLoaded = true
+    }
+
+    private func arrive() async {
+        let folder = folders.last
+        guard let items = visitedItems[folder] else {
+            hasLoaded = false
+            await refresh()
+            return
+        }
+        list(items, in: folder)
+        Task { await refresh() }
     }
 
     func isAddedPlace(_ url: URL) -> Bool {
@@ -63,8 +80,7 @@ final class LibraryFiles {
     func open(_ folder: URL) async {
         folders.append(folder)
         foldersAhead.removeAll()
-        hasLoaded = false
-        await refresh()
+        await arrive()
     }
 
     func createFolder(named name: String) async throws {
@@ -78,15 +94,13 @@ final class LibraryFiles {
     func goBack() async {
         guard let folder = folders.popLast() else { return }
         foldersAhead.append(folder)
-        hasLoaded = false
-        await refresh()
+        await arrive()
     }
 
     func goForward() async {
         guard let folder = foldersAhead.popLast() else { return }
         folders.append(folder)
-        hasLoaded = false
-        await refresh()
+        await arrive()
     }
 
     @concurrent
