@@ -7,3 +7,4 @@ Quire.xcodeproj/
 Config/Release.xcconfig
 releases/
 .wrangler/
+PLAN.md
