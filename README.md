@@ -84,20 +84,24 @@ xcodebuild -project Quire.xcodeproj -scheme Quire-macOS -configuration Debug \
 open build/Build/Products/Debug/Quire.app
 ```
 
-To try a change everywhere at once, use the rebuild script. It generates the project and builds
-Quire in Release for the Mac and for the iPhone and iPad simulators. Then it quits the Mac app
+To try a change everywhere at once, type `go` anywhere in this repo and pick Rebuild. It generates
+the project and builds Quire in Release for the Mac and for the iPhone and iPad simulators. Then it quits the Mac app
 and installs the new build in `/Applications`, replacing the copy there, then reopens it. It
 restarts the iPhone and iPad apps from the new build. The simulators are the iPhone 18 Pro and
 the iPad Pro 11-inch (M5), each on the newest runtime that has it, booted if needed. If either
 build fails, nothing running is touched:
 
 ```bash
-scripts/rebuild.sh
+go
 ```
+
+The menu and its rebuild and release scripts live in the `apps/` folder of the workshop repo,
+shared by all my apps. The `go` command comes from the workshop repo's shell setup, and the menu
+needs gum, which the workshop's `setup.sh` installs.
 
 ## Releasing
 
-There are two separate paths, because the iPhone and iPad app and the Mac app reach people in different ways. One script, `scripts/release.sh`, takes both at once, so the apps always share a version.
+There are two separate paths, because the iPhone and iPad app and the Mac app reach people in different ways. One release, picked as Release in `go`, takes both at once, so the apps always share a version.
 
 ### iPhone and iPad: beta through TestFlight
 
@@ -111,7 +115,7 @@ TestFlight is Apple's app for installing beta versions.
 **Every beta**
 
 1. Raise the version and build number in `project.yml`. App Store Connect turns down any build number that isn't higher than every earlier upload
-2. Run `scripts/release.sh`. Alongside the Mac release below, it builds the iPhone and iPad app, signs it and uploads it to App Store Connect. It uses the account signed in to Xcode, the same as **Product -> Archive** and **Distribute App -> TestFlight** would
+2. Type `go` and pick Release. Alongside the Mac release below, it builds the iPhone and iPad app, signs it and uploads it to App Store Connect. It uses the account signed in to Xcode, the same as **Product -> Archive** and **Distribute App -> TestFlight** would
 3. Wait for Apple to process the build, and it appears in App Store Connect
 4. Give testers access to the build
 5. Testers install it from the TestFlight app on their iPhone or iPad
@@ -131,7 +135,7 @@ All of these are already set up on this Mac.
 **Release**
 
 1. Raise the version and build number in `project.yml`
-2. Run `scripts/release.sh`. Alongside the TestFlight upload above, it does all of this for you:
+2. Type `go` and pick Release. Alongside the TestFlight upload above, it does all of this for you:
    - builds and signs the app
    - puts it in a DMG
    - gets Apple to scan it
