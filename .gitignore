@@ -8,3 +8,5 @@ Config/Release.xcconfig
 releases/
 .wrangler/
 PLAN.md
+DECISIONS.md
+RELEASING.md
