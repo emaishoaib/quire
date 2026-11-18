@@ -236,6 +236,7 @@ private struct TabButton: View {
         .frame(maxHeight: .infinity)
         .contentShape(.rect)
         .onTapGesture(perform: select)
+        .onMiddleClick(perform: close)
         .onHover { isHovered = $0 }
         .animation(.easeOut(duration: 0.12), value: isHovered)
         .help(tab.title)
