@@ -117,7 +117,7 @@ extension ViewerController {
     private func anchor(of lines: [CGRect], on page: PDFPage, in view: PDFView) -> SelectionAnchor? {
         let rects = lines
             .map { view.convert($0, from: page) }
-            .filter { !$0.isEmpty }
+            .filter { !$0.isEmpty && [$0.minX, $0.minY, $0.maxX, $0.maxY].allSatisfy(\.isFinite) }
             .map { rect in
                 #if os(macOS)
                 view.isFlipped
