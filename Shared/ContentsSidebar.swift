@@ -8,7 +8,7 @@ enum SidebarTab: String, CaseIterable, Identifiable {
     var id: Self { self }
 
     static func opening(_ pdf: PDFDocument) -> SidebarTab {
-        (pdf.outlineRoot?.numberOfChildren ?? 0) > 0 ? .contents : .thumbnails
+        OutlineItem.roots(of: pdf).isEmpty ? .thumbnails : .contents
     }
 }
 
@@ -167,7 +167,16 @@ struct OutlineItem: Identifiable {
         }
     }
 
+    /// The entries under an outline, with any entry labelled only by its list number left out and its own entries taking its place.
     private static func children(of outline: PDFOutline) -> [OutlineItem] {
-        (0..<outline.numberOfChildren).compactMap { outline.child(at: $0) }.map(OutlineItem.init)
+        (0..<outline.numberOfChildren).compactMap { outline.child(at: $0) }.flatMap { child in
+            isListMarker(child.label) ? children(of: child) : [OutlineItem(child)]
+        }
+    }
+
+    /// Whether a label is nothing but a clause number such as "1", "1.1" or "(a)", which Word leaves behind when a numbered heading's text is missing.
+    static func isListMarker(_ label: String?) -> Bool {
+        guard let label = label?.trimmingCharacters(in: .whitespacesAndNewlines) else { return false }
+        return label.wholeMatch(of: /\d+(\.\d+)*\.?|\((\d+|[a-zA-Z]{1,4})\)/) != nil
     }
 }
