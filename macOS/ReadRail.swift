@@ -57,8 +57,14 @@ struct ReadRail: View {
 
             Spacer(minLength: 20)
 
+            button("Settings", systemImage: "gearshape") {
+                SettingsWindowController.shared.showWindow(nil)
+            }
+
             if mode == .read {
                 Group {
+                    separator
+
                     PageIndicator(viewer: viewer, pageCount: model.pageCount)
 
             separator
