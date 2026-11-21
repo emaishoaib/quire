@@ -17,9 +17,7 @@ struct TabStrip: View {
     let workspace: Workspace
 
     @State private var drag: TabDrag?
-    @State private var tabWidth = 0.0
-
-    private var step: Double { tabWidth + Self.spacing }
+    @State private var tabWidths: [WorkspaceTab.ID: Double] = [:]
 
     var body: some View {
         VStack(spacing: 0) {
@@ -35,7 +33,10 @@ struct TabStrip: View {
                     .onGeometryChange(for: Double.self) { proxy in
                         proxy.size.width
                     } action: { width in
-                        tabWidth = width
+                        tabWidths[tab.id] = width
+                    }
+                    .onDisappear {
+                        tabWidths[tab.id] = nil
                     }
                     .offset(x: dragOffset(for: tab, at: index))
                     .transaction { transaction in
@@ -84,29 +85,59 @@ struct TabStrip: View {
         if drag.id == tab.id {
             return drag.translation
         }
+        let shift = (tabWidths[drag.id] ?? 0) + Self.spacing
         if index > drag.origin && index <= drag.target {
-            return -step
+            return -shift
         }
         if index < drag.origin && index >= drag.target {
-            return step
+            return shift
         }
         return 0
+    }
+
+    private func width(at index: Int) -> Double {
+        tabWidths[workspace.tabs[index].id] ?? 0
+    }
+
+    /// How far a tab dragged from `origin` travels to sit in the slot at `target`, past the tabs in between.
+    private func distance(from origin: Int, to target: Int) -> Double {
+        if target > origin {
+            (origin + 1...target).reduce(0) { $0 + width(at: $1) + Self.spacing }
+        } else if target < origin {
+            -(target..<origin).reduce(0) { $0 + width(at: $1) + Self.spacing }
+        } else {
+            0
+        }
+    }
+
+    /// The slot a tab dragged from `origin` lands in, which changes once it is past the middle of a neighbour.
+    private func slot(from origin: Int, at translation: Double) -> Int {
+        var target = origin
+        while target + 1 < workspace.tabs.count,
+              translation > distance(from: origin, to: target) + (width(at: target + 1) + Self.spacing) / 2 {
+            target += 1
+        }
+        while target > 0,
+              translation < distance(from: origin, to: target) - (width(at: target - 1) + Self.spacing) / 2 {
+            target -= 1
+        }
+        return target
     }
 
     private func dragGesture(for tab: WorkspaceTab) -> some Gesture {
         DragGesture(minimumDistance: 4, coordinateSpace: .global)
             .onChanged { value in
                 if drag == nil {
-                    guard step > 0, let index = workspace.tabs.firstIndex(where: { $0.id == tab.id }) else { return }
+                    guard tabWidths[tab.id] != nil, let index = workspace.tabs.firstIndex(where: { $0.id == tab.id }) else { return }
                     drag = TabDrag(id: tab.id, origin: index, target: index, translation: 0)
                     workspace.select(tab)
                 }
                 guard let current = drag, current.id == tab.id, !current.isSettling else { return }
 
-                let lowest = Double(-current.origin) * step
-                let highest = Double(workspace.tabs.count - 1 - current.origin) * step
+                let lowest = distance(from: current.origin, to: 0)
+                let highest = distance(from: current.origin, to: workspace.tabs.count - 1)
                 let translation = min(max(value.translation.width, lowest), highest)
-                let target = current.origin + Int((translation / step).rounded())
+                let target = slot(from: current.origin, at: translation)
 
                 drag?.translation = translation
                 if target != current.target {
@@ -120,7 +151,7 @@ struct TabStrip: View {
 
                 withAnimation(Self.animation) {
                     drag?.isSettling = true
-                    drag?.translation = Double(current.target - current.origin) * step
+                    drag?.translation = distance(from: current.origin, to: current.target)
                 } completion: {
                     finishDrag(of: tab, at: current.target)
                 }
