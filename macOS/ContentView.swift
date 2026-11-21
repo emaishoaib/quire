@@ -46,7 +46,8 @@ struct ContentView: View {
                                 pdf: model.pdf,
                                 revision: model.revision,
                                 controller: viewer,
-                                removeHighlight: model.removeHighlight
+                                removeHighlight: model.removeHighlight,
+                                moved: document.savePositionWhenSettled
                             )
                                 .overlay(alignment: .trailing) {
                                     ZoomHUD(viewer: viewer)

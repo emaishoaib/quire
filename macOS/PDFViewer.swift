@@ -6,6 +6,7 @@ struct PDFViewer: NSViewRepresentable {
     let revision: Int
     let controller: ViewerController
     let removeHighlight: (Highlight) -> Void
+    let moved: () -> Void
 
     func makeCoordinator() -> Coordinator {
         Coordinator(revision: revision, controller: controller)
@@ -28,7 +29,11 @@ struct PDFViewer: NSViewRepresentable {
         view.onResize = { [weak controller] top in controller?.viewDidResize(keeping: top) }
         view.onMouseDown = { [weak controller] in controller?.hideHighlightBar() }
         view.onMouseUp = { [weak controller] in controller?.pressEnded(at: $0) }
-        view.onScroll = { [weak controller] in controller?.hideHighlightBar() }
+        view.onScroll = { [weak controller, moved] in
+            controller?.hideHighlightBar()
+            moved()
+        }
+        view.onZoom = moved
         view.onContextClick = { [weak controller, removeHighlight] point in
             guard let highlight = controller?.highlightToRemove(at: point) else { return false }
             removeHighlight(highlight)
@@ -66,6 +71,7 @@ final class FittingPDFView: PDFView {
     var onMouseDown: (() -> Void)?
     var onMouseUp: ((NSPoint) -> Void)?
     var onScroll: (() -> Void)?
+    var onZoom: (() -> Void)?
 
     var onContextClick: ((NSPoint) -> Bool)?
 
@@ -79,6 +85,12 @@ final class FittingPDFView: PDFView {
             name: NSView.boundsDidChangeNotification,
             object: nil
         )
+        NotificationCenter.default.addObserver(
+            self,
+            selector: #selector(didZoom),
+            name: .PDFViewScaleChanged,
+            object: self
+        )
     }
 
     required init?(coder: NSCoder) {
@@ -88,6 +100,10 @@ final class FittingPDFView: PDFView {
     @objc private func clipViewDidScroll(_ notification: Notification) {
         guard let scrolled = notification.object as? NSClipView, scrolled.isDescendant(of: self) else { return }
         onScroll?()
+    }
+
+    @objc private func didZoom(_ notification: Notification) {
+        onZoom?()
     }
 
     override func setFrameSize(_ newSize: NSSize) {

@@ -6,6 +6,10 @@ final class QuireDocument: NSDocument {
 
     weak var viewer: ViewerController?
 
+    private static let positionSettleDelay = Duration.seconds(1)
+
+    private var pendingPositionSave: Task<Void, Never>?
+
     nonisolated override class var autosavesInPlace: Bool { false }
 
     override init() {
@@ -22,6 +26,7 @@ final class QuireDocument: NSDocument {
     }
 
     override func close() {
+        pendingPositionSave?.cancel()
         savePosition()
         Workspace.shared.remove(self)
         super.close()
@@ -30,6 +35,16 @@ final class QuireDocument: NSDocument {
     func savePosition() {
         guard let fileURL, let position = viewer?.position else { return }
         ReadingPositions.save(position, for: fileURL)
+    }
+
+    /// Saves the position once scrolling or zooming has been still for a moment, so a crash or rebuild loses at most that moment.
+    func savePositionWhenSettled() {
+        pendingPositionSave?.cancel()
+        pendingPositionSave = Task { [weak self] in
+            try? await Task.sleep(for: Self.positionSettleDelay)
+            guard !Task.isCancelled else { return }
+            self?.savePosition()
+        }
     }
 
     override func canClose(withDelegate delegate: Any, shouldClose shouldCloseSelector: Selector?, contextInfo: UnsafeMutableRawPointer?) {
