@@ -90,7 +90,7 @@ final class WorkspaceWindowController: NSWindowController, NSMenuItemValidation,
 
     @objc private func document(_ document: NSDocument, shouldClose: Bool, contextInfo: UnsafeMutableRawPointer?) {
         if shouldClose {
-            document.close()
+            Workspace.shared.closeFromTab(document)
         }
     }
 

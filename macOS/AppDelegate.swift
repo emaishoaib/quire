@@ -20,6 +20,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         AppUpdater.shared.start()
         OCRRunner.warmUp()
         ReadingPositions.removeOldList()
+        Workspace.shared.reopenSavedTabs()
 
         if Workspace.shared.tabs.isEmpty {
             showStart(nil)

@@ -41,6 +41,9 @@ final class Workspace {
 
     @ObservationIgnored private lazy var windowController = WorkspaceWindowController()
 
+    @ObservationIgnored private var isHoldingSavedTabs = false
+    @ObservationIgnored private var isClosingFromTab = false
+
     private init() {
         NSEvent.addLocalMonitorForEvents(matching: .flagsChanged) { [weak self] event in
             self?.setShowsTabNumbers(event.modifierFlags.contains(.command))
@@ -75,24 +78,67 @@ final class Workspace {
 
         let tab = WorkspaceTab(document: document, title: document.displayName, content: hosting)
         tabs.removeAll { $0.isStart }
-        if let index = placeholderIndex(for: document.fileURL) {
-            tabs[index] = tab
-        } else {
+        guard let index = placeholderIndex(for: document.fileURL) else {
             tabs.append(tab)
+            select(tab)
+            return
         }
-        select(tab)
+        let wasSelected = tabs[index].id == selectedID
+        tabs[index] = tab
+        if wasSelected {
+            select(tab)
+        } else {
+            saveOpenTabs()
+        }
     }
 
     func openPlaceholder(for url: URL) {
+        if let index = placeholderIndex(for: url) {
+            select(tabs[index])
+        } else {
+            tabs.removeAll { $0.isStart }
+            let tab = placeholder(for: url)
+            tabs.append(tab)
+            select(tab)
+        }
+        showWindow()
+    }
+
+    private func placeholder(for url: URL) -> WorkspaceTab {
         let hosting = NSHostingController(rootView: OpeningView(url: url))
         hosting.sizingOptions = []
 
         let title = FileManager.default.displayName(atPath: url.path)
-        let tab = WorkspaceTab(document: nil, opening: url, title: title, content: hosting)
+        return WorkspaceTab(document: nil, opening: url, title: title, content: hosting)
+    }
+
+    /// Opens the files that were open when Quire last ran, in front of any tab opened since launch.
+    func reopenSavedTabs() {
+        let files = OpenTabs.files.filter { url in
+            placeholderIndex(for: url) == nil && NSDocumentController.shared.document(for: url) == nil
+        }
+        guard !files.isEmpty else { return }
+
+        let savedSelection = OpenTabs.selected
         tabs.removeAll { $0.isStart }
-        tabs.append(tab)
-        select(tab)
+        tabs.insert(contentsOf: files.map(placeholder(for:)), at: 0)
+
+        if selectedID == nil || !tabs.contains(where: { $0.id == selectedID }) {
+            select(tabs[placeholderIndex(for: savedSelection) ?? 0])
+        } else {
+            saveOpenTabs()
+        }
         showWindow()
+
+        for url in files {
+            NSDocumentController.shared.openDocument(withContentsOf: url, display: false) { document, _, _ in
+                if let document = document as? QuireDocument {
+                    document.makeWindowControllers()
+                } else {
+                    Workspace.shared.removePlaceholder(for: url)
+                }
+            }
+        }
     }
 
     func removePlaceholder(for url: URL) {
@@ -123,6 +169,7 @@ final class Workspace {
         selectedID = tab.id
         windowController.display(tab)
         refreshTabs()
+        saveOpenTabs()
     }
 
     func move(_ tab: WorkspaceTab, to index: Int) {
@@ -130,6 +177,7 @@ final class Workspace {
               current != index, tabs.indices.contains(index)
         else { return }
         tabs.insert(tabs.remove(at: current), at: index)
+        saveOpenTabs()
     }
 
     func selectTab(at index: Int) {
@@ -169,16 +217,26 @@ final class Workspace {
         }
     }
 
+    /// Closes a document the person closed from its tab, the one kind of document close that drops it from the saved tabs.
+    func closeFromTab(_ document: NSDocument) {
+        isClosingFromTab = true
+        document.close()
+        isClosingFromTab = false
+    }
+
+    /// Drops a closed document's tab, keeping it in the saved tabs unless it was closed from its tab, as when quitting closes it.
     func remove(_ document: QuireDocument) {
-        if let tab = tabs.first(where: { $0.document === document }) {
-            remove(tab)
-        }
+        guard let tab = tabs.first(where: { $0.document === document }) else { return }
+        isHoldingSavedTabs = !isClosingFromTab
+        remove(tab)
+        isHoldingSavedTabs = false
     }
 
     func removeAll() {
         tabs.removeAll()
         selectedID = nil
         windowController.shutWindow()
+        saveOpenTabs()
     }
 
     private func remove(_ tab: WorkspaceTab) {
@@ -191,6 +249,13 @@ final class Workspace {
         } else if wasSelected {
             select(tabs[min(index, tabs.count - 1)])
         }
+        saveOpenTabs()
+    }
+
+    private func saveOpenTabs() {
+        guard !isHoldingSavedTabs else { return }
+        let selected = tabs.first { $0.id == selectedID }?.fileURL
+        OpenTabs.save(tabs.compactMap(\.fileURL), selected: selected)
     }
 
     func refreshTabs() {
