@@ -189,6 +189,12 @@ private struct TabButton: View {
         case closeButton
     }
 
+    private static let leadingPadding = 10.0
+    private static let trailingPadding = 5.0
+    private static let spacing = 4.0
+    private static let accessorySize = 16.0
+    private static let usualMaximumWidth = 200.0
+
     let tab: WorkspaceTab
     let isSelected: Bool
     let number: Int?
@@ -196,6 +202,27 @@ private struct TabButton: View {
     let close: () -> Void
 
     @State private var isHovered = false
+    @State private var titleWidth = 0.0
+
+    private var titleFont: Font {
+        .system(size: 12, weight: isSelected ? .medium : .regular)
+    }
+
+    private var showsFullTitle: Bool {
+        isHovered
+    }
+
+    private var fullTitleWidth: Double {
+        Self.leadingPadding + titleWidth.rounded(.up) + Self.spacing + Self.accessorySize + Self.trailingPadding
+    }
+
+    private var minimumWidth: CGFloat? {
+        showsFullTitle ? fullTitleWidth : nil
+    }
+
+    private var maximumWidth: CGFloat {
+        max(Self.usualMaximumWidth, minimumWidth ?? 0)
+    }
 
     private var accessory: Accessory {
         if let number {
@@ -218,13 +245,24 @@ private struct TabButton: View {
     }
 
     var body: some View {
-        HStack(spacing: 4) {
+        HStack(spacing: Self.spacing) {
             Text(tab.title)
-                .font(.system(size: 12, weight: isSelected ? .medium : .regular))
+                .font(titleFont)
                 .foregroundStyle(isSelected ? .primary : .secondary)
                 .lineLimit(1)
                 .truncationMode(.middle)
                 .frame(maxWidth: .infinity, alignment: .leading)
+                .background {
+                    Text(tab.title)
+                        .font(titleFont)
+                        .fixedSize()
+                        .hidden()
+                        .onGeometryChange(for: Double.self) { proxy in
+                            proxy.size.width
+                        } action: { width in
+                            titleWidth = width
+                        }
+                }
 
             ZStack {
                 switch accessory {
@@ -233,14 +271,14 @@ private struct TabButton: View {
                         .font(.system(size: 10, weight: .semibold))
                         .monospacedDigit()
                         .foregroundStyle(.secondary)
-                        .frame(width: 16, height: 16)
+                        .frame(width: Self.accessorySize, height: Self.accessorySize)
                         .background(.quaternary, in: .rect(cornerRadius: 4))
                         .transition(.scale(scale: 0.7).combined(with: .opacity))
                 case .unsavedDot:
                     Circle()
                         .fill(.secondary)
                         .frame(width: 7, height: 7)
-                        .frame(width: 16, height: 16)
+                        .frame(width: Self.accessorySize, height: Self.accessorySize)
                         .help("Unsaved changes")
                         .transition(.scale(scale: 0.5).combined(with: .opacity))
                 case .closeButton:
@@ -248,7 +286,7 @@ private struct TabButton: View {
                         Image(systemName: "xmark")
                             .font(.system(size: 9, weight: .bold))
                             .foregroundStyle(.secondary)
-                            .frame(width: 16, height: 16)
+                            .frame(width: Self.accessorySize, height: Self.accessorySize)
                             .contentShape(.rect)
                     }
                     .buttonStyle(.plain)
@@ -259,17 +297,20 @@ private struct TabButton: View {
             }
             .animation(.easeOut(duration: 0.12), value: accessory)
         }
-        .padding(.leading, 10)
-        .padding(.trailing, 5)
-        .frame(maxWidth: 200)
+        .padding(.leading, Self.leadingPadding)
+        .padding(.trailing, Self.trailingPadding)
+        .frame(minWidth: minimumWidth, maxWidth: maximumWidth)
         .frame(height: 26)
         .background(fill, in: .rect(cornerRadius: 6))
         .frame(maxHeight: .infinity)
         .contentShape(.rect)
         .onTapGesture(perform: select)
         .onMiddleClick(perform: close)
-        .onHover { isHovered = $0 }
-        .animation(.easeOut(duration: 0.12), value: isHovered)
+        .onHover { hovering in
+            withAnimation(TabStrip.animation) {
+                isHovered = hovering
+            }
+        }
         .help(tab.title)
     }
 }
