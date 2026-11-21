@@ -311,11 +311,30 @@ private struct TabButton: View {
         .contentShape(.rect)
         .onTapGesture(perform: select)
         .onMiddleClick(perform: close)
+        .contextMenu {
+            if let fileURL = tab.fileURL {
+                TabMenu(fileURL: fileURL)
+            }
+        }
         .onHover { hovering in
             withAnimation(TabStrip.animation) {
                 isHovered = hovering
             }
         }
         .help(tab.title)
+    }
+}
+
+private struct TabMenu: View {
+    let fileURL: URL
+
+    var body: some View {
+        Button("Show in Finder") {
+            NSWorkspace.shared.activateFileViewerSelecting([fileURL])
+        }
+        Button("Copy Path") {
+            NSPasteboard.general.clearContents()
+            NSPasteboard.general.setString(fileURL.path(percentEncoded: false), forType: .string)
+        }
     }
 }

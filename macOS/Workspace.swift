@@ -15,6 +15,8 @@ final class WorkspaceTab: Identifiable {
 
     var isStart: Bool { document == nil && opening == nil }
 
+    var fileURL: URL? { document?.fileURL ?? opening }
+
     init(document: QuireDocument?, opening: URL? = nil, title: String, content: NSViewController) {
         self.document = document
         self.opening = opening
