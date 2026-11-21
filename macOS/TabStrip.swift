@@ -18,6 +18,7 @@ struct TabStrip: View {
 
     @State private var drag: TabDrag?
     @State private var tabWidths: [WorkspaceTab.ID: Double] = [:]
+    @AppStorage(SettingKey.showsSelectedTabFullTitle) private var showsSelectedTabFullTitle = false
 
     var body: some View {
         VStack(spacing: 0) {
@@ -27,6 +28,7 @@ struct TabStrip: View {
                         tab: tab,
                         isSelected: tab.id == workspace.selectedID,
                         number: workspace.showsTabNumbers && index < Workspace.numberedTabs ? index + 1 : nil,
+                        keepsFullTitle: showsSelectedTabFullTitle && tab.id == workspace.selectedID,
                         select: { workspace.select(tab) },
                         close: { workspace.close(tab) }
                     )
@@ -72,6 +74,8 @@ struct TabStrip: View {
             .padding(.trailing, 8)
             .animation(Self.animation, value: Set(workspace.tabs.map(\.id)))
             .animation(Self.animation, value: workspace.stripLeadingInset)
+            .animation(showsSelectedTabFullTitle ? Self.animation : nil, value: workspace.selectedID)
+            .animation(Self.animation, value: showsSelectedTabFullTitle)
 
             Divider()
         }
@@ -198,6 +202,7 @@ private struct TabButton: View {
     let tab: WorkspaceTab
     let isSelected: Bool
     let number: Int?
+    let keepsFullTitle: Bool
     let select: () -> Void
     let close: () -> Void
 
@@ -209,7 +214,7 @@ private struct TabButton: View {
     }
 
     private var showsFullTitle: Bool {
-        isHovered
+        isHovered || keepsFullTitle
     }
 
     private var fullTitleWidth: Double {

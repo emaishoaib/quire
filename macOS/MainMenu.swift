@@ -16,6 +16,8 @@ enum MainMenu {
         menu.addItem(withTitle: "About Quire", action: #selector(NSApplication.orderFrontStandardAboutPanel(_:)), keyEquivalent: "")
         menu.addItem(AppUpdater.shared.makeMenuItem())
         menu.addItem(.separator())
+        menu.addItem(withTitle: "Settings…", action: Selector(("showSettings:")), keyEquivalent: ",")
+        menu.addItem(.separator())
         menu.addItem(withTitle: "Hide Quire", action: #selector(NSApplication.hide(_:)), keyEquivalent: "h")
 
         let hideOthers = menu.addItem(withTitle: "Hide Others", action: #selector(NSApplication.hideOtherApplications(_:)), keyEquivalent: "h")

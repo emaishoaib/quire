@@ -41,6 +41,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         Workspace.shared.openStart()
     }
 
+    @objc func showSettings(_ sender: Any?) {
+        SettingsWindowController.shared.showWindow(sender)
+    }
+
     func applicationShouldTerminateAfterLastWindowClosed(_ sender: NSApplication) -> Bool {
         true
     }
